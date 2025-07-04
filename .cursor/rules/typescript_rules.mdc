@@ -1,0 +1,252 @@
+---
+description: Guidelines for using TypeScript with Next.js App Router and Convex Auth with Shadcn components and pnpm
+alwaysApply: false
+---
+
+# TypeScript with Next.js App Router and Convex Auth
+
+## Authentication and Authorization
+
+- **Use Convex Auth with Next.js App Router**:
+  - Keep auth logic in `convex/auth.ts`
+  - Use middleware.ts for route protection
+  - Implement SSA patterns for secure data access
+
+## Code Structure and Routing
+
+- **Follow App Router Conventions**:
+  - Use `page.tsx` for route components
+  - Place layouts in `layout.tsx`
+  - Keep auth middleware in project root
+  - Store Convex functions in `convex/` directory
+
+## Component Architecture
+
+- **Server vs Client Components**:
+  - Default to Server Components
+  - Add 'use client' only when needed for:
+    - Auth state management
+    - Interactive UI elements
+    - Client-side form handling
+  - Keep auth forms as Client Components
+
+## Authentication Patterns
+
+- **Convex Auth Integration**:
+  - Use `useConvexAuth()` for auth state
+  - Implement `useAuthActions()` for sign in/out
+  - Handle auth redirects in middleware
+  - Store auth tokens securely
+
+## Data Fetching and State
+
+- **Convex Query Patterns**:
+  - Use `useQuery` for reactive data
+  - Implement `useMutation` for writes
+  - Handle loading and error states
+  - Optimize with `useConvexAuth().isAuthenticated`
+
+## Error Handling
+
+- **Auth-Specific Error Handling**:
+  - Handle auth state transitions
+  - Provide clear error messages
+  - Implement proper error boundaries
+  - Use Convex's error types
+
+## Route Protection
+
+- **Secure Routes**:
+  - Use middleware for auth checks
+  - Implement role-based access
+  - Handle auth redirects
+  - Protect API routes
+
+## Performance
+
+- **Auth-Aware Optimization**:
+  - Minimize auth state revalidation
+  - Use proper Suspense boundaries
+  - Implement auth state preloading
+  - Optimize auth token handling
+
+## TypeScript Best Practices
+
+- **Type Safety**:
+  - Use strict TypeScript checks
+  - Type auth states properly
+  - Define clear interfaces
+  - Use Convex's generated types
+
+## Forms and Validation
+
+- **Auth Forms**:
+  - Use controlled components
+  - Implement proper validation
+  - Handle auth state transitions
+  - Show loading states
+
+## Security
+
+- **Auth Security**:
+  - Implement CSRF protection
+  - Use secure session handling
+  - Follow OAuth best practices
+  - Protect sensitive routes
+
+## Testing
+
+- **Auth Testing**:
+  - Mock auth states
+  - Test protected routes
+  - Verify auth flows
+  - Use proper test utilities
+
+## Key Conventions
+
+- **Auth State Management**:
+  - Use Convex's built-in hooks
+  - Implement proper loading states
+  - Handle auth transitions
+  - Manage user sessions
+
+- **Route Organization**:
+  - Group auth routes together
+  - Use proper middleware
+  - Implement role-based routing
+  - Handle auth redirects
+
+- **Data Access**:
+  - Use Convex queries with auth
+  - Implement proper ACL
+  - Handle unauthorized access
+  - Manage data permissions
+
+  - **Use only for Web API access** in small components.
+  - **Avoid for data fetching or state management**.
+
+- **Follow Next.js docs** for Data Fetching, Rendering, and Routing.
+
+# TypeScript with Next.js App Router and Convex Auth
+
+## Authentication and Authorization
+
+- **Use Convex Auth with Next.js App Router**:
+  - Keep auth logic in `convex/auth.ts`
+  - Use middleware.ts for route protection
+  - Implement SSA patterns for secure data access
+
+## Code Structure and Routing
+
+- **Follow App Router Conventions**:
+  - Use `page.tsx` for route components
+  - Place layouts in `layout.tsx`
+  - Keep auth middleware in project root
+  - Store Convex functions in `convex/` directory
+
+## Component Architecture
+
+- **Server vs Client Components**:
+  - Default to Server Components
+  - Add 'use client' only when needed for:
+    - Auth state management
+    - Interactive UI elements
+    - Client-side form handling
+  - Keep auth forms as Client Components
+
+## Authentication Patterns
+
+- **Convex Auth Integration**:
+  - Use `useConvexAuth()` for auth state
+  - Implement `useAuthActions()` for sign in/out
+  - Handle auth redirects in middleware
+  - Store auth tokens securely
+
+## Data Fetching and State
+
+- **Convex Query Patterns**:
+  - Use `useQuery` for reactive data
+  - Implement `useMutation` for writes
+  - Handle loading and error states
+  - Optimize with `useConvexAuth().isAuthenticated`
+
+## Error Handling
+
+- **Auth-Specific Error Handling**:
+  - Handle auth state transitions
+  - Provide clear error messages
+  - Implement proper error boundaries
+  - Use Convex's error types
+
+## Route Protection
+
+- **Secure Routes**:
+  - Use middleware for auth checks
+  - Implement role-based access
+  - Handle auth redirects
+  - Protect API routes
+
+## Performance
+
+- **Auth-Aware Optimization**:
+  - Minimize auth state revalidation
+  - Use proper Suspense boundaries
+  - Implement auth state preloading
+  - Optimize auth token handling
+
+## TypeScript Best Practices
+
+- **Type Safety**:
+  - Use strict TypeScript checks
+  - Type auth states properly
+  - Define clear interfaces
+  - Use Convex's generated types
+
+## Forms and Validation
+
+- **Auth Forms**:
+  - Use controlled components
+  - Implement proper validation
+  - Handle auth state transitions
+  - Show loading states
+
+## Security
+
+- **Auth Security**:
+  - Implement CSRF protection
+  - Use secure session handling
+  - Follow OAuth best practices
+  - Protect sensitive routes
+
+## Testing
+
+- **Auth Testing**:
+  - Mock auth states
+  - Test protected routes
+  - Verify auth flows
+  - Use proper test utilities
+
+## Key Conventions
+
+- **Auth State Management**:
+  - Use Convex's built-in hooks
+  - Implement proper loading states
+  - Handle auth transitions
+  - Manage user sessions
+
+- **Route Organization**:
+  - Group auth routes together
+  - Use proper middleware
+  - Implement role-based routing
+  - Handle auth redirects
+
+- **Data Access**:
+  - Use Convex queries with auth
+  - Implement proper ACL
+  - Handle unauthorized access
+  - Manage data permissions
+
+  - **Use only for Web API access** in small components.
+  - **Avoid for data fetching or state management**.
+
+- **Follow Next.js docs** for Data Fetching, Rendering, and Routing.

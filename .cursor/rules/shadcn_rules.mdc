@@ -1,0 +1,57 @@
+---
+description: shadcn/ui Best Practices, styling and component structure
+alwaysApply: false
+---
+
+# shadcn/ui Best Practices
+
+## Installation & Setup
+
+- **Component Installation**:
+  - Use `pnpm dlx shadcn@latest add [component]`
+  - Never edit files in `/components/ui` directly
+  - Keep custom variants in separate files
+  - Update themes in `globals.css`
+
+## Component Usage
+
+- **Imports**:
+  - Import from `@/components/ui`
+  - Use named imports
+  - Group related components
+  - Import types separately
+
+- **Forms**:
+  - Use Form component with zod
+  - Implement FormField for complex inputs
+  - Handle loading states
+  - Show validation feedback
+
+- **Styling**:
+  - Use cn() for conditional classes
+  - Follow Tailwind class order
+  - Extend variants in config
+  - Use CSS variables for theming
+
+## Common Patterns
+
+- **Layout**:
+  - Card for content containers
+  - Dialog for modals
+  - Sheet for mobile menus
+  - Toast for notifications
+
+- **Data Display**:
+  - Table for data grids
+  - Accordion for collapsible content
+  - Tabs for sectioned content
+  - Hover Card for previews
+
+## Accessibility
+
+- **Best Practices**:
+  - Use proper ARIA roles
+  - Handle keyboard navigation
+  - Manage focus states
+  - Test with screen readers
+  - Follow atomic design principles
