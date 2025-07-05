@@ -47,7 +47,11 @@ export function Header() {
             </Button>
           </div>
         ) : (
-          <Button className="min-w-24" onClick={() => router.push("/signin")}>
+          <Button
+            className="min-w-24"
+            variant="outline"
+            onClick={() => router.push("/signin")}
+          >
             Sign in
           </Button>
         )}
