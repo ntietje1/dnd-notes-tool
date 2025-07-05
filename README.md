@@ -26,6 +26,7 @@ A modern note-taking and sharing platform designed specifically for Dungeon Mast
 - **Dual Note Interface**
   - Join one or more campaigns
   - View DM-shared content in a dedicated window
+  - Session-based tagging
   - Create and maintain personal notes
   - Add personal annotations to DM-shared content
 
@@ -52,7 +53,6 @@ A modern note-taking and sharing platform designed specifically for Dungeon Mast
 
 - **Enhanced Organization**
   - Custom tag creation
-  - Session-based tagging
   - Wiki-style note linking
   - Advanced filtering options
   - Embedded documents and other file formats
