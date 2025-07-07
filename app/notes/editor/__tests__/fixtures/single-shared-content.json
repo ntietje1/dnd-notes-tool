@@ -1,0 +1,23 @@
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "sharedNode",
+      "attrs": {
+        "shared": true,
+        "sharedBy": null
+      },
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "This is shared content"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

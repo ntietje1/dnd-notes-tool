@@ -31,7 +31,7 @@ export default function Page() {
               <Button
                 size="lg"
                 className="text-lg px-8"
-                onClick={() => router.push("/example")}
+                onClick={() => router.push("/notes")}
               >
                 Get Started
               </Button>

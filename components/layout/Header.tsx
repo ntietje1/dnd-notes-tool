@@ -22,20 +22,20 @@ export function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-10 bg-background p-4 border-b border-slate-200 dark:border-slate-800">
+    <header className="sticky top-0 z-10 bg-background p-4 border-b border-border">
       <div className="mx-auto flex justify-between items-center">
-        <Link href="/" className="font-bold text-xl">
+        <Link href="/" className="font-bold text-xl text-primary">
           D&D Notes
         </Link>
         {isLoading ? (
-          <Button className="min-w-24" variant="outline" disabled>
+          <Button className="min-w-24 text-primary" variant="outline" disabled>
             <Loader2Icon className="animate-spin" />
             Loading
           </Button>
         ) : isAuthenticated ? (
           <div className="flex items-center gap-4">
             <Button
-              className="min-w-24"
+              className="min-w-24 text-primary"
               variant="outline"
               onClick={() =>
                 void signOut().then(() => {
@@ -48,7 +48,7 @@ export function Header() {
           </div>
         ) : (
           <Button
-            className="min-w-24"
+            className="min-w-24 text-primary"
             variant="outline"
             onClick={() => router.push("/signin")}
           >
