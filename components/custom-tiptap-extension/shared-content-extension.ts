@@ -109,30 +109,27 @@ export const SharedContentExtension = Extension.create<SharedContentOptions>({
         () =>
         ({ tr, state, dispatch }) => {
           const { selection } = state;
-          const cursorPos = selection.from;
+          const { from, to } = selection;
 
-          // Find the shareable node that contains the cursor
-          let targetBlock: { pos: number; node: ProseMirrorNode } | undefined;
-
-          state.doc.nodesBetween(0, state.doc.content.size, (node, pos) => {
-            const nodeEnd = pos + node.nodeSize;
-            if (
-              this.options.types.includes(node.type.name) &&
-              pos <= cursorPos &&
-              cursorPos <= nodeEnd &&
-              !targetBlock
-            ) {
-              targetBlock = { pos, node };
+          // Find all shareable nodes in the selection
+          const blocks: { pos: number; node: ProseMirrorNode }[] = [];
+          state.doc.nodesBetween(from, to, (node, pos) => {
+            if (this.options.types.includes(node.type.name)) {
+              blocks.push({ pos, node });
             }
           });
 
-          if (!targetBlock) return false;
+          if (blocks.length === 0) return false;
 
           if (!dispatch) return true;
 
-          // Toggle the shared attribute
-          const currentShared = targetBlock.node.attrs.shared;
-          tr.setNodeAttribute(targetBlock.pos, "shared", !currentShared);
+          // Check if any block in the selection is already shared
+          const hasSharedBlock = blocks.some(({ node }) => node.attrs.shared);
+
+          // If any block is shared, unset all. If none are shared, set all.
+          blocks.forEach(({ pos }) => {
+            tr.setNodeAttribute(pos, "shared", !hasSharedBlock);
+          });
 
           return true;
         },

@@ -69,7 +69,6 @@ import { useWindowSize } from "@/hooks/use-window-size";
 import { useCursorVisibility } from "@/hooks/use-cursor-visibility";
 
 // --- Components ---
-// import { ThemeToggle } from "@/components/tiptap-templates/simple/theme-toggle";
 
 // --- Lib ---
 import { handleImageUpload, MAX_FILE_SIZE } from "@/lib/tiptap-utils";
@@ -193,6 +192,7 @@ export function SimpleEditor() {
 
   const editor = useEditor({
     immediatelyRender: false,
+    enableContentCheck: true,
     editorProps: {
       attributes: {
         autocomplete: "off",
@@ -225,6 +225,9 @@ export function SimpleEditor() {
       Link.configure({ openOnClick: false }),
     ],
     content: content,
+    onContentError: (error) => {
+      console.error("Content error:", error);
+    },
   });
 
   const bodyRect = useCursorVisibility({
