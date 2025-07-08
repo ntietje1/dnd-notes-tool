@@ -1,4 +1,5 @@
 {
   "iis.configDir": "",
-  "cSpell.ignoreWords": ["keymap"]
+  "cSpell.ignoreWords": ["keymap"],
+  "cSpell.words": ["Topbar"]
 }

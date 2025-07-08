@@ -75,10 +75,11 @@ import { handleImageUpload, MAX_FILE_SIZE } from "@/lib/tiptap-utils";
 
 // --- Styles ---
 import "@/components/custom-tiptap-ui/editor/editor.scss";
+import "@/components/custom-tiptap-extension/shared-content.scss";
 
-import content from "@/app/notes/editor/data/content.json";
 import { ShareButton } from "../share-button/shareButton";
 import { SharedContentExtension } from "@/components/custom-tiptap-extension/shared-content-extension";
+import { type JSONContent, type Editor } from "@tiptap/react";
 
 const MainToolbarContent = ({
   onHighlighterClick,
@@ -182,7 +183,17 @@ const MobileToolbarContent = ({
   </>
 );
 
-export function SimpleEditor() {
+interface SimpleEditorProps {
+  content?: JSONContent;
+  onUpdate?: (props: { editor: Editor }) => void;
+  className?: string;
+}
+
+export function SimpleEditor({
+  content,
+  onUpdate,
+  className,
+}: SimpleEditorProps) {
   const isMobile = useMobile();
   const windowSize = useWindowSize();
   const [mobileView, setMobileView] = React.useState<
@@ -193,6 +204,8 @@ export function SimpleEditor() {
   const editor = useEditor({
     immediatelyRender: false,
     enableContentCheck: true,
+    content: content,
+    onUpdate,
     editorProps: {
       attributes: {
         autocomplete: "off",
@@ -224,23 +237,26 @@ export function SimpleEditor() {
       TrailingNode,
       Link.configure({ openOnClick: false }),
     ],
-    content: content,
     onContentError: (error) => {
       console.error("Content error:", error);
     },
   });
 
+  // Update editor content when it changes from props
+  React.useEffect(() => {
+    if (editor && content) {
+      // Only update if content is different to avoid loops
+      const currentContent = editor.getJSON();
+      if (JSON.stringify(currentContent) !== JSON.stringify(content)) {
+        editor.commands.setContent(content);
+      }
+    }
+  }, [editor, content]);
+
   const bodyRect = useCursorVisibility({
     editor,
     overlayHeight: toolbarRef.current?.getBoundingClientRect().height ?? 0,
   });
-
-  const handleSave = React.useCallback(() => {
-    if (editor) {
-      const content = editor.getJSON();
-      console.log("Saving editor content:", content);
-    }
-  }, [editor]);
 
   React.useEffect(() => {
     if (!isMobile && mobileView !== "main") {
@@ -279,7 +295,7 @@ export function SimpleEditor() {
         <EditorContent
           editor={editor}
           role="presentation"
-          className="simple-editor-content"
+          className={`simple-editor-content ${className}`}
         />
       </div>
     </EditorContext.Provider>
