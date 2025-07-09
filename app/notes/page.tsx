@@ -11,6 +11,11 @@ import { FileSidebar } from "@/components/file-sidebar/sidebar";
 import { FileTopbar } from "@/components/file-topbar/topbar";
 import { OptimisticLocalStore } from "convex/browser";
 import { Id } from "@/convex/_generated/dataModel";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@/components/ui/resizable";
 
 export default function NotesPage() {
   const [selectedNoteId, setSelectedNoteId] = useState<Id<"notes"> | undefined>(
@@ -90,22 +95,29 @@ export default function NotesPage() {
   }, []);
 
   return (
-    <div className="flex flex-row h-screen">
-      <FileSidebar onNoteSelected={handleNoteSelected} />
-      <div className="flex-1 items-center justify-center h-screen">
-        <FileTopbar
-          note={savedNote || null}
-          onTitleChange={handleTitleChange}
-          onClose={() => {}}
-          onDelete={() => {}}
-          onShare={() => {}}
-          onExport={() => {}}
-        />
-        <SimpleEditor
-          content={savedNote?.content}
-          onUpdate={handleContentUpdate}
-        />
-      </div>
-    </div>
+    <ResizablePanelGroup direction="horizontal" className="h-auto">
+      <ResizablePanel defaultSize={16} minSize={10} maxSize={40}>
+        <FileSidebar onNoteSelected={handleNoteSelected} />
+      </ResizablePanel>
+      <ResizableHandle />
+      <ResizablePanel defaultSize={84}>
+        <div className="h-full flex flex-col">
+          <FileTopbar
+            note={savedNote || null}
+            onTitleChange={handleTitleChange}
+            onClose={() => {}}
+            onDelete={() => {}}
+            onShare={() => {}}
+            onExport={() => {}}
+          />
+          <div className="flex-1 overflow-hidden">
+            <SimpleEditor
+              content={savedNote?.content}
+              onUpdate={handleContentUpdate}
+            />
+          </div>
+        </div>
+      </ResizablePanel>
+    </ResizablePanelGroup>
   );
 }
