@@ -124,7 +124,7 @@ export default function NotesPage() {
 
   return (
     <ResizablePanelGroup direction="horizontal" className="h-auto">
-      <ResizablePanel defaultSize={25} minSize={20} maxSize={40}>
+      <ResizablePanel defaultSize={25} minSize={10} maxSize={40}>
         <FileSidebar onNoteSelected={handleNoteSelected} />
       </ResizablePanel>
       <ResizableHandle />
