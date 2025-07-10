@@ -6,17 +6,17 @@ import {
   type ContextMenuItem,
 } from "@/components/context-menu/context-menu";
 
-interface FolderContextMenuProps {
+interface NoteContextMenuProps {
   children: React.ReactNode;
   onEdit: () => void;
   onDelete: () => void;
 }
 
-export function FolderContextMenu({
+export function NoteContextMenu({
   children,
   onEdit,
   onDelete,
-}: FolderContextMenuProps) {
+}: NoteContextMenuProps) {
   const menuItems: ContextMenuItem[] = [
     {
       label: "Rename",

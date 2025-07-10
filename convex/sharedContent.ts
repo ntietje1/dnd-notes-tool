@@ -1,9 +1,11 @@
-import { mutation, query } from "./_generated/server";
+import { query } from "./_generated/server";
 import { v } from "convex/values";
-import { Id } from "./_generated/dataModel";
 
-// Helper function to check if content has shared nodes
-function hasSharedNodes(content: any): boolean {
+// Helper function to get base user ID from OAuth subject (keep in sync with notes.ts)
+const getBaseUserId = (subject: string) => subject.split("|")[0];
+
+// Function to check if content has shared blocks
+export function checkForSharedContent(content: any): boolean {
   if (!content) return false;
 
   // Check if the current node is shared
@@ -13,14 +15,14 @@ function hasSharedNodes(content: any): boolean {
 
   // Recursively check content array
   if (Array.isArray(content.content)) {
-    return content.content.some(hasSharedNodes);
+    return content.content.some(checkForSharedContent);
   }
 
   return false;
 }
 
-// Helper function to extract shared blocks
-function extractSharedBlocks(content: any): any[] {
+// Function to extract shared blocks from content
+export function extractSharedBlocks(content: any): any[] {
   if (!content) return [];
 
   const sharedBlocks: any[] = [];
@@ -46,12 +48,16 @@ export const getNotesWithSharedContent = query({
       throw new Error("Not authenticated");
     }
 
-    return await ctx.db
+    const notes = await ctx.db
       .query("notes")
       .withIndex("by_shared", (q) =>
         q.eq("hasSharedContent", true).eq("userId", identity.subject),
       )
       .collect();
+
+    // Filter notes to match base user ID
+    const baseUserId = getBaseUserId(identity.subject);
+    return notes.filter((note) => getBaseUserId(note.userId) === baseUserId);
   },
 });
 
@@ -65,15 +71,13 @@ export const getSharedBlocks = query({
     }
 
     const note = await ctx.db.get(args.noteId);
-    if (!note || note.userId !== identity.subject) {
+    if (
+      !note ||
+      getBaseUserId(note.userId) !== getBaseUserId(identity.subject)
+    ) {
       throw new Error("Note not found or access denied");
     }
 
     return extractSharedBlocks(note.content);
   },
 });
-
-// Export helper function to be used in other mutations
-export function checkForSharedContent(content: any): boolean {
-  return hasSharedNodes(content);
-}

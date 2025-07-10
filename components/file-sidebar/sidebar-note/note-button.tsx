@@ -3,35 +3,45 @@
 import { FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Note } from "@/convex/types";
-import { UNTITLED_NOTE_TITLE } from "@/convex/types";
-import { cn } from "@/lib/utils";
+import { NoteName } from "./note-name";
+import { NoteContextMenu } from "./note-context-menu";
 
 interface NoteButtonProps {
-  note: any;
-  isDragging?: boolean;
-  onNoteSelected?: (note: Note) => void;
+  note: Note;
+  isRenaming: boolean;
+  onNoteSelected: (note: Note) => void;
+  onStartRename: () => void;
+  onFinishRename: (name: string) => void;
+  onDelete: () => void;
 }
 
 export function NoteButton({
   note,
-  isDragging,
+  isRenaming,
   onNoteSelected,
+  onStartRename,
+  onFinishRename,
+  onDelete,
 }: NoteButtonProps) {
   return (
-    <div className="flex w-full min-w-0">
+    <NoteContextMenu onEdit={onStartRename} onDelete={onDelete}>
       <Button
         variant="ghost"
-        className={cn(
-          "flex-1 justify-start gap-2 h-9 px-2 min-w-0",
-          isDragging && "opacity-50",
-        )}
-        onClick={() => onNoteSelected?.(note)}
+        className="w-full flex-1 justify-start gap-2 h-8 min-w-0 p-0"
+        onClick={(e) => {
+          e.stopPropagation();
+          onNoteSelected(note);
+        }}
       >
-        <div className="flex items-center gap-2 min-w-0 w-full">
+        <div className="flex items-center gap-1 min-w-0 w-full pl-4">
           <FileText className="h-4 w-4 shrink-0" />
-          <span className="truncate">{note.title || UNTITLED_NOTE_TITLE}</span>
+          <NoteName
+            note={note}
+            isRenaming={isRenaming}
+            onFinishRename={onFinishRename}
+          />
         </div>
       </Button>
-    </div>
+    </NoteContextMenu>
   );
 }

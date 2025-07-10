@@ -21,7 +21,12 @@ export default function NotesPage() {
   const [selectedNoteId, setSelectedNoteId] = useState<Id<"notes"> | undefined>(
     undefined,
   );
-  const savedNote = useQuery(api.notes.getNote, { noteId: selectedNoteId });
+  const [optimisticNote, setOptimisticNote] = useState<Note | null>(null);
+
+  const savedNote = useQuery(api.notes.getNote, {
+    noteId: selectedNoteId,
+  });
+
   const saveNote = useMutation(api.notes.saveNote).withOptimisticUpdate(
     (store: OptimisticLocalStore, args: SaveNoteArgs) => {
       // Update the note query
@@ -69,41 +74,64 @@ export default function NotesPage() {
   const handleContentUpdate = useCallback(
     ({ editor }: { editor: Editor }) => {
       const content = editor.getJSON();
-      if (!savedNote?._id) return;
+      const noteId = optimisticNote?._id || savedNote?._id;
+      if (!noteId) return;
+
+      // Update optimistic note
+      if (optimisticNote) {
+        setOptimisticNote((prev) => (prev ? { ...prev, content } : null));
+      }
+
       debouncedSave({
-        noteId: savedNote?._id,
+        noteId,
         content,
       });
     },
-    [debouncedSave, savedNote?._id],
+    [debouncedSave, savedNote?._id, optimisticNote],
   );
 
   const handleTitleChange = useCallback(
     (title: string) => {
-      if (savedNote?._id) {
-        saveNote({
-          noteId: savedNote._id,
-          title,
-        });
+      const noteId = optimisticNote?._id || savedNote?._id;
+      if (!noteId) return;
+
+      // Update optimistic note
+      if (optimisticNote) {
+        setOptimisticNote((prev) => (prev ? { ...prev, title } : null));
       }
+
+      saveNote({
+        noteId,
+        title,
+      });
     },
-    [saveNote, savedNote?._id],
+    [saveNote, savedNote?._id, optimisticNote],
   );
 
   const handleNoteSelected = useCallback((note: Note) => {
     setSelectedNoteId(note._id);
+    // Set optimistic note immediately
+    setOptimisticNote(note);
   }, []);
+
+  // Clear optimistic note when the real note loads
+  if (savedNote && optimisticNote?._id === savedNote._id) {
+    setOptimisticNote(null);
+  }
+
+  // Use optimistic note if available, otherwise use saved note
+  const displayedNote = optimisticNote || savedNote || null;
 
   return (
     <ResizablePanelGroup direction="horizontal" className="h-auto">
-      <ResizablePanel defaultSize={16} minSize={10} maxSize={40}>
+      <ResizablePanel defaultSize={25} minSize={20} maxSize={40}>
         <FileSidebar onNoteSelected={handleNoteSelected} />
       </ResizablePanel>
       <ResizableHandle />
-      <ResizablePanel defaultSize={84}>
+      <ResizablePanel defaultSize={75}>
         <div className="h-full flex flex-col">
           <FileTopbar
-            note={savedNote || null}
+            note={displayedNote}
             onTitleChange={handleTitleChange}
             onClose={() => {}}
             onDelete={() => {}}
@@ -112,7 +140,7 @@ export default function NotesPage() {
           />
           <div className="flex-1 overflow-hidden">
             <SimpleEditor
-              content={savedNote?.content}
+              content={displayedNote?.content}
               onUpdate={handleContentUpdate}
             />
           </div>

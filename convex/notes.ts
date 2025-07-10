@@ -1,8 +1,11 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { checkForSharedContent } from "./sharedContent";
-import { Doc, Id } from "./_generated/dataModel";
+import { Doc } from "./_generated/dataModel";
 import { SaveNoteArgs, Note, Folder, SidebarData } from "./types";
+
+// Helper function to get base user ID from OAuth subject
+const getBaseUserId = (subject: string) => subject.split("|")[0];
 
 export const saveNote = mutation({
   args: {
@@ -17,7 +20,7 @@ export const saveNote = mutation({
     }
 
     const note = await ctx.db.get(args.noteId);
-    if (!note || note.userId !== identity.subject) {
+    if (!note || note.userId !== getBaseUserId(identity.subject)) {
       throw new Error("Note not found or unauthorized");
     }
 
@@ -115,7 +118,7 @@ export const getNote = query({
     }
 
     const note = await ctx.db.get(args.noteId);
-    if (!note || note.userId !== identity.subject) {
+    if (!note || note.userId !== getBaseUserId(identity.subject)) {
       throw new Error("Note not found or unauthorized");
     }
 
@@ -130,9 +133,11 @@ export const getUserNotes = query({
       throw new Error("Not authenticated");
     }
 
+    const baseUserId = getBaseUserId(identity.subject);
+
     const notes = await ctx.db
       .query("notes")
-      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .withIndex("by_user", (q) => q.eq("userId", baseUserId))
       .collect();
 
     return notes as Note[];
@@ -146,9 +151,11 @@ export const getUserFolders = query({
       throw new Error("Not authenticated");
     }
 
+    const baseUserId = getBaseUserId(identity.subject);
+
     const folders = await ctx.db
       .query("folders")
-      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .withIndex("by_user", (q) => q.eq("userId", baseUserId))
       .collect();
 
     return folders as Folder[];
@@ -162,14 +169,16 @@ export const getSidebarData = query({
       throw new Error("Not authenticated");
     }
 
+    const baseUserId = getBaseUserId(identity.subject);
+
     const [folders, notes] = await Promise.all([
       ctx.db
         .query("folders")
-        .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+        .withIndex("by_user", (q) => q.eq("userId", baseUserId))
         .collect(),
       ctx.db
         .query("notes")
-        .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+        .withIndex("by_user", (q) => q.eq("userId", baseUserId))
         .collect(),
     ]);
 
@@ -191,7 +200,7 @@ export const createFolder = mutation({
     }
 
     return await ctx.db.insert("folders", {
-      userId: identity.subject,
+      userId: getBaseUserId(identity.subject),
       name: args.name || "",
       updatedAt: Date.now(),
     });
@@ -210,7 +219,7 @@ export const createNote = mutation({
     }
 
     return await ctx.db.insert("notes", {
-      userId: identity.subject,
+      userId: getBaseUserId(identity.subject),
       title: args.title || "",
       content: { type: "doc", content: [{ type: "paragraph", content: [] }] },
       folderId: args.folderId,

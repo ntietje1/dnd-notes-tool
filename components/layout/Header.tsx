@@ -37,11 +37,10 @@ export function Header() {
             <Button
               className="min-w-24 text-primary"
               variant="outline"
-              onClick={() =>
-                void signOut().then(() => {
-                  router.push("/");
-                })
-              }
+              onClick={async () => {
+                router.push("/signin");
+                await signOut();
+              }}
             >
               Sign out
             </Button>

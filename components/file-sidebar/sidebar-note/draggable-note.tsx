@@ -2,14 +2,14 @@
 
 import { useDraggable } from "@dnd-kit/core";
 import { Note } from "@/convex/types";
-import { NoteButton } from "./note-button";
+import { cn } from "@/lib/utils";
 
 interface DraggableNoteProps {
-  note: any;
-  onNoteSelected: (note: Note) => void;
+  note: Note;
+  children: React.ReactNode;
 }
 
-export function DraggableNote({ note, onNoteSelected }: DraggableNoteProps) {
+export function DraggableNote({ note, children }: DraggableNoteProps) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: note._id,
     data: {
@@ -19,12 +19,13 @@ export function DraggableNote({ note, onNoteSelected }: DraggableNoteProps) {
   });
 
   return (
-    <div ref={setNodeRef} {...listeners} {...attributes}>
-      <NoteButton
-        note={note}
-        isDragging={isDragging}
-        onNoteSelected={onNoteSelected}
-      />
+    <div
+      className={cn("flex w-full min-w-0", isDragging && "opacity-50")}
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
+    >
+      {children}
     </div>
   );
 }

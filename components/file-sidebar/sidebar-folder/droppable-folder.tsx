@@ -2,9 +2,10 @@
 
 import { useDroppable } from "@dnd-kit/core";
 import { cn } from "@/lib/utils";
+import { Folder } from "@/convex/types";
 
 interface DroppableFolderProps {
-  folder: any;
+  folder: Folder;
   children: React.ReactNode;
 }
 
@@ -16,7 +17,10 @@ export function DroppableFolder({ folder, children }: DroppableFolderProps) {
   return (
     <div
       ref={setNodeRef}
-      className={cn("transition-colors min-w-0 w-full", isOver && "bg-muted")}
+      className={cn(
+        "transition-colors min-w-0 w-full",
+        isOver ? "bg-muted" : "bg-background",
+      )}
     >
       {children}
     </div>

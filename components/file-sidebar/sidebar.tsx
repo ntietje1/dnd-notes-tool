@@ -102,10 +102,14 @@ export function FileSidebar({ onNoteSelected }: FileSidebarProps) {
   const createFolder = useMutation(api.notes.createFolder);
   const createNote = useMutation(api.notes.createNote);
   const deleteFolder = useMutation(api.notes.deleteFolder);
+  const updateNote = useMutation(api.notes.saveNote);
+  const deleteNote = useMutation(api.notes.deleteNote);
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(
     new Set(),
   );
-  const [editingFolderId, setEditingFolderId] = useState<Id<"folders"> | null>(
+  const [renamingFolderId, setRenamingFolderId] =
+    useState<Id<"folders"> | null>(null);
+  const [renamingNoteId, setRenamingNoteId] = useState<Id<"notes"> | null>(
     null,
   );
   const [activeNote, setActiveNote] = useState<any | null>(null);
@@ -219,8 +223,8 @@ export function FileSidebar({ onNoteSelected }: FileSidebarProps) {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="h-full border-r bg-background flex flex-col">
-        <div className="pl-4 p-2 h-12 flex justify-between flex-shrink-0">
+      <div className="h-full border-r bg-background flex flex-col min-h-0">
+        <div className="pl-4 p-2 h-12 flex justify-between flex-shrink-0 bg-background z-10 border-b">
           <h2 className="text-lg font-semibold justify-start pr-4">Files</h2>
           <div className="flex justify-end">
             <Tooltip>
@@ -245,67 +249,88 @@ export function FileSidebar({ onNoteSelected }: FileSidebarProps) {
             </Tooltip>
           </div>
         </div>
-        <Separator className="flex-shrink-0" />
-        <div className="flex-1 overflow-hidden min-w-0">
-          <ScrollArea className="h-screen min-w-0">
-            <div className="min-w-0">
-              <DroppableRoot>
-                {/* Folders */}
-                {sidebarData.folders.map((folder) => (
-                  <DroppableFolder key={folder._id} folder={folder}>
-                    <Collapsible
-                      open={expandedFolders.has(folder._id)}
-                      onOpenChange={() => toggleFolder(folder._id)}
-                      className="min-w-0"
-                    >
-                      <CollapsibleTrigger asChild>
-                        <FolderButton
-                          folder={folder}
-                          isExpanded={expandedFolders.has(folder._id)}
-                          isEditing={editingFolderId === folder._id}
-                          onToggle={() => toggleFolder(folder._id)}
-                          onEdit={() => setEditingFolderId(folder._id)}
-                          onSave={(name) => {
-                            updateFolder({ folderId: folder._id, name });
-                            setEditingFolderId(null);
-                          }}
-                          onDelete={() =>
-                            deleteFolder({ folderId: folder._id })
-                          }
-                        />
-                      </CollapsibleTrigger>
-                      <CollapsibleContent className="pl-10 space-y-1 min-w-0">
-                        {sidebarData.notes
-                          .filter((note) => note.folderId === folder._id)
-                          .map((note) => (
-                            <DraggableNote
-                              key={note._id}
-                              note={note}
-                              onNoteSelected={onNoteSelected}
-                            />
-                          ))}
-                      </CollapsibleContent>
-                    </Collapsible>
-                  </DroppableFolder>
-                ))}
-
-                {/* Root level notes */}
-                {sidebarData.notes
-                  .filter((note) => !note.folderId)
-                  .map((note) => (
-                    <DraggableNote
-                      key={note._id}
-                      note={note}
-                      onNoteSelected={onNoteSelected}
+        <div className="flex-1 min-h-0 relative">
+          <DroppableRoot className="absolute inset-0 p-1 transition-colors overflow-y-auto">
+            {/* Folders */}
+            {sidebarData.folders.map((folder) => (
+              <DroppableFolder key={folder._id} folder={folder}>
+                <Collapsible
+                  open={expandedFolders.has(folder._id)}
+                  onOpenChange={() => toggleFolder(folder._id)}
+                  className="min-w-0"
+                >
+                  <CollapsibleTrigger asChild>
+                    <FolderButton
+                      folder={folder}
+                      isExpanded={expandedFolders.has(folder._id)}
+                      isRenaming={renamingFolderId === folder._id}
+                      hasItems={sidebarData.notes.some(
+                        (note) => note.folderId === folder._id,
+                      )}
+                      onToggle={() => toggleFolder(folder._id)}
+                      onStartRename={() => setRenamingFolderId(folder._id)}
+                      onFinishRename={(name) => {
+                        updateFolder({ folderId: folder._id, name });
+                        setRenamingFolderId(null);
+                      }}
+                      onDelete={() => deleteFolder({ folderId: folder._id })}
                     />
-                  ))}
-              </DroppableRoot>
-            </div>
-          </ScrollArea>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pl-4 min-w-0">
+                    {sidebarData.notes
+                      .filter((note) => note.folderId === folder._id)
+                      .map((note) => (
+                        <DraggableNote key={note._id} note={note}>
+                          <NoteButton
+                            note={note}
+                            isRenaming={renamingNoteId === note._id}
+                            onNoteSelected={onNoteSelected}
+                            onStartRename={() => setRenamingNoteId(note._id)}
+                            onFinishRename={(name) => {
+                              updateNote({ noteId: note._id, title: name });
+                              setRenamingNoteId(null);
+                            }}
+                            onDelete={() => deleteNote({ noteId: note._id })}
+                          />
+                        </DraggableNote>
+                      ))}
+                  </CollapsibleContent>
+                </Collapsible>
+              </DroppableFolder>
+            ))}
+
+            {/* Root level notes */}
+            {sidebarData.notes
+              .filter((note) => !note.folderId)
+              .map((note) => (
+                <DraggableNote key={note._id} note={note}>
+                  <NoteButton
+                    note={note}
+                    isRenaming={renamingNoteId === note._id}
+                    onNoteSelected={onNoteSelected}
+                    onStartRename={() => setRenamingNoteId(note._id)}
+                    onFinishRename={(name) => {
+                      updateNote({ noteId: note._id, title: name });
+                      setRenamingNoteId(null);
+                    }}
+                    onDelete={() => deleteNote({ noteId: note._id })}
+                  />
+                </DraggableNote>
+              ))}
+          </DroppableRoot>
         </div>
       </div>
       <DragOverlay>
-        {activeNote ? <NoteButton note={activeNote} /> : null}
+        {activeNote ? (
+          <NoteButton
+            note={activeNote}
+            isRenaming={false}
+            onNoteSelected={() => {}}
+            onStartRename={() => {}}
+            onFinishRename={() => {}}
+            onDelete={() => {}}
+          />
+        ) : null}
       </DragOverlay>
     </DndContext>
   );
