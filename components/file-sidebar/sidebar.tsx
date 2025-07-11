@@ -33,6 +33,7 @@ import { DroppableFolder } from "./sidebar-folder/droppable-folder";
 import { DraggableNote } from "./sidebar-note/draggable-note";
 import { NoteButton } from "./sidebar-note/note-button";
 import { FolderButton } from "./sidebar-folder/folder-button";
+import { useNotes } from "@/contexts/NotesContext";
 
 type DraggableItem =
   | {
@@ -44,36 +45,23 @@ type DraggableItem =
       type: "folder";
     };
 
-interface FileSidebarProps {
-  selectedNoteId: Id<"notes"> | null;
-  expandedFolders: Set<string>;
-  onNoteSelected: (noteId: Id<"notes">) => void;
-  onCreateFolder: () => void;
-  onCreateNote: () => void;
-  onDeleteFolder: (folderId: Id<"folders">) => void;
-  onDeleteNote: (noteId: Id<"notes">) => void;
-  onRenameFolder: (folderId: Id<"folders">, name: string) => void;
-  onRenameNote: (noteId: Id<"notes">, name: string) => void;
-  onMoveNote: (noteId: Id<"notes">, folderId?: Id<"folders">) => void;
-  onToggleFolder: (folderId: Id<"folders">) => void;
-  onOpenFolder: (folderId: Id<"folders">) => void;
-}
+export function FileSidebar() {
+  const {
+    currentNoteId,
+    sidebarData,
+    expandedFolders,
+    selectNote,
+    createNote,
+    createFolder,
+    deleteNote,
+    deleteFolder,
+    moveNote,
+    updateFolderName,
+    updateNoteTitle,
+    toggleFolder,
+    openFolder,
+  } = useNotes();
 
-export function FileSidebar({
-  selectedNoteId,
-  expandedFolders,
-  onNoteSelected,
-  onCreateFolder,
-  onCreateNote,
-  onDeleteFolder,
-  onDeleteNote,
-  onRenameFolder,
-  onRenameNote,
-  onMoveNote,
-  onToggleFolder,
-  onOpenFolder,
-}: FileSidebarProps) {
-  const sidebarData = useQuery(api.notes.getSidebarData);
   const [renamingId, setRenamingId] = useState<
     Id<"folders"> | Id<"notes"> | null
   >(null);
@@ -126,16 +114,16 @@ export function FileSidebar({
             );
             if (targetFolder) {
               newFolderId = targetFolder._id;
-              onOpenFolder(targetFolder._id);
+              openFolder(targetFolder._id);
             }
           }
 
           // Move the note to the new folder (or root if no folder)
-          onMoveNote(note._id, newFolderId);
+          await moveNote(note._id, newFolderId);
         }
       }
     },
-    [sidebarData, onMoveNote, onOpenFolder],
+    [sidebarData, moveNote, openFolder],
   );
 
   if (!sidebarData) {
@@ -163,7 +151,7 @@ export function FileSidebar({
           <div className="flex justify-end">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" onClick={onCreateFolder}>
+                <Button variant="ghost" size="icon" onClick={createFolder}>
                   <FolderPlus className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
@@ -171,7 +159,7 @@ export function FileSidebar({
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" onClick={onCreateNote}>
+                <Button variant="ghost" size="icon" onClick={createNote}>
                   <FilePlus className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
@@ -186,7 +174,7 @@ export function FileSidebar({
               <DroppableFolder key={folder._id} folder={folder}>
                 <Collapsible
                   open={expandedFolders.has(folder._id)}
-                  onOpenChange={() => onToggleFolder(folder._id)}
+                  onOpenChange={() => toggleFolder(folder._id)}
                   className="min-w-0"
                 >
                   <CollapsibleTrigger asChild>
@@ -197,13 +185,13 @@ export function FileSidebar({
                       hasItems={sidebarData.notes.some(
                         (note) => note.folderId === folder._id,
                       )}
-                      onToggle={() => onToggleFolder(folder._id)}
+                      onToggle={() => toggleFolder(folder._id)}
                       onStartRename={() => setRenamingId(folder._id)}
                       onFinishRename={(name) => {
-                        onRenameFolder(folder._id, name);
+                        updateFolderName(folder._id, name);
                         setRenamingId(null);
                       }}
-                      onDelete={() => onDeleteFolder(folder._id)}
+                      onDelete={() => deleteFolder(folder._id)}
                     />
                   </CollapsibleTrigger>
                   <CollapsibleContent className="pl-4 min-w-0">
@@ -214,14 +202,14 @@ export function FileSidebar({
                           <NoteButton
                             note={note}
                             isRenaming={renamingId === note._id}
-                            isSelected={selectedNoteId === note._id}
-                            onNoteSelected={onNoteSelected}
+                            isSelected={currentNoteId === note._id}
+                            onNoteSelected={selectNote}
                             onStartRename={() => setRenamingId(note._id)}
                             onFinishRename={(name) => {
-                              onRenameNote(note._id, name);
+                              updateNoteTitle(name);
                               setRenamingId(null);
                             }}
-                            onDelete={() => onDeleteNote(note._id)}
+                            onDelete={() => deleteNote(note._id)}
                           />
                         </DraggableNote>
                       ))}
@@ -238,14 +226,14 @@ export function FileSidebar({
                   <NoteButton
                     note={note}
                     isRenaming={renamingId === note._id}
-                    isSelected={selectedNoteId === note._id}
-                    onNoteSelected={onNoteSelected}
+                    isSelected={currentNoteId === note._id}
+                    onNoteSelected={selectNote}
                     onStartRename={() => setRenamingId(note._id)}
                     onFinishRename={(name) => {
-                      onRenameNote(note._id, name);
+                      updateNoteTitle(name);
                       setRenamingId(null);
                     }}
-                    onDelete={() => onDeleteNote(note._id)}
+                    onDelete={() => deleteNote(note._id)}
                   />
                 </DraggableNote>
               ))}

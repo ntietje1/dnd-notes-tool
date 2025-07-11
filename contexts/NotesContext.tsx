@@ -4,24 +4,25 @@ import {
   createContext,
   useContext,
   useCallback,
-  useMemo,
   ReactNode,
   useState,
 } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
+import { Note, SidebarData } from "@/convex/types";
+import { Editor } from "@tiptap/core";
 
 type NotesContextType = {
   // State
-  currentNoteId: Id<"notes"> | null;
-  selectedNote: any | null; // We'll type this properly later
+  currentNoteId: Id<"notes"> | null | undefined;
+  selectedNote: Note | null | undefined;
   expandedFolders: Set<Id<"folders">>;
-  sidebarData: any | null; // We'll type this properly later
+  sidebarData: SidebarData | undefined;
 
   // Actions
   selectNote: (noteId: Id<"notes">) => void;
-  updateNoteContent: (content: any) => Promise<void>;
+  updateNoteContent: (editor: Editor) => Promise<void>;
   updateNoteTitle: (title: string) => Promise<void>;
   toggleFolder: (folderId: Id<"folders">) => void;
   openFolder: (folderId: Id<"folders">) => void;
@@ -55,8 +56,44 @@ export function NotesProvider({ children }: { children: ReactNode }) {
   const createFolderAction = useMutation(api.notes.createFolder);
   const deleteNoteAction = useMutation(api.notes.deleteNote);
   const deleteFolderAction = useMutation(api.notes.deleteFolder);
-  const moveNoteAction = useMutation(api.notes.moveNote);
-  const updateFolder = useMutation(api.notes.updateFolder);
+  const moveNoteAction = useMutation(api.notes.moveNote).withOptimisticUpdate(
+    (store, { noteId, folderId }) => {
+      const sidebarData = store.getQuery(api.notes.getSidebarData, {});
+      if (!sidebarData) return;
+
+      const updatedNotes = sidebarData.notes.map((note) =>
+        note._id === noteId ? { ...note, folderId } : note,
+      );
+
+      store.setQuery(
+        api.notes.getSidebarData,
+        {},
+        {
+          ...sidebarData,
+          notes: updatedNotes,
+        },
+      );
+    },
+  );
+  const updateFolder = useMutation(api.notes.updateFolder).withOptimisticUpdate(
+    (store, { folderId, name }) => {
+      const sidebarData = store.getQuery(api.notes.getSidebarData, {});
+      if (!sidebarData) return;
+
+      const updatedFolders = sidebarData.folders.map((folder) =>
+        folder._id === folderId ? { ...folder, name: name || "" } : folder,
+      );
+
+      store.setQuery(
+        api.notes.getSidebarData,
+        {},
+        {
+          ...sidebarData,
+          folders: updatedFolders,
+        },
+      );
+    },
+  );
 
   // Actions
   const selectNote = useCallback(
@@ -67,8 +104,9 @@ export function NotesProvider({ children }: { children: ReactNode }) {
   );
 
   const updateNoteContent = useCallback(
-    async (content: any) => {
+    async (editor: Editor) => {
       if (!selectedNote?._id) return;
+      const content = editor.getJSON();
       await updateNote({ noteId: selectedNote._id, content });
     },
     [selectedNote?._id, updateNote],

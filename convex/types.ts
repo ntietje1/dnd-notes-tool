@@ -5,7 +5,7 @@ export type Note = {
   _id: Id<"notes">;
   _creationTime: number;
 
-  userId: string;
+  userId: Id<"users">;
   title?: string;
   content: JSONContent;
   folderId?: Id<"folders">;
@@ -20,7 +20,7 @@ export type Folder = {
   _id: Id<"folders">;
   _creationTime: number;
 
-  userId: string;
+  userId: Id<"users">;
   name: string;
   updatedAt: number;
 };

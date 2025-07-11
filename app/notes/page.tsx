@@ -3,15 +3,16 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
-import { NotesEditor, NotesSidebar } from "./notes-content";
+import { NotesEditor } from "./notes-content";
 import { NotesProvider } from "@/contexts/NotesContext";
+import { FileSidebar } from "@/components/file-sidebar/sidebar";
 
 export default function NotesPage() {
   return (
     <NotesProvider>
       <ResizablePanelGroup direction="horizontal" className="h-auto">
         <ResizablePanel defaultSize={25} minSize={10} maxSize={40}>
-          <NotesSidebar />
+          <FileSidebar />
         </ResizablePanel>
         <ResizableHandle />
         <ResizablePanel defaultSize={75}>
