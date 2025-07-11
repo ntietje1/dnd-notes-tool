@@ -12,7 +12,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { X, MoreVertical, Download, Trash2, Share } from "lucide-react";
 import { UNTITLED_NOTE_TITLE } from "@/convex/types";
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useState, useEffect, useRef } from "react";
+import { Id } from "@/convex/_generated/dataModel";
 
 interface FileTopbarProps {
   note: Note | null;
@@ -32,7 +33,8 @@ export function FileTopbar({
   onExport,
 }: FileTopbarProps) {
   const router = useRouter();
-  const [localTitle, setLocalTitle] = useState(note?.title ?? "");
+  const [localTitle, setLocalTitle] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
 
   const handleClose = () => {
     if (onClose) {
@@ -42,10 +44,16 @@ export function FileTopbar({
     }
   };
 
-  // Sync local title with database title
+  // Update local title when note changes or when not editing
   useEffect(() => {
-    setLocalTitle(note?.title ?? "");
-  }, [note?.title]);
+    if (!isEditing || note?._id !== prevNoteId.current) {
+      setLocalTitle(note?.title ?? "");
+      prevNoteId.current = note?._id;
+    }
+  }, [note?._id, note?.title, isEditing]);
+
+  // Keep track of previous note ID to detect note changes
+  const prevNoteId = useRef<Id<"notes"> | undefined>(note?._id);
 
   const handleTitleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -63,6 +71,8 @@ export function FileTopbar({
           type="text"
           value={localTitle}
           onChange={handleTitleChange}
+          onFocus={() => setIsEditing(true)}
+          onBlur={() => setIsEditing(false)}
           className="text-lg font-medium truncate bg-transparent border-none outline-none focus:ring-0"
           placeholder={UNTITLED_NOTE_TITLE}
         />

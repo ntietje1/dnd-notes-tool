@@ -79,7 +79,7 @@ import "@/components/custom-tiptap-extension/shared-content.scss";
 
 import { ShareButton } from "../share-button/shareButton";
 import { SharedContentExtension } from "@/components/custom-tiptap-extension/shared-content-extension";
-import { type JSONContent, type Editor } from "@tiptap/react";
+import { type Editor } from "@tiptap/react";
 
 const MainToolbarContent = ({
   onHighlighterClick,
@@ -184,16 +184,11 @@ const MobileToolbarContent = ({
 );
 
 interface SimpleEditorProps {
-  content?: JSONContent;
   onUpdate?: (props: { editor: Editor }) => void;
   className?: string;
 }
 
-export function SimpleEditor({
-  content,
-  onUpdate,
-  className,
-}: SimpleEditorProps) {
+export function SimpleEditor({ onUpdate, className }: SimpleEditorProps) {
   const isMobile = useMobile();
   const windowSize = useWindowSize();
   const [mobileView, setMobileView] = React.useState<
@@ -204,8 +199,7 @@ export function SimpleEditor({
   const editor = useEditor({
     immediatelyRender: false,
     enableContentCheck: true,
-    content: content,
-    onUpdate,
+    onUpdate: onUpdate,
     editorProps: {
       attributes: {
         autocomplete: "off",
@@ -241,17 +235,6 @@ export function SimpleEditor({
       console.error("Content error:", error);
     },
   });
-
-  // Update editor content when it changes from props
-  React.useEffect(() => {
-    if (editor && content) {
-      // Only update if content is different to avoid loops
-      const currentContent = editor.getJSON();
-      if (JSON.stringify(currentContent) !== JSON.stringify(content)) {
-        editor.commands.setContent(content);
-      }
-    }
-  }, [editor, content]);
 
   const bodyRect = useCursorVisibility({
     editor,
