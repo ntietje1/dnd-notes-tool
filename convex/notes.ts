@@ -4,6 +4,7 @@ import { checkForSharedContent } from "./sharedContent";
 import { Doc } from "./_generated/dataModel";
 import { SaveNoteArgs, Note, Folder, SidebarData, FolderNode } from "./types";
 import { Id } from "./_generated/dataModel";
+import { api } from "./_generated/api";
 
 // Helper function to get base user ID from OAuth subject
 const getBaseUserId = (subject: string) => subject.split("|")[0];
@@ -337,7 +338,7 @@ export const createNote = mutation({
       throw new Error("Not authenticated");
     }
 
-    return await ctx.db.insert("notes", {
+    const noteId = await ctx.db.insert("notes", {
       userId: getBaseUserId(identity.subject),
       title: args.title || "",
       content: { type: "doc", content: [{ type: "paragraph", content: [] }] },
@@ -345,6 +346,9 @@ export const createNote = mutation({
       hasSharedContent: false,
       updatedAt: Date.now(),
     });
+
+    await ctx.runMutation(api.notes.setCurrentEditor, { noteId });
+    return noteId;
   },
 });
 
@@ -361,7 +365,7 @@ export const getCurrentEditor = query({
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .first();
 
-    return editor || undefined;
+    return editor;
   },
 });
 
