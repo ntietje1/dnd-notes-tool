@@ -31,6 +31,10 @@ type NotesContextType = {
   deleteNote: (noteId: Id<"notes">) => Promise<void>;
   deleteFolder: (folderId: Id<"folders">) => Promise<void>;
   moveNote: (noteId: Id<"notes">, folderId?: Id<"folders">) => Promise<void>;
+  moveFolder: (
+    folderId: Id<"folders">,
+    parentId?: Id<"folders">,
+  ) => Promise<void>;
   updateFolderName: (folderId: Id<"folders">, name: string) => Promise<void>;
 };
 
@@ -56,6 +60,26 @@ export function NotesProvider({ children }: { children: ReactNode }) {
   const createFolderAction = useMutation(api.notes.createFolder);
   const deleteNoteAction = useMutation(api.notes.deleteNote);
   const deleteFolderAction = useMutation(api.notes.deleteFolder);
+  const moveFolderAction = useMutation(
+    api.notes.moveFolder,
+  ).withOptimisticUpdate((store, { folderId, parentId }) => {
+    const sidebarData = store.getQuery(api.notes.getSidebarData, {});
+    if (!sidebarData) return;
+
+    const updatedFolders = sidebarData.folders.map((folder) =>
+      folder._id === folderId ? { ...folder, folderId: parentId } : folder,
+    );
+
+    store.setQuery(
+      api.notes.getSidebarData,
+      {},
+      {
+        ...sidebarData,
+        folders: updatedFolders,
+      },
+    );
+  });
+
   const moveNoteAction = useMutation(api.notes.moveNote).withOptimisticUpdate(
     (store, { noteId, folderId }) => {
       const sidebarData = store.getQuery(api.notes.getSidebarData, {});
@@ -151,6 +175,9 @@ export function NotesProvider({ children }: { children: ReactNode }) {
   const deleteNote = useCallback(
     async (noteId: Id<"notes">) => {
       await deleteNoteAction({ noteId });
+      if (currentEditor?.noteId === noteId) {
+        await setCurrentEditor({ noteId: undefined });
+      }
     },
     [deleteNoteAction],
   );
@@ -176,6 +203,13 @@ export function NotesProvider({ children }: { children: ReactNode }) {
     [moveNoteAction],
   );
 
+  const moveFolder = useCallback(
+    async (folderId: Id<"folders">, parentId?: Id<"folders">) => {
+      await moveFolderAction({ folderId, parentId });
+    },
+    [moveFolderAction],
+  );
+
   const value: NotesContextType = {
     // State
     currentNoteId: currentEditor?.noteId ?? null,
@@ -195,6 +229,7 @@ export function NotesProvider({ children }: { children: ReactNode }) {
     deleteFolder,
     updateFolderName,
     moveNote,
+    moveFolder,
   };
 
   return (

@@ -22,9 +22,12 @@ export default defineSchema({
     userId: v.string(),
     name: v.optional(v.string()),
     updatedAt: v.number(),
-  }).index("by_user", ["userId"]),
+    folderId: v.optional(v.id("folders")),
+  })
+    .index("by_user", ["userId"])
+    .index("by_folder", ["folderId"]),
   editor: defineTable({
     userId: v.string(),
-    noteId: v.id("notes"),
+    noteId: v.optional(v.id("notes")),
   }).index("by_user", ["userId"]),
 });

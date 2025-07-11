@@ -22,8 +22,14 @@ export type Folder = {
 
   userId: Id<"users">;
   name: string;
+  folderId?: Id<"folders">;
   updatedAt: number;
 };
+
+export interface FolderNode extends Folder {
+  childFolders: FolderNode[];
+  childNotes: Note[];
+}
 
 export type SidebarData = {
   folders: Folder[];
@@ -35,4 +41,12 @@ export type SaveNoteArgs = {
   content?: JSONContent;
   title?: string;
   folderId?: Id<"folders">;
+};
+
+export type Editor = {
+  _id: Id<"editor">;
+  _creationTime: number;
+
+  userId: Id<"users">;
+  noteId: Id<"notes"> | null;
 };

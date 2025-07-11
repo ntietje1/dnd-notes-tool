@@ -4,7 +4,7 @@ import { useCallback, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { Note } from "@/convex/types";
+import { Folder, Note, FolderNode } from "@/convex/types";
 import {
   DndContext,
   DragEndEvent,
@@ -18,22 +18,17 @@ import {
 import { FolderPlus, FilePlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
 import { DroppableRoot } from "./droppable-root";
-import { DroppableFolder } from "./sidebar-folder/droppable-folder";
+import { RecursiveFolder } from "./sidebar-folder/recursive-folder";
 import { DraggableNote } from "./sidebar-note/draggable-note";
 import { NoteButton } from "./sidebar-note/note-button";
-import { FolderButton } from "./sidebar-folder/folder-button";
 import { useNotes } from "@/contexts/NotesContext";
+import { FolderButton } from "./sidebar-folder/folder-button";
 
 type DraggableItem =
   | {
@@ -48,7 +43,6 @@ type DraggableItem =
 export function FileSidebar() {
   const {
     currentNoteId,
-    sidebarData,
     expandedFolders,
     selectNote,
     createNote,
@@ -56,16 +50,23 @@ export function FileSidebar() {
     deleteNote,
     deleteFolder,
     moveNote,
+    moveFolder,
     updateFolderName,
     updateNoteTitle,
     toggleFolder,
     openFolder,
   } = useNotes();
 
+  const folderTree = useQuery(api.notes.getFolderTree);
+  const rootNotes = useQuery(api.notes.getUserNotes, {});
+
   const [renamingId, setRenamingId] = useState<
     Id<"folders"> | Id<"notes"> | null
   >(null);
-  const [activeNote, setActiveNote] = useState<Note | null>(null);
+  const [activeDragNote, setActiveDragNote] = useState<Note | null>(null);
+  const [activeDragFolder, setActiveDragFolder] = useState<FolderNode | null>(
+    null,
+  );
 
   const sensors = useSensors(
     useSensor(MouseSensor, {
@@ -81,52 +82,89 @@ export function FileSidebar() {
     }),
   );
 
+  const handleFinishFolderRename = useCallback(
+    (id: Id<"folders">, name: string) => {
+      updateFolderName(id, name);
+      setRenamingId(null);
+    },
+    [updateFolderName],
+  );
+
+  const handleFinishNoteRename = useCallback(
+    (id: Id<"notes">, name: string) => {
+      updateNoteTitle(name);
+      setRenamingId(null);
+    },
+    [updateNoteTitle],
+  );
+
   const handleDragStart = useCallback(
     (event: DragStartEvent) => {
       const { active } = event;
-      const draggedNote = sidebarData?.notes.find((n) => n._id === active.id);
+      const draggedNote = rootNotes?.find((n) => n._id === active.id);
       if (draggedNote) {
-        setActiveNote(draggedNote);
+        setActiveDragNote(draggedNote);
+      }
+      const findFolder = (folders: FolderNode[]): FolderNode | undefined => {
+        for (const folder of folders) {
+          if (folder._id === active.id) return folder;
+          const found = findFolder(folder.childFolders);
+          if (found) return found;
+        }
+        return undefined;
+      };
+      const draggedFolder = folderTree && findFolder(folderTree);
+      if (draggedFolder) {
+        setActiveDragFolder(draggedFolder);
       }
     },
-    [sidebarData?.notes],
+    [rootNotes, folderTree],
   );
 
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
       const { active, over } = event;
-      setActiveNote(null);
+      setActiveDragNote(null);
+      setActiveDragFolder(null);
 
-      if (!active.data.current) return;
+      if (!active.data.current || !over) return;
 
       const draggedItem = active.data.current as DraggableItem;
 
-      // Only handle note dragging
+      // Note dragging
       if (draggedItem.type === "note") {
-        const note = sidebarData?.notes.find((n) => n._id === draggedItem.id);
+        const note = rootNotes?.find((n) => n._id === draggedItem.id);
         if (note) {
           let newFolderId: Id<"folders"> | undefined = undefined;
 
-          // If dropped on a folder, use that folder's ID
           if (over && over.id !== "root") {
-            const targetFolder = sidebarData?.folders.find(
-              (f) => f._id === over.id,
-            );
-            if (targetFolder) {
-              newFolderId = targetFolder._id;
-              openFolder(targetFolder._id);
-            }
+            newFolderId = over.id as Id<"folders">;
+            openFolder(newFolderId);
           }
 
-          // Move the note to the new folder (or root if no folder)
           await moveNote(note._id, newFolderId);
         }
       }
+
+      // Folder dragging
+      if (draggedItem.type === "folder") {
+        // Prevent dragging a folder onto itself
+        if (over.id === draggedItem.id) {
+          return;
+        }
+
+        let newParentId: Id<"folders"> | undefined = undefined;
+        if (over.id !== "root") {
+          newParentId = over.id as Id<"folders">;
+        }
+
+        await moveFolder(draggedItem.id, newParentId);
+      }
     },
-    [sidebarData, moveNote, openFolder],
+    [rootNotes, moveNote, moveFolder, openFolder],
   );
 
-  if (!sidebarData) {
+  if (!folderTree || !rootNotes) {
     return (
       <div className="h-full border-r p-4">
         <div className="animate-pulse h-4 bg-gray-200 rounded w-3/4 mb-4" />
@@ -138,6 +176,8 @@ export function FileSidebar() {
       </div>
     );
   }
+
+  const selectedNoteId: Id<"notes"> | null = currentNoteId ?? null; //TODO: get rid of this
 
   return (
     <DndContext
@@ -169,64 +209,34 @@ export function FileSidebar() {
         </div>
         <div className="flex-1 min-h-0 relative">
           <DroppableRoot className="absolute inset-0 p-1 transition-colors overflow-y-auto">
-            {/* Folders */}
-            {sidebarData.folders.map((folder) => (
-              <DroppableFolder key={folder._id} folder={folder}>
-                <Collapsible
-                  open={expandedFolders.has(folder._id)}
-                  onOpenChange={() => toggleFolder(folder._id)}
-                  className="min-w-0"
-                >
-                  <CollapsibleTrigger asChild>
-                    <FolderButton
-                      folder={folder}
-                      isExpanded={expandedFolders.has(folder._id)}
-                      isRenaming={renamingId === folder._id}
-                      hasItems={sidebarData.notes.some(
-                        (note) => note.folderId === folder._id,
-                      )}
-                      onToggle={() => toggleFolder(folder._id)}
-                      onStartRename={() => setRenamingId(folder._id)}
-                      onFinishRename={(name) => {
-                        updateFolderName(folder._id, name);
-                        setRenamingId(null);
-                      }}
-                      onDelete={() => deleteFolder(folder._id)}
-                    />
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="pl-4 min-w-0">
-                    {sidebarData.notes
-                      .filter((note) => note.folderId === folder._id)
-                      .map((note) => (
-                        <DraggableNote key={note._id} note={note}>
-                          <NoteButton
-                            note={note}
-                            isRenaming={renamingId === note._id}
-                            isSelected={currentNoteId === note._id}
-                            onNoteSelected={selectNote}
-                            onStartRename={() => setRenamingId(note._id)}
-                            onFinishRename={(name) => {
-                              updateNoteTitle(name);
-                              setRenamingId(null);
-                            }}
-                            onDelete={() => deleteNote(note._id)}
-                          />
-                        </DraggableNote>
-                      ))}
-                  </CollapsibleContent>
-                </Collapsible>
-              </DroppableFolder>
+            {/* Folders and recursive contents */}
+            {folderTree.map((folder) => (
+              <RecursiveFolder
+                key={folder._id}
+                folder={folder}
+                expandedFolders={expandedFolders}
+                renamingId={renamingId}
+                selectedNoteId={selectedNoteId}
+                childFolders={folder.childFolders}
+                childNotes={folder.childNotes}
+                onToggleExpand={toggleFolder}
+                onStartRename={setRenamingId}
+                onFinishFolderRename={handleFinishFolderRename}
+                onFinishNoteRename={handleFinishNoteRename}
+                onDeleteFolder={deleteFolder}
+                onDeleteNote={deleteNote}
+                onNoteSelected={selectNote}
+              />
             ))}
-
             {/* Root level notes */}
-            {sidebarData.notes
+            {rootNotes
               .filter((note) => !note.folderId)
               .map((note) => (
                 <DraggableNote key={note._id} note={note}>
                   <NoteButton
                     note={note}
                     isRenaming={renamingId === note._id}
-                    isSelected={currentNoteId === note._id}
+                    isSelected={selectedNoteId === note._id}
                     onNoteSelected={selectNote}
                     onStartRename={() => setRenamingId(note._id)}
                     onFinishRename={(name) => {
@@ -240,10 +250,10 @@ export function FileSidebar() {
           </DroppableRoot>
         </div>
       </div>
-      <DragOverlay>
-        {activeNote ? (
+      <DragOverlay dropAnimation={null}>
+        {activeDragNote && (
           <NoteButton
-            note={activeNote}
+            note={activeDragNote}
             isRenaming={false}
             isSelected={false}
             onNoteSelected={() => {}}
@@ -251,7 +261,19 @@ export function FileSidebar() {
             onFinishRename={() => {}}
             onDelete={() => {}}
           />
-        ) : null}
+        )}
+        {activeDragFolder && (
+          <FolderButton
+            folder={activeDragFolder}
+            isExpanded={false}
+            isRenaming={false}
+            hasItems={false}
+            onToggle={() => {}}
+            onStartRename={() => {}}
+            onFinishRename={() => {}}
+            onDelete={() => {}}
+          />
+        )}
       </DragOverlay>
     </DndContext>
   );

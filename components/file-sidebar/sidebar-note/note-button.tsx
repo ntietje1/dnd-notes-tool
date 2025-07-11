@@ -1,6 +1,6 @@
 "use client";
 
-import { FileText } from "lucide-react";
+import { FileText, FilePen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Note } from "@/convex/types";
 import { NoteName } from "./note-name";
@@ -41,7 +41,11 @@ export function NoteButton({
         }}
       >
         <div className="flex items-center gap-1 min-w-0 w-full pl-4">
-          <FileText className="h-4 w-4 shrink-0" />
+          {isRenaming ? (
+            <FilePen className="h-4 w-4 shrink-0" />
+          ) : (
+            <FileText className="h-4 w-4 shrink-0" />
+          )}
           <NoteName
             note={note}
             isRenaming={isRenaming}
