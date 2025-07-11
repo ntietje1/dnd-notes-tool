@@ -23,4 +23,8 @@ export default defineSchema({
     name: v.optional(v.string()),
     updatedAt: v.number(),
   }).index("by_user", ["userId"]),
+  editor: defineTable({
+    userId: v.string(),
+    noteId: v.id("notes"),
+  }).index("by_user", ["userId"]),
 });

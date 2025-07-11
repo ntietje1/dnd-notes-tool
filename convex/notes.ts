@@ -7,7 +7,7 @@ import { SaveNoteArgs, Note, Folder, SidebarData } from "./types";
 // Helper function to get base user ID from OAuth subject
 const getBaseUserId = (subject: string) => subject.split("|")[0];
 
-export const saveNote = mutation({
+export const updateNote = mutation({
   args: {
     noteId: v.id("notes"),
     content: v.optional(v.any()),
@@ -39,7 +39,6 @@ export const saveNote = mutation({
       updates.title = args.title;
     }
 
-    // Update the specific note
     await ctx.db.patch(args.noteId, updates);
     return args.noteId;
   },
@@ -65,7 +64,7 @@ export const deleteNote = mutation({
     noteId: v.id("notes"),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity(); //TODO: check if the note belongs to the user
+    const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new Error("Not authenticated");
     }
@@ -79,7 +78,7 @@ export const deleteFolder = mutation({
     folderId: v.id("folders"),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity(); //TODO: check if the folder belongs to the user
+    const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new Error("Not authenticated");
     }
@@ -226,5 +225,63 @@ export const createNote = mutation({
       hasSharedContent: false,
       updatedAt: Date.now(),
     });
+  },
+});
+
+export const getCurrentEditor = query({
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+
+    const userId = getBaseUserId(identity.subject);
+    const editor = await ctx.db
+      .query("editor")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+
+    return editor;
+  },
+});
+
+export const setCurrentEditor = mutation({
+  args: {
+    noteId: v.id("notes"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+
+    const userId = getBaseUserId(identity.subject);
+
+    // Check if the note exists and user has access to it
+    const note = await ctx.db.get(args.noteId);
+    if (!note || note.userId !== userId) {
+      throw new Error("Note not found or unauthorized");
+    }
+
+    // Find existing editor state for this user
+    const existingEditor = await ctx.db
+      .query("editor")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+
+    if (existingEditor) {
+      // Update existing editor state
+      await ctx.db.patch(existingEditor._id, {
+        noteId: args.noteId,
+      });
+      return existingEditor._id;
+    } else {
+      // Create new editor state
+      const newEditorId = await ctx.db.insert("editor", {
+        userId,
+        noteId: args.noteId,
+      });
+      return newEditorId;
+    }
   },
 });
