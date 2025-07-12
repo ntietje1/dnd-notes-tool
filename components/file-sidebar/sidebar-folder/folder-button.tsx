@@ -24,6 +24,7 @@ interface FolderButtonProps {
   onStartRename: () => void;
   onFinishRename: (name: string) => void;
   onDelete: () => void;
+  onNewPage: () => void;
 }
 
 export function FolderButton({
@@ -35,10 +36,15 @@ export function FolderButton({
   onStartRename,
   onFinishRename,
   onDelete,
+  onNewPage,
 }: FolderButtonProps) {
   return (
     <DraggableFolder folder={folder}>
-      <FolderContextMenu onEdit={onStartRename} onDelete={onDelete}>
+      <FolderContextMenu
+        onEdit={onStartRename}
+        onDelete={onDelete}
+        onNewPage={onNewPage}
+      >
         <Button
           variant="ghost"
           className="w-full flex-1 justify-start gap-2 h-8 min-w-0 p-0"

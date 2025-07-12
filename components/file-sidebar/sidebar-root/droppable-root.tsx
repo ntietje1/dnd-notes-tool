@@ -2,20 +2,28 @@
 
 import { useDroppable } from "@dnd-kit/core";
 import { cn } from "@/lib/utils";
+import { RootContextMenu } from "./root-context-menu";
 
 interface DroppableRootProps {
   children: React.ReactNode;
   className?: string;
+  onNewPage: () => void;
 }
 
-export function DroppableRoot({ children, className }: DroppableRootProps) {
+export function DroppableRoot({
+  children,
+  className,
+  onNewPage,
+}: DroppableRootProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: "root",
   });
 
   return (
     <div ref={setNodeRef} className={cn(className, isOver && "bg-muted")}>
-      {children}
+      <RootContextMenu className="h-full" onNewPage={onNewPage}>
+        {children}
+      </RootContextMenu>
     </div>
   );
 }

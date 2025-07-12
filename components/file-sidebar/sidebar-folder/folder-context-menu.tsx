@@ -1,6 +1,6 @@
 "use client";
 
-import { Pencil, Trash2 } from "lucide-react";
+import { FileText, Pencil, Trash2 } from "lucide-react";
 import {
   ContextMenu,
   type ContextMenuItem,
@@ -10,18 +10,25 @@ interface FolderContextMenuProps {
   children: React.ReactNode;
   onEdit: () => void;
   onDelete: () => void;
+  onNewPage: () => void;
 }
 
 export function FolderContextMenu({
   children,
   onEdit,
   onDelete,
+  onNewPage,
 }: FolderContextMenuProps) {
   const menuItems: ContextMenuItem[] = [
     {
       label: "Rename",
       icon: <Pencil className="h-4 w-4" />,
       onClick: onEdit,
+    },
+    {
+      label: "New Page",
+      icon: <FileText className="h-4 w-4" />,
+      onClick: onNewPage,
     },
     {
       label: "Delete",

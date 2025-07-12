@@ -3,7 +3,12 @@ import { TaskList } from "@tiptap/extension-task-list";
 import { TaskItem } from "@tiptap/extension-task-item";
 
 import * as React from "react";
-import { EditorContent, EditorContext, useEditor } from "@tiptap/react";
+import {
+  EditorContent,
+  EditorContext,
+  JSONContent,
+  useEditor,
+} from "@tiptap/react";
 import "@/styles/variables.scss";
 import "@/styles/keyframe-animations.scss";
 
@@ -80,6 +85,7 @@ import "@/components/custom-tiptap-extension/shared-content.scss";
 import { ShareButton } from "../share-button/shareButton";
 import { SharedContentExtension } from "@/components/custom-tiptap-extension/shared-content-extension";
 import { type Editor } from "@tiptap/react";
+import { Note } from "@/convex/types";
 
 const MainToolbarContent = ({
   onHighlighterClick,
@@ -184,17 +190,19 @@ const MobileToolbarContent = ({
 );
 
 interface SimpleEditorProps {
-  onUpdate?: (props: { editor: Editor }) => void;
+  onUpdate: (props: { editor: Editor }) => void;
+  note?: Note;
   className?: string;
 }
 
-export function SimpleEditor({ onUpdate, className }: SimpleEditorProps) {
+export function SimpleEditor({ onUpdate, note, className }: SimpleEditorProps) {
   const isMobile = useMobile();
   const windowSize = useWindowSize();
   const [mobileView, setMobileView] = React.useState<
     "main" | "highlighter" | "link"
   >("main");
   const toolbarRef = React.useRef<HTMLDivElement>(null);
+  const prevNoteId = React.useRef<string | null>(null);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -235,6 +243,13 @@ export function SimpleEditor({ onUpdate, className }: SimpleEditorProps) {
       console.error("Content error:", error);
     },
   });
+
+  React.useEffect(() => {
+    if (editor && note?.content && note._id !== prevNoteId.current) {
+      editor.commands.setContent(note.content);
+      prevNoteId.current = note._id;
+    }
+  }, [editor, note]);
 
   const bodyRect = useCursorVisibility({
     editor,

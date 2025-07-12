@@ -22,13 +22,15 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { sortFoldersAndNotes, SortOptions } from "./sidebar-sort";
 
-import { DroppableRoot } from "./droppable-root";
+import { DroppableRoot } from "./sidebar-root/droppable-root";
 import { RecursiveFolder } from "./sidebar-folder/recursive-folder";
 import { DraggableNote } from "./sidebar-note/draggable-note";
 import { NoteButton } from "./sidebar-note/note-button";
 import { useNotes } from "@/contexts/NotesContext";
 import { FolderButton } from "./sidebar-folder/folder-button";
+import { SidebarItem } from "./sidebar-item";
 
 type DraggableItem =
   | {
@@ -59,6 +61,12 @@ export function FileSidebar() {
 
   const folderTree = useQuery(api.notes.getFolderTree);
   const rootNotes = useQuery(api.notes.getUserNotes, {});
+
+  // Add sorting options state
+  const [sortOptions] = useState<SortOptions>({
+    order: "alphabetical",
+    direction: "asc",
+  });
 
   const [renamingId, setRenamingId] = useState<
     Id<"folders"> | Id<"notes"> | null
@@ -92,7 +100,7 @@ export function FileSidebar() {
 
   const handleFinishNoteRename = useCallback(
     (id: Id<"notes">, name: string) => {
-      updateNoteTitle(name);
+      updateNoteTitle(id, name);
       setRenamingId(null);
     },
     [updateNoteTitle],
@@ -177,7 +185,14 @@ export function FileSidebar() {
     );
   }
 
-  const selectedNoteId: Id<"notes"> | null = currentNoteId ?? null; //TODO: get rid of this
+  const selectedNoteId: Id<"notes"> | null = currentNoteId ?? null;
+
+  // Sort folders and notes together
+  const { sortedItems } = sortFoldersAndNotes(
+    folderTree,
+    rootNotes.filter((note) => !note.folderId),
+    sortOptions,
+  );
 
   return (
     <DndContext
@@ -199,7 +214,11 @@ export function FileSidebar() {
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" onClick={createNote}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => createNote()}
+                >
                   <FilePlus className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
@@ -208,45 +227,30 @@ export function FileSidebar() {
           </div>
         </div>
         <div className="flex-1 min-h-0 relative">
-          <DroppableRoot className="absolute inset-0 p-1 transition-colors overflow-y-auto">
-            {/* Folders and recursive contents */}
-            {folderTree.map((folder) => (
-              <RecursiveFolder
-                key={folder._id}
-                folder={folder}
-                expandedFolders={expandedFolders}
-                renamingId={renamingId}
-                selectedNoteId={selectedNoteId}
-                childFolders={folder.childFolders}
-                childNotes={folder.childNotes}
-                onToggleExpand={toggleFolder}
-                onStartRename={setRenamingId}
-                onFinishFolderRename={handleFinishFolderRename}
-                onFinishNoteRename={handleFinishNoteRename}
-                onDeleteFolder={deleteFolder}
-                onDeleteNote={deleteNote}
-                onNoteSelected={selectNote}
-              />
-            ))}
-            {/* Root level notes */}
-            {rootNotes
-              .filter((note) => !note.folderId)
-              .map((note) => (
-                <DraggableNote key={note._id} note={note}>
-                  <NoteButton
-                    note={note}
-                    isRenaming={renamingId === note._id}
-                    isSelected={selectedNoteId === note._id}
-                    onNoteSelected={selectNote}
-                    onStartRename={() => setRenamingId(note._id)}
-                    onFinishRename={(name) => {
-                      updateNoteTitle(name);
-                      setRenamingId(null);
-                    }}
-                    onDelete={() => deleteNote(note._id)}
-                  />
-                </DraggableNote>
-              ))}
+          <DroppableRoot
+            className="absolute inset-0 p-1 transition-colors overflow-y-auto"
+            onNewPage={createNote}
+          >
+            {sortedItems.map((item) => {
+              return (
+                <SidebarItem
+                  key={item._id}
+                  item={item as FolderNode | Note}
+                  sortOptions={sortOptions}
+                  expandedFolders={expandedFolders}
+                  renamingId={renamingId}
+                  selectedNoteId={selectedNoteId}
+                  toggleFolder={toggleFolder}
+                  setRenamingId={setRenamingId}
+                  handleFinishFolderRename={handleFinishFolderRename}
+                  handleFinishNoteRename={handleFinishNoteRename}
+                  deleteFolder={deleteFolder}
+                  deleteNote={deleteNote}
+                  selectNote={selectNote}
+                  createNote={createNote}
+                />
+              );
+            })}
           </DroppableRoot>
         </div>
       </div>
@@ -272,6 +276,7 @@ export function FileSidebar() {
             onStartRename={() => {}}
             onFinishRename={() => {}}
             onDelete={() => {}}
+            onNewPage={() => {}}
           />
         )}
       </DragOverlay>

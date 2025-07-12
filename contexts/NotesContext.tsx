@@ -6,6 +6,7 @@ import {
   useCallback,
   ReactNode,
   useState,
+  useEffect,
 } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -23,10 +24,10 @@ type NotesContextType = {
   // Actions
   selectNote: (noteId: Id<"notes">) => void;
   updateNoteContent: (editor: Editor) => Promise<void>;
-  updateNoteTitle: (title: string) => Promise<void>;
+  updateNoteTitle: (noteId: Id<"notes">, title: string) => Promise<void>;
   toggleFolder: (folderId: Id<"folders">) => void;
   openFolder: (folderId: Id<"folders">) => void;
-  createNote: () => Promise<void>;
+  createNote: (folderId?: Id<"folders">) => Promise<void>;
   createFolder: () => Promise<void>;
   deleteNote: (noteId: Id<"notes">) => Promise<void>;
   deleteFolder: (folderId: Id<"folders">) => Promise<void>;
@@ -54,8 +55,71 @@ export function NotesProvider({ children }: { children: ReactNode }) {
   const sidebarData = useQuery(api.notes.getSidebarData, {});
 
   // Mutations
-  const setCurrentEditor = useMutation(api.notes.setCurrentEditor);
-  const updateNote = useMutation(api.notes.updateNote);
+  const setCurrentEditor = useMutation(
+    api.notes.setCurrentEditor,
+  ).withOptimisticUpdate((store, { noteId }) => {
+    // Optimistically update the getCurrentEditor query
+    const currentEditor = store.getQuery(api.notes.getCurrentEditor, {});
+    if (currentEditor) {
+      store.setQuery(
+        api.notes.getCurrentEditor,
+        {},
+        {
+          ...currentEditor,
+          noteId,
+        },
+      );
+    }
+
+    // If we have the note data in the sidebar, optimistically update getNote query
+    const sidebarData = store.getQuery(api.notes.getSidebarData, {});
+    if (!sidebarData) return;
+
+    const note = sidebarData.notes.find((note) => note._id === noteId);
+    if (note) {
+      store.setQuery(api.notes.getNote, { noteId }, note);
+    }
+  });
+  const updateNote = useMutation(api.notes.updateNote).withOptimisticUpdate(
+    (store, { noteId, content, title }) => {
+      // Optimistically update the getNote query
+      const note = store.getQuery(api.notes.getNote, { noteId });
+      if (note) {
+        store.setQuery(
+          api.notes.getNote,
+          { noteId },
+          {
+            ...note,
+            ...(content !== undefined && { content }),
+            ...(title !== undefined && { title }),
+          },
+        );
+      }
+
+      // Optimistically update the note in the sidebar data
+      const sidebarData = store.getQuery(api.notes.getSidebarData, {});
+      if (!sidebarData) return;
+
+      const updatedNotes = sidebarData.notes.map((note) =>
+        note._id === noteId
+          ? {
+              ...note,
+              ...(content !== undefined && { content }),
+              ...(title !== undefined && { title }),
+            }
+          : note,
+      );
+
+      store.setQuery(
+        api.notes.getSidebarData,
+        {},
+        {
+          ...sidebarData,
+          notes: updatedNotes,
+        },
+      );
+    },
+  );
   const createNoteAction = useMutation(api.notes.createNote);
   const createFolderAction = useMutation(api.notes.createFolder);
   const deleteNoteAction = useMutation(api.notes.deleteNote);
@@ -137,11 +201,10 @@ export function NotesProvider({ children }: { children: ReactNode }) {
   );
 
   const updateNoteTitle = useCallback(
-    async (title: string) => {
-      if (!selectedNote?._id) return;
-      await updateNote({ noteId: selectedNote._id, title });
+    async (noteId: Id<"notes">, title: string) => {
+      await updateNote({ noteId, title });
     },
-    [selectedNote?._id, updateNote],
+    [updateNote],
   );
 
   const toggleFolder = useCallback((folderId: Id<"folders">) => {
@@ -164,9 +227,12 @@ export function NotesProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const createNote = useCallback(async () => {
-    await createNoteAction({});
-  }, [createNoteAction]);
+  const createNote = useCallback(
+    async (folderId?: Id<"folders">) => {
+      await createNoteAction({ folderId });
+    },
+    [createNoteAction],
+  );
 
   const createFolder = useCallback(async () => {
     await createFolderAction({});

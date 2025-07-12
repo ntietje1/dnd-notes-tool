@@ -5,6 +5,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 
 export interface ContextMenuItem {
   label: string;
@@ -16,13 +17,14 @@ export interface ContextMenuItem {
 interface ContextMenuProps {
   children: React.ReactNode;
   items: ContextMenuItem[];
-  /** Optional class name for the dropdown content */
+  className?: string;
   menuClassName?: string;
 }
 
 export function ContextMenu({
   children,
   items,
+  className,
   menuClassName = "w-48",
 }: ContextMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -55,7 +57,7 @@ export function ContextMenu({
   return (
     <div
       ref={wrapperRef}
-      className="relative w-full"
+      className={cn("relative w-full", className)}
       onContextMenu={handleContextMenu}
     >
       {children}

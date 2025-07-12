@@ -3,41 +3,58 @@
 import { useNotes } from "@/contexts/NotesContext";
 import { FileTopbar } from "@/components/file-topbar/topbar";
 import { SimpleEditor } from "@/components/custom-tiptap-ui/editor/editor";
-import { FileX } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useConvexAuth } from "convex/react";
+
+function ToolbarSkeleton() {
+  return (
+    <div className="tiptap-toolbar border-b" data-variant="fixed">
+      <div className="flex items-center gap-4 px-2 min-h-[2.75rem]">
+        <div className="w-175 h-7 bg-gray-200 rounded animate-pulse" />
+      </div>
+    </div>
+  );
+}
+
+function LoadingState() {
+  return (
+    <div className="flex flex-col h-full">
+      <div className="h-8 border-b flex items-center px-4">
+        <div className="h-5 w-48 bg-gray-200 animate-pulse rounded" />
+      </div>
+      <ToolbarSkeleton />
+      <div className="flex-1 p-4">
+        <div className="space-y-4 animate-pulse">
+          <div className="h-6 w-3/4 bg-gray-200 rounded" />
+          <div className="h-4 w-full bg-gray-200 rounded" />
+          <div className="h-4 w-5/6 bg-gray-200 rounded" />
+          <div className="h-4 w-4/5 bg-gray-200 rounded" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+//TODO: non-loading but no note selected state is not handled well (check if editor exists in db?)
 
 export function NotesEditor() {
-  const {
-    currentNoteId,
-    selectedNote,
-    updateNoteContent,
-    updateNoteTitle,
-    createNote,
-  } = useNotes();
+  const { currentNoteId, selectedNote, updateNoteContent, updateNoteTitle } =
+    useNotes();
 
-  if (currentNoteId && selectedNote === null) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground">
-        <FileX className="h-16 w-16" />
-        <h2 className="text-lg font-medium">Note not found</h2>
-        <p>This note may have been deleted or you don't have access to it.</p>
-      </div>
-    );
-  } else if (!currentNoteId) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground">
-        <FileX className="h-16 w-16" />
-        <h2 className="text-lg font-medium">No note selected</h2>
-        <Button onClick={() => createNote()}>Create a new note</Button>
-      </div>
-    );
+  const { isLoading } = useConvexAuth();
+
+  if (isLoading || !currentNoteId || !selectedNote) {
+    return <LoadingState />;
   }
 
   return (
     <div className="flex flex-col h-full">
-      <FileTopbar note={selectedNote ?? null} onTitleChange={updateNoteTitle} />
+      <FileTopbar
+        note={selectedNote}
+        onTitleChange={(title) => updateNoteTitle(currentNoteId, title)}
+      />
       <SimpleEditor
         className="h-full"
+        note={selectedNote}
         onUpdate={({ editor }) => updateNoteContent(editor)}
       />
     </div>
