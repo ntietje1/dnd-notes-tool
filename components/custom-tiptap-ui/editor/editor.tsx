@@ -1,14 +1,8 @@
 "use client";
-import { TaskList } from "@tiptap/extension-task-list";
-import { TaskItem } from "@tiptap/extension-task-item";
+import { TaskList, TaskItem } from "@tiptap/extension-list";
 
 import * as React from "react";
-import {
-  EditorContent,
-  EditorContext,
-  JSONContent,
-  useEditor,
-} from "@tiptap/react";
+import { EditorContent, EditorContext, useEditor } from "@tiptap/react";
 import "@/styles/variables.scss";
 import "@/styles/keyframe-animations.scss";
 
@@ -18,12 +12,10 @@ import { Image } from "@tiptap/extension-image";
 import { TextAlign } from "@tiptap/extension-text-align";
 import { Typography } from "@tiptap/extension-typography";
 import { Highlight } from "@tiptap/extension-highlight";
-import { Subscript } from "@tiptap/extension-subscript";
-import { Superscript } from "@tiptap/extension-superscript";
-import { Underline } from "@tiptap/extension-underline";
+import { TextStyle, TextStyleKit } from "@tiptap/extension-text-style";
+import { Focus, CharacterCount } from "@tiptap/extensions";
 
 // --- Custom Extensions ---
-import { Link } from "@/components/tiptap-extension/link-extension";
 import { Selection } from "@/components/tiptap-extension/selection-extension";
 import { TrailingNode } from "@/components/tiptap-extension/trailing-node-extension";
 
@@ -205,7 +197,7 @@ export function SimpleEditor({ onUpdate, note, className }: SimpleEditorProps) {
   const prevNoteId = React.useRef<string | null>(null);
 
   const editor = useEditor({
-    immediatelyRender: false,
+    immediatelyRender: true,
     enableContentCheck: true,
     onUpdate: onUpdate,
     editorProps: {
@@ -218,17 +210,38 @@ export function SimpleEditor({ onUpdate, note, className }: SimpleEditorProps) {
     },
     extensions: [
       StarterKit,
-      TextAlign.configure({ types: ["heading", "paragraph"] }),
-      Underline,
+      TextStyle.configure(),
+      TextStyleKit.configure({
+        backgroundColor: {
+          types: ["textStyle"],
+        },
+        color: {
+          types: ["textStyle"],
+        },
+        fontFamily: {
+          types: ["textStyle"],
+        },
+        fontSize: {
+          types: ["textStyle"],
+        },
+        lineHeight: {
+          types: ["textStyle"],
+        },
+      }),
+      TextAlign.configure({
+        types: ["heading", "paragraph"],
+        alignments: ["left", "center", "right", "justify"],
+      }),
       TaskList,
       TaskItem.configure({ nested: true }),
       Highlight.configure({ multicolor: true }),
       Image,
       Typography,
-      Superscript,
-      Subscript,
-      SharedContentExtension,
       Selection,
+      TrailingNode,
+      Focus,
+      CharacterCount,
+      SharedContentExtension,
       ImageUploadNode.configure({
         accept: "image/*",
         maxSize: MAX_FILE_SIZE,
@@ -236,8 +249,6 @@ export function SimpleEditor({ onUpdate, note, className }: SimpleEditorProps) {
         upload: handleImageUpload,
         onError: (error) => console.error("Upload failed:", error),
       }),
-      TrailingNode,
-      Link.configure({ openOnClick: false }),
     ],
     onContentError: (error) => {
       console.error("Content error:", error);
