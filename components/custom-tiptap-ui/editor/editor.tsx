@@ -54,6 +54,8 @@ import {
 import { MarkButton } from "@/components/tiptap-ui/mark-button";
 import { TextAlignButton } from "@/components/tiptap-ui/text-align-button";
 import { UndoRedoButton } from "@/components/tiptap-ui/undo-redo-button";
+import { FontFamilyDropdownMenu } from "@/components/font-dropdown-menu/font-family-dropdown-menu";
+import { FontSizeDropdownMenu } from "@/components/font-dropdown-menu/font-size-dropdown-menu";
 
 // --- Icons ---
 import { ArrowLeftIcon } from "@/components/tiptap-icons/arrow-left-icon";
@@ -105,6 +107,13 @@ const MainToolbarContent = ({
         <ListDropdownMenu types={["bulletList", "orderedList", "taskList"]} />
         <BlockquoteButton />
         <CodeBlockButton />
+      </ToolbarGroup>
+
+      <ToolbarSeparator />
+
+      <ToolbarGroup>
+        <FontFamilyDropdownMenu />
+        <FontSizeDropdownMenu />
       </ToolbarGroup>
 
       <ToolbarSeparator />
@@ -200,12 +209,32 @@ export function SimpleEditor({ onUpdate, note, className }: SimpleEditorProps) {
     immediatelyRender: true,
     enableContentCheck: true,
     onUpdate: onUpdate,
+    autofocus: true,
     editorProps: {
       attributes: {
         autocomplete: "off",
         autocorrect: "off",
         autocapitalize: "off",
         "aria-label": "Main content area, start typing to enter text.",
+      },
+      handleDOMEvents: {
+        blur: (view, event) => {
+          // Prevent blur if clicking on toolbar
+          const toolbar = toolbarRef.current;
+          if (
+            toolbar &&
+            (toolbar.contains(event.relatedTarget as Node) ||
+              event.relatedTarget === null)
+          ) {
+            view.focus();
+            return true;
+          }
+          return false;
+        },
+        focus: () => {
+          // Always return false to allow default focus behavior
+          return false;
+        },
       },
     },
     extensions: [
