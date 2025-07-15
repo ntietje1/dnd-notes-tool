@@ -16,7 +16,7 @@ export function EditableName({
   onFinishRename,
 }: EditableNameProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [name, setName] = useState(initialName || defaultName);
+  const [name, setName] = useState(initialName);
 
   useEffect(() => {
     if (isRenaming && inputRef.current) {
@@ -39,8 +39,8 @@ export function EditableName({
           if (e.key === "Enter") {
             onFinishRename(name);
           } else if (e.key === "Escape") {
-            setName(initialName || defaultName);
-            onFinishRename(initialName || defaultName);
+            setName(initialName);
+            onFinishRename(initialName);
           }
           // Prevent space from triggering button click
           if (e.key === " ") {
@@ -48,10 +48,15 @@ export function EditableName({
           }
         }}
         onClick={(e) => e.stopPropagation()}
-        className="bg-transparent border-none w-full focus:outline-none focus:ring-0 text-sm"
+        placeholder={defaultName}
+        className="bg-transparent border-none w-full mr-4 px-0.5 focus:outline-none focus:ring-1 text-sm"
       />
     );
   }
 
-  return <span className="truncate">{initialName || defaultName}</span>;
+  return (
+    <span className="truncate px-0.5">
+      {initialName || <span className="opacity-85">{defaultName}</span>}
+    </span>
+  );
 }

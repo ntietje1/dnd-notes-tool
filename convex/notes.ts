@@ -2,7 +2,7 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { checkForSharedContent } from "./sharedContent";
 import { Doc } from "./_generated/dataModel";
-import { SaveNoteArgs, Note, Folder, SidebarData, FolderNode } from "./types";
+import { Note, Folder, SidebarData, FolderNode } from "./types";
 import { Id } from "./_generated/dataModel";
 import { api } from "./_generated/api";
 
@@ -15,7 +15,7 @@ export const updateNote = mutation({
     content: v.optional(v.any()),
     title: v.optional(v.string()),
   },
-  handler: async (ctx, args: SaveNoteArgs) => {
+  handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new Error("Not authenticated");

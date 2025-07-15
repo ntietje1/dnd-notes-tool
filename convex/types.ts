@@ -21,7 +21,7 @@ export type Folder = {
   _creationTime: number;
 
   userId: Id<"users">;
-  name: string;
+  name?: string;
   folderId?: Id<"folders">;
   updatedAt: number;
 };
@@ -34,13 +34,6 @@ export interface FolderNode extends Folder {
 export type SidebarData = {
   folders: Folder[];
   notes: Note[];
-};
-
-export type SaveNoteArgs = {
-  noteId: Id<"notes">;
-  content?: JSONContent;
-  title?: string;
-  folderId?: Id<"folders">;
 };
 
 export type Editor = {

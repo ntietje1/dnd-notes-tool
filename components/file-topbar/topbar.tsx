@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { Note } from "@/convex/types";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,10 +9,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { X, MoreVertical, Download, Trash2, Share } from "lucide-react";
+import { X, MoreVertical, Download, Trash2, Share, Users } from "lucide-react";
 import { UNTITLED_NOTE_TITLE } from "@/convex/types";
 import { useCallback, useState, useEffect, useRef } from "react";
-import { Id } from "@/convex/_generated/dataModel";
+import { useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
 interface FileTopbarProps {
   note: Note | null;
@@ -32,53 +32,66 @@ export function FileTopbar({
   onShare,
   onExport,
 }: FileTopbarProps) {
-  const router = useRouter();
-  const [localTitle, setLocalTitle] = useState("");
+  const [title, setTitle] = useState(note?.title || UNTITLED_NOTE_TITLE);
   const [isEditing, setIsEditing] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const updateNote = useMutation(api.notes.updateNote);
 
-  const handleClose = () => {
-    if (onClose) {
-      onClose();
-    } else {
-      router.push("/");
-    }
-  };
-
-  // Update local title when note changes or when not editing
   useEffect(() => {
-    if (!isEditing || note?._id !== prevNoteId.current) {
-      setLocalTitle(note?.title ?? "");
-      prevNoteId.current = note?._id;
-    }
-  }, [note?._id, note?.title, isEditing]);
-
-  // Keep track of previous note ID to detect note changes
-  const prevNoteId = useRef<Id<"notes"> | undefined>(note?._id);
+    setTitle(note?.title || UNTITLED_NOTE_TITLE);
+  }, [note?.title]);
 
   const handleTitleChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const newTitle = e.target.value;
-      setLocalTitle(newTitle);
+    (newTitle: string) => {
+      setTitle(newTitle);
       onTitleChange(newTitle);
     },
     [onTitleChange],
   );
 
+  const handleTitleSubmit = useCallback(() => {
+    setIsEditing(false);
+  }, []);
+
+  const toggleShared = useCallback(async () => {
+    if (note) {
+      // do nothing for now
+    }
+  }, [note, updateNote]);
+
   return (
-    <div className="h-8 border-b bg-background flex items-center justify-between px-4">
-      <div className="flex items-center gap-2">
-        <input
-          type="text"
-          value={localTitle}
-          onChange={handleTitleChange}
-          onFocus={() => setIsEditing(true)}
-          onBlur={() => setIsEditing(false)}
-          className="text-lg font-medium truncate bg-transparent border-none outline-none focus:ring-0"
-          placeholder={UNTITLED_NOTE_TITLE}
-        />
+    <div className="flex items-center justify-between px-4 h-12 border-b">
+      <div className="flex items-center gap-2 flex-1">
+        {isEditing ? (
+          <input
+            ref={inputRef}
+            type="text"
+            value={title}
+            onChange={(e) => handleTitleChange(e.target.value)}
+            onBlur={handleTitleSubmit}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                handleTitleSubmit();
+              }
+            }}
+            className="bg-transparent border-none outline-none focus:ring-0 px-0 py-1 w-full"
+            autoFocus
+          />
+        ) : (
+          <button
+            onClick={() => setIsEditing(true)}
+            className="text-left hover:border-b hover:border-gray-300 flex"
+          >
+            {title}
+          </button>
+        )}
       </div>
 
       <div className="flex items-center gap-2">
+        <Button variant="ghost" size="icon" onClick={toggleShared}>
+          <Users className="h-4 w-4" />
+        </Button>
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon">
@@ -113,9 +126,11 @@ export function FileTopbar({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <Button variant="ghost" size="icon" onClick={handleClose}>
-          <X className="h-4 w-4" />
-        </Button>
+        {onClose && (
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        )}
       </div>
     </div>
   );

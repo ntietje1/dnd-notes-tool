@@ -51,7 +51,7 @@ export function NotesEditor() {
     return <LoadingState />;
   }
 
-  if (!currentNoteId) {
+  if (!currentNoteId || !selectedNote) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-muted-foreground gap-4">
         <p>Select a note or create a new one to get started</p>
@@ -65,12 +65,12 @@ export function NotesEditor() {
   return (
     <div className="h-full flex flex-col">
       <FileTopbar
-        note={selectedNote ?? null}
+        note={selectedNote}
         onTitleChange={(title) => updateNoteTitle(currentNoteId, title)}
       />
       <div className="flex-1 overflow-hidden">
         <SimpleEditor
-          note={selectedNote ?? undefined}
+          note={selectedNote}
           onUpdate={({ editor }) => updateNoteContent(editor)}
           className="h-full"
         />
