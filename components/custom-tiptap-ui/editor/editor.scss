@@ -62,6 +62,45 @@ body {
   width: 100%;
   margin: 0 auto;
   background-color: rgba(0, 0, 0, 0.05);
+
+  // Webkit scrollbar styling
+  &::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--tt-gray-light-a-200);
+    border-radius: 4px;
+
+    &:hover {
+      background-color: var(--tt-gray-light-a-300);
+    }
+  }
+
+  // For Firefox
+  scrollbar-width: thin;
+  scrollbar-color: var(--tt-gray-light-a-200) transparent;
+
+  // Dark mode
+  .dark & {
+    &::-webkit-scrollbar-thumb {
+      background-color: var(--tt-gray-dark-a-200);
+
+      &:hover {
+        background-color: var(--tt-gray-dark-a-300);
+      }
+    }
+
+    scrollbar-color: var(--tt-gray-dark-a-200) transparent;
+  }
+
+  // Add padding to prevent content from being hidden behind the scrollbar
+  padding-right: 16px;
 }
 
 .simple-editor-content .tiptap.ProseMirror {
