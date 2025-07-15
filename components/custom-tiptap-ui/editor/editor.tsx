@@ -18,6 +18,7 @@ import { Focus, CharacterCount } from "@tiptap/extensions";
 // --- Custom Extensions ---
 import { Selection } from "@/components/tiptap-extension/selection-extension";
 import { CursorPlacement } from "@/components/custom-tiptap-extension/cursor-placement-extension";
+import { LinkCursor } from "@/components/tiptap-extension/link-cursor-extension";
 
 // --- UI Primitives ---
 import { Button } from "@/components/tiptap-ui-primitive/button";
@@ -129,7 +130,11 @@ const MainToolbarContent = ({
         ) : (
           <ColorHighlightPopoverButton onClick={onHighlighterClick} />
         )}
-        {!isMobile ? <LinkPopover /> : <LinkButton onClick={onLinkClick} />}
+        {!isMobile ? (
+          <LinkPopover autoOpenOnLinkActive={false} />
+        ) : (
+          <LinkButton onClick={onLinkClick} />
+        )}
       </ToolbarGroup>
 
       <ToolbarSeparator />
@@ -274,6 +279,7 @@ export function SimpleEditor({ onUpdate, note, className }: SimpleEditorProps) {
       CharacterCount,
       SharedContentExtension,
       CursorPlacement,
+      LinkCursor,
       ImageUploadNode.configure({
         accept: "image/*",
         maxSize: MAX_FILE_SIZE,
