@@ -4,6 +4,7 @@ import { useNotes } from "@/contexts/NotesContext";
 import { FileTopbar } from "@/components/file-topbar/topbar";
 import { SimpleEditor } from "@/components/custom-tiptap-ui/editor/editor";
 import { useConvexAuth } from "convex/react";
+import { Button } from "@/components/ui/button";
 
 function ToolbarSkeleton() {
   return (
@@ -34,29 +35,46 @@ function LoadingState() {
   );
 }
 
-//TODO: non-loading but no note selected state is not handled well (check if editor exists in db?)
-
 export function NotesEditor() {
-  const { currentNoteId, selectedNote, updateNoteContent, updateNoteTitle } =
-    useNotes();
+  const {
+    currentNoteId,
+    selectedNote,
+    updateNoteContent,
+    updateNoteTitle,
+    isLoading: isDataLoading,
+    createNote,
+  } = useNotes();
 
-  const { isLoading } = useConvexAuth();
+  const { isLoading: isAuthLoading } = useConvexAuth();
 
-  if (isLoading || !currentNoteId || !selectedNote) {
+  if (isAuthLoading || isDataLoading) {
     return <LoadingState />;
   }
 
+  if (!currentNoteId) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center text-muted-foreground gap-4">
+        <p>Select a note or create a new one to get started</p>
+        <Button variant="outline" onClick={() => createNote()}>
+          Create new note
+        </Button>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col h-full">
+    <div className="h-full flex flex-col">
       <FileTopbar
-        note={selectedNote}
+        note={selectedNote ?? null}
         onTitleChange={(title) => updateNoteTitle(currentNoteId, title)}
       />
-      <SimpleEditor
-        className="h-full"
-        note={selectedNote}
-        onUpdate={({ editor }) => updateNoteContent(editor)}
-      />
+      <div className="flex-1 overflow-hidden">
+        <SimpleEditor
+          note={selectedNote ?? undefined}
+          onUpdate={({ editor }) => updateNoteContent(editor)}
+          className="h-full"
+        />
+      </div>
     </div>
   );
 }

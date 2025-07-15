@@ -5,6 +5,7 @@ import * as React from "react";
 import { EditorContent, EditorContext, useEditor } from "@tiptap/react";
 import "@/styles/variables.scss";
 import "@/styles/keyframe-animations.scss";
+import { TextSelection } from "@tiptap/pm/state";
 
 // --- Tiptap Core Extensions ---
 import { StarterKit } from "@tiptap/starter-kit";
@@ -18,6 +19,7 @@ import { Focus, CharacterCount } from "@tiptap/extensions";
 // --- Custom Extensions ---
 import { Selection } from "@/components/tiptap-extension/selection-extension";
 import { TrailingNode } from "@/components/tiptap-extension/trailing-node-extension";
+import { CursorPlacement } from "@/components/custom-tiptap-extension/cursor-placement-extension";
 
 // --- UI Primitives ---
 import { Button } from "@/components/tiptap-ui-primitive/button";
@@ -209,7 +211,6 @@ export function SimpleEditor({ onUpdate, note, className }: SimpleEditorProps) {
     immediatelyRender: true,
     enableContentCheck: true,
     onUpdate: onUpdate,
-    autofocus: true,
     editorProps: {
       attributes: {
         autocomplete: "off",
@@ -271,6 +272,7 @@ export function SimpleEditor({ onUpdate, note, className }: SimpleEditorProps) {
       Focus,
       CharacterCount,
       SharedContentExtension,
+      CursorPlacement,
       ImageUploadNode.configure({
         accept: "image/*",
         maxSize: MAX_FILE_SIZE,
@@ -333,7 +335,7 @@ export function SimpleEditor({ onUpdate, note, className }: SimpleEditorProps) {
         <EditorContent
           editor={editor}
           role="presentation"
-          className={`simple-editor-content ${className}`}
+          className={`simple-editor-content h-full overflow-y-auto ${className ?? ""}`}
         />
       </div>
     </EditorContext.Provider>

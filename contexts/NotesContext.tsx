@@ -20,6 +20,7 @@ type NotesContextType = {
   selectedNote: Note | null | undefined;
   expandedFolders: Set<Id<"folders">>;
   sidebarData: SidebarData | undefined;
+  isLoading: boolean;
 
   // Actions
   selectNote: (noteId: Id<"notes">) => void;
@@ -53,6 +54,9 @@ export function NotesProvider({ children }: { children: ReactNode }) {
     noteId: currentEditor?.noteId,
   });
   const sidebarData = useQuery(api.notes.getSidebarData, {});
+
+  // Loading state - true until all initial data is loaded
+  const isLoading = currentEditor === undefined || sidebarData === undefined;
 
   // Mutations
   const setCurrentEditor = useMutation(
@@ -282,6 +286,7 @@ export function NotesProvider({ children }: { children: ReactNode }) {
     selectedNote,
     expandedFolders,
     sidebarData,
+    isLoading,
 
     // Actions
     selectNote,

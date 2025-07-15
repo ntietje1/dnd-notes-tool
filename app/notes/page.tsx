@@ -10,15 +10,28 @@ import { FileSidebar } from "@/components/file-sidebar/sidebar";
 export default function NotesPage() {
   return (
     <NotesProvider>
-      <ResizablePanelGroup direction="horizontal" className="h-auto">
-        <ResizablePanel defaultSize={25} minSize={10} maxSize={40}>
-          <FileSidebar />
-        </ResizablePanel>
-        <ResizableHandle />
-        <ResizablePanel defaultSize={75}>
-          <NotesEditor />
-        </ResizablePanel>
-      </ResizablePanelGroup>
+      <div className="h-full flex flex-col">
+        <ResizablePanelGroup
+          direction="horizontal"
+          className="flex-1 overflow-hidden"
+        >
+          <ResizablePanel
+            defaultSize={25}
+            minSize={10}
+            className="overflow-y-auto"
+          >
+            <FileSidebar />
+          </ResizablePanel>
+          <ResizableHandle />
+          <ResizablePanel
+            defaultSize={75}
+            minSize={25}
+            className="overflow-hidden"
+          >
+            <NotesEditor />
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      </div>
     </NotesProvider>
   );
 }

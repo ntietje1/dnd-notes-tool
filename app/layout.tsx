@@ -35,8 +35,10 @@ export default function RootLayout({
           className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
         >
           <ConvexClientProvider>
-            <Header />
-            <main className="flex-1">{children}</main>
+            <div className="flex flex-col h-screen">
+              <Header />
+              <main className="flex-1 overflow-hidden">{children}</main>
+            </div>
           </ConvexClientProvider>
         </body>
       </html>
