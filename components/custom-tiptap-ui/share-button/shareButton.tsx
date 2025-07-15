@@ -3,6 +3,7 @@ import { ShareIcon } from "./share-icon";
 import { Button } from "@/components/tiptap-ui-primitive/button";
 import { Editor } from "@tiptap/react";
 import { useTiptapEditor } from "@/hooks/use-tiptap-editor";
+import { useTiptapButtonState } from "@/hooks/use-tiptap-button-state";
 
 export interface ShareButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -85,27 +86,27 @@ export const ShareButton = React.forwardRef<
   ) => {
     const editor = useTiptapEditor(providedEditor);
     const isDisabled = isShareButtonDisabled(editor, disabled);
-    const isActive = React.useMemo(() => {
-      if (!editor) return false;
+    const isActive = useTiptapButtonState({
+      editor,
+      isActive: (editor) => {
+        const { selection } = editor.state;
+        const cursorPos = selection.from;
 
-      const { selection } = editor.state;
-      const cursorPos = selection.from;
-
-      // Find the current node containing the cursor and check if it has shared attribute
-      let hasSharedAttribute = false;
-      editor.state.doc.nodesBetween(
-        0,
-        editor.state.doc.content.size,
-        (node, pos) => {
-          const nodeEnd = pos + node.nodeSize;
-          if (pos <= cursorPos && cursorPos <= nodeEnd && node.attrs.shared) {
-            hasSharedAttribute = true;
-          }
-        },
-      );
-
-      return hasSharedAttribute;
-    }, [editor, editor?.state.selection]);
+        // Find the current node containing the cursor and check if it has shared attribute
+        let hasSharedAttribute = false;
+        editor.state.doc.nodesBetween(
+          0,
+          editor.state.doc.content.size,
+          (node, pos) => {
+            const nodeEnd = pos + node.nodeSize;
+            if (pos <= cursorPos && cursorPos <= nodeEnd && node.attrs.shared) {
+              hasSharedAttribute = true;
+            }
+          },
+        );
+        return hasSharedAttribute;
+      },
+    });
 
     const handleClick = React.useCallback(
       (e: React.MouseEvent<HTMLButtonElement>) => {
