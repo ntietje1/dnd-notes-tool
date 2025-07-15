@@ -35,6 +35,8 @@ export const SharedContentExtension = Extension.create<SharedContentOptions>({
         "bulletList",
         "orderedList",
         "taskList",
+        "listItem",
+        "taskItem",
         "blockquote",
         "codeBlock",
         "image",
@@ -89,9 +91,26 @@ export const SharedContentExtension = Extension.create<SharedContentOptions>({
           // Find all shareable nodes in the selection
           const blocks: { pos: number; node: ProseMirrorNode }[] = [];
           state.doc.nodesBetween(from, to, (node, pos) => {
-            if (this.options.types.includes(node.type.name)) {
+            // Skip list container nodes (bulletList, orderedList, taskList)
+            if (node.type.name.endsWith("List")) {
+              return true; // Continue traversing into list items
+            }
+
+            // For list items, don't traverse into their children
+            const isListItem =
+              node.type.name === "listItem" || node.type.name === "taskItem";
+            if (isListItem) {
+              if (this.options.types.includes(node.type.name)) {
+                blocks.push({ pos, node });
+              }
+              return false; // Don't traverse into list item children
+            }
+
+            // For non-list items, process normally
+            if (!isListItem && this.options.types.includes(node.type.name)) {
               blocks.push({ pos, node });
             }
+            return true;
           });
 
           if (blocks.length === 0) return false;
@@ -114,9 +133,26 @@ export const SharedContentExtension = Extension.create<SharedContentOptions>({
           // Find all shareable nodes in the selection
           const blocks: { pos: number; node: ProseMirrorNode }[] = [];
           state.doc.nodesBetween(from, to, (node, pos) => {
-            if (this.options.types.includes(node.type.name)) {
+            // Skip list container nodes (bulletList, orderedList, taskList)
+            if (node.type.name.endsWith("List")) {
+              return true; // Continue traversing into list items
+            }
+
+            // For list items, don't traverse into their children
+            const isListItem =
+              node.type.name === "listItem" || node.type.name === "taskItem";
+            if (isListItem) {
+              if (this.options.types.includes(node.type.name)) {
+                blocks.push({ pos, node });
+              }
+              return false; // Don't traverse into list item children
+            }
+
+            // For non-list items, process normally
+            if (!isListItem && this.options.types.includes(node.type.name)) {
               blocks.push({ pos, node });
             }
+            return true;
           });
 
           if (blocks.length === 0) return false;
@@ -143,9 +179,26 @@ export const SharedContentExtension = Extension.create<SharedContentOptions>({
           // Find all shareable nodes in the selection
           const blocks: { pos: number; node: ProseMirrorNode }[] = [];
           state.doc.nodesBetween(from, to, (node, pos) => {
-            if (this.options.types.includes(node.type.name)) {
+            // Skip list container nodes (bulletList, orderedList, taskList)
+            if (node.type.name.endsWith("List")) {
+              return true; // Continue traversing into list items
+            }
+
+            // For list items, don't traverse into their children
+            const isListItem =
+              node.type.name === "listItem" || node.type.name === "taskItem";
+            if (isListItem) {
+              if (this.options.types.includes(node.type.name)) {
+                blocks.push({ pos, node });
+              }
+              return false; // Don't traverse into list item children
+            }
+
+            // For non-list items, process normally
+            if (!isListItem && this.options.types.includes(node.type.name)) {
               blocks.push({ pos, node });
             }
+            return true;
           });
 
           if (blocks.length === 0) return false;
