@@ -2,7 +2,15 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { checkForSharedContent } from "./sharedContent";
 import { Doc } from "./_generated/dataModel";
-import { Note, Folder, SidebarData, FolderNode } from "./types";
+import {
+  Note,
+  Folder,
+  RawSidebarData,
+  FolderNode,
+  SidebarItemType,
+  SidebarItem,
+  AnySidebarItem,
+} from "./types";
 import { Id } from "./_generated/dataModel";
 import { api } from "./_generated/api";
 
@@ -13,7 +21,7 @@ export const updateNote = mutation({
   args: {
     noteId: v.id("notes"),
     content: v.optional(v.any()),
-    title: v.optional(v.string()),
+    name: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -37,8 +45,8 @@ export const updateNote = mutation({
       updates.hasSharedContent = hasSharedContent;
     }
 
-    if (args.title !== undefined) {
-      updates.title = args.title;
+    if (args.name !== undefined) {
+      updates.name = args.name;
     }
 
     await ctx.db.patch(args.noteId, updates);
@@ -49,14 +57,14 @@ export const updateNote = mutation({
 export const moveNote = mutation({
   args: {
     noteId: v.id("notes"),
-    folderId: v.optional(v.id("folders")),
+    parentFolderId: v.optional(v.id("folders")),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new Error("Not authenticated");
     }
-    await ctx.db.patch(args.noteId, { folderId: args.folderId });
+    await ctx.db.patch(args.noteId, { parentFolderId: args.parentFolderId });
     return args.noteId;
   },
 });
@@ -71,7 +79,7 @@ export const moveFolder = mutation({
     if (!identity) {
       throw new Error("Not authenticated");
     }
-    await ctx.db.patch(args.folderId, { folderId: args.parentId });
+    await ctx.db.patch(args.folderId, { parentFolderId: args.parentId });
     return args.folderId;
   },
 });
@@ -99,9 +107,6 @@ export const deleteFolder = mutation({
     if (!identity) {
       throw new Error("Not authenticated");
     }
-    // await ctx.db.delete(args.folderId);
-    // return args.folderId;
-    //TODO: recursively delete
 
     const userId = getBaseUserId(identity.subject);
 
@@ -110,13 +115,13 @@ export const deleteFolder = mutation({
       // Get all child folders
       const childFolders = await ctx.db
         .query("folders")
-        .withIndex("by_folder", (q) => q.eq("folderId", folderId))
+        .withIndex("by_folder", (q) => q.eq("parentFolderId", folderId))
         .collect();
 
       // Get all notes in this folder
       const notesInFolder = await ctx.db
         .query("notes")
-        .withIndex("by_folder", (q) => q.eq("folderId", folderId))
+        .withIndex("by_folder", (q) => q.eq("parentFolderId", folderId))
         .collect();
 
       // Recursively delete child folders
@@ -183,7 +188,7 @@ export const getNote = query({
       return null;
     }
 
-    return note as Note;
+    return { ...note, type: "notes" } as Note;
   },
 });
 
@@ -201,7 +206,7 @@ export const getUserNotes = query({
       .withIndex("by_user", (q) => q.eq("userId", baseUserId))
       .collect();
 
-    return notes as Note[];
+    return notes.map((note) => ({ ...note, type: "notes" })) as Note[];
   },
 });
 
@@ -219,12 +224,15 @@ export const getUserFolders = query({
       .withIndex("by_user", (q) => q.eq("userId", baseUserId))
       .collect();
 
-    return folders as Folder[];
+    return folders.map((folder) => ({
+      ...folder,
+      type: "folders",
+    })) as Folder[];
   },
 });
 
 export const getSidebarData = query({
-  handler: async (ctx): Promise<SidebarData> => {
+  handler: async (ctx): Promise<AnySidebarItem[]> => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new Error("Not authenticated");
@@ -232,6 +240,7 @@ export const getSidebarData = query({
 
     const baseUserId = getBaseUserId(identity.subject);
 
+    // Get all folders and notes for the user
     const [folders, notes] = await Promise.all([
       ctx.db
         .query("folders")
@@ -243,10 +252,55 @@ export const getSidebarData = query({
         .collect(),
     ]);
 
-    return {
-      folders: folders as Folder[],
-      notes: notes as Note[],
-    };
+    // Create a map of folder ID to its FolderNode
+    const folderMap = new Map<Id<"folders">, FolderNode>();
+
+    // Initialize the map with empty children arrays
+    folders.forEach((folder) => {
+      folderMap.set(folder._id, {
+        ...folder,
+        type: "folders" as const,
+        children: [],
+      });
+    });
+
+    // Build the folder tree
+    folders.forEach((folder) => {
+      if (folder.parentFolderId) {
+        const parentNode = folderMap.get(folder.parentFolderId);
+        const node = folderMap.get(folder._id);
+        if (parentNode && node) {
+          parentNode.children.push(node);
+        }
+      }
+    });
+
+    // Transform notes and add them to their parent folders or root list
+    const typedNotes = notes.map((note) => ({
+      ...note,
+      type: "notes" as const,
+    })) as Note[];
+
+    // Add notes to their parent folders
+    typedNotes.forEach((note) => {
+      if (note.parentFolderId) {
+        const parentNode = folderMap.get(note.parentFolderId);
+        if (parentNode) {
+          parentNode.children.push(note);
+        }
+      }
+    });
+
+    // Get root folders (those without a parent)
+    const rootFolders = Array.from(folderMap.values()).filter(
+      (folder) => !folder.parentFolderId,
+    );
+
+    // Get root notes (those without a parent folder)
+    const rootNotes = typedNotes.filter((note) => !note.parentFolderId);
+
+    // Combine root folders and notes
+    return [...rootFolders, ...rootNotes];
   },
 });
 
@@ -260,7 +314,7 @@ export const getFolderTree = query({
     const baseUserId = getBaseUserId(identity.subject);
 
     // Get all folders and notes for the user
-    const [folders, notes] = (await Promise.all([
+    const [folders, notes] = await Promise.all([
       ctx.db
         .query("folders")
         .withIndex("by_user", (q) => q.eq("userId", baseUserId))
@@ -269,43 +323,51 @@ export const getFolderTree = query({
         .query("notes")
         .withIndex("by_user", (q) => q.eq("userId", baseUserId))
         .collect(),
-    ])) as [Folder[], Note[]];
+    ]);
 
-    // Create a map of folder ID to its children
+    // Transform notes to add type
+    const typedNotes = notes.map((note) => ({
+      ...note,
+      type: "notes" as const,
+    }));
+
+    // Create a map of folder ID to its FolderNode
     const folderMap = new Map<Id<"folders">, FolderNode>();
 
     // Initialize the map with empty children arrays
     folders.forEach((folder) => {
       folderMap.set(folder._id, {
         ...folder,
-        childFolders: [],
-        childNotes: [],
+        type: "folders" as const,
+        children: [],
       });
     });
 
     // Build the folder tree
     folders.forEach((folder) => {
-      const node = folderMap.get(folder._id);
-      if (node && folder.folderId) {
-        const parentNode = folderMap.get(folder.folderId);
-        if (parentNode) {
-          parentNode.childFolders.push(node);
+      if (folder.parentFolderId) {
+        const parentNode = folderMap.get(folder.parentFolderId);
+        const node = folderMap.get(folder._id);
+        if (parentNode && node) {
+          parentNode.children.push(node);
         }
       }
     });
 
     // Add notes to their parent folders
-    notes.forEach((note) => {
-      if (note.folderId) {
-        const parentNode = folderMap.get(note.folderId);
+    typedNotes.forEach((note) => {
+      if (note.parentFolderId) {
+        const parentNode = folderMap.get(note.parentFolderId);
         if (parentNode) {
-          parentNode.childNotes.push(note);
+          parentNode.children.push(note);
         }
       }
     });
 
     // Return only root folders (those without a parent)
-    return Array.from(folderMap.values()).filter((folder) => !folder.folderId);
+    return Array.from(folderMap.values()).filter(
+      (folder) => !folder.parentFolderId,
+    );
   },
 });
 
@@ -329,8 +391,8 @@ export const createFolder = mutation({
 
 export const createNote = mutation({
   args: {
-    title: v.optional(v.string()),
-    folderId: v.optional(v.id("folders")),
+    name: v.optional(v.string()),
+    parentFolderId: v.optional(v.id("folders")),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -340,9 +402,9 @@ export const createNote = mutation({
 
     const noteId = await ctx.db.insert("notes", {
       userId: getBaseUserId(identity.subject),
-      title: args.title || "",
+      name: args.name || "",
       content: { type: "doc", content: [{ type: "paragraph", content: [] }] },
-      folderId: args.folderId,
+      parentFolderId: args.parentFolderId,
       hasSharedContent: false,
       updatedAt: Date.now(),
     });
@@ -372,6 +434,14 @@ export const getCurrentEditor = query({
 export const setCurrentEditor = mutation({
   args: {
     noteId: v.optional(v.id("notes")),
+    sortOrder: v.optional(
+      v.union(
+        v.literal("alphabetical"),
+        v.literal("dateCreated"),
+        v.literal("dateModified"),
+      ),
+    ),
+    sortDirection: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -379,27 +449,28 @@ export const setCurrentEditor = mutation({
       throw new Error("Not authenticated");
     }
 
-    const userId = getBaseUserId(identity.subject);
+    const baseUserId = getBaseUserId(identity.subject);
 
-    // Find existing editor state for this user
-    const existingEditor = await ctx.db
+    const editor = await ctx.db
       .query("editor")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .withIndex("by_user", (q) => q.eq("userId", baseUserId))
       .first();
 
-    if (existingEditor) {
-      // Update existing editor state
-      await ctx.db.patch(existingEditor._id, {
-        noteId: args.noteId,
+    if (!editor) {
+      return ctx.db.insert("editor", {
+        userId: baseUserId,
+        activeNoteId: args.noteId,
+        sortOrder: args.sortOrder ?? "alphabetical",
+        sortDirection: args.sortDirection ?? "asc",
       });
-      return existingEditor._id;
-    } else {
-      // Create new editor state
-      const newEditorId = await ctx.db.insert("editor", {
-        userId,
-        noteId: args.noteId,
-      });
-      return newEditorId;
     }
+
+    return ctx.db.patch(editor._id, {
+      ...(args.noteId !== undefined && { activeNoteId: args.noteId }),
+      ...(args.sortOrder !== undefined && { sortOrder: args.sortOrder }),
+      ...(args.sortDirection !== undefined && {
+        sortDirection: args.sortDirection,
+      }),
+    });
   },
 });

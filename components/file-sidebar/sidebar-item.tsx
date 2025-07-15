@@ -1,22 +1,20 @@
 import { DraggableNote } from "./sidebar-note/draggable-note";
-import { FolderNode, Note } from "@/convex/types";
+import { FolderNode, Note, AnySidebarItem } from "@/convex/types";
 import { NoteButton } from "./sidebar-note/note-button";
 import { Id } from "@/convex/_generated/dataModel";
-import { SortOptions } from "./sidebar-sort";
 import { RecursiveFolder } from "./sidebar-folder/recursive-folder";
 
 // Type guard functions
-function isFolderNode(item: FolderNode | Note): item is FolderNode {
-  return (item as FolderNode).childFolders !== undefined;
+function isFolderNode(item: AnySidebarItem): item is FolderNode {
+  return item.type === "folders" && "children" in item;
 }
 
-function isNote(item: FolderNode | Note): item is Note {
-  return (item as Note).content !== undefined;
+function isNote(item: AnySidebarItem): item is Note {
+  return item.type === "notes";
 }
 
 interface SidebarItemProps {
-  item: FolderNode | Note;
-  sortOptions: SortOptions;
+  item: AnySidebarItem;
   expandedFolders: Set<Id<"folders">>;
   renamingId: Id<"folders"> | Id<"notes"> | null;
   selectedNoteId: Id<"notes"> | null;
@@ -32,7 +30,6 @@ interface SidebarItemProps {
 
 export const SidebarItem = ({
   item,
-  sortOptions,
   expandedFolders,
   renamingId,
   selectedNoteId,
@@ -45,11 +42,11 @@ export const SidebarItem = ({
   selectNote,
   createNote,
 }: SidebarItemProps) => {
+  // Use the type guard to check if it's a FolderNode
   if (isFolderNode(item)) {
     return (
       <RecursiveFolder
         folder={item}
-        sortOptions={sortOptions}
         expandedFolders={expandedFolders}
         renamingId={renamingId}
         selectedNoteId={selectedNoteId}
@@ -84,5 +81,7 @@ export const SidebarItem = ({
     );
   }
 
-  throw new Error("Invalid item type");
+  // If it's a regular Folder (not a FolderNode), we shouldn't render it
+  // This should never happen in practice because we only get FolderNodes from getFolderTree
+  throw new Error("Invalid item type or missing required properties");
 };

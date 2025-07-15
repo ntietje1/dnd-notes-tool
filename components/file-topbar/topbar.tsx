@@ -32,14 +32,14 @@ export function FileTopbar({
   onShare,
   onExport,
 }: FileTopbarProps) {
-  const [title, setTitle] = useState(note?.title || UNTITLED_NOTE_TITLE);
+  const [title, setTitle] = useState(note?.name || UNTITLED_NOTE_TITLE);
   const [isEditing, setIsEditing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const updateNote = useMutation(api.notes.updateNote);
 
   useEffect(() => {
-    setTitle(note?.title || UNTITLED_NOTE_TITLE);
-  }, [note?.title]);
+    setTitle(note?.name || UNTITLED_NOTE_TITLE);
+  }, [note?.name]);
 
   const handleTitleChange = useCallback(
     (newTitle: string) => {
@@ -74,13 +74,13 @@ export function FileTopbar({
                 handleTitleSubmit();
               }
             }}
-            className="bg-transparent border-none outline-none focus:ring-0 px-0 py-1 w-full"
+            className="bg-transparent border-b border-transparent outline-none focus:ring-0 px-2 flex"
             autoFocus
           />
         ) : (
           <button
             onClick={() => setIsEditing(true)}
-            className="text-left hover:border-b hover:border-gray-300 flex"
+            className="text-left border-b border-transparent hover:border-gray-300 flex px-2"
           >
             {title}
           </button>

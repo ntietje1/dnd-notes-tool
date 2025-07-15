@@ -5,6 +5,8 @@ import { FileTopbar } from "@/components/file-topbar/topbar";
 import { SimpleEditor } from "@/components/custom-tiptap-ui/editor/editor";
 import { useConvexAuth } from "convex/react";
 import { Button } from "@/components/ui/button";
+import { Note } from "@/convex/types";
+import { Id } from "@/convex/_generated/dataModel";
 
 function ToolbarSkeleton() {
   return (
@@ -40,7 +42,7 @@ export function NotesEditor() {
     currentNoteId,
     selectedNote,
     updateNoteContent,
-    updateNoteTitle,
+    updateNoteName: updateNoteTitle,
     isLoading: isDataLoading,
     createNote,
   } = useNotes();
@@ -51,7 +53,7 @@ export function NotesEditor() {
     return <LoadingState />;
   }
 
-  if (!currentNoteId || !selectedNote) {
+  if (!currentNoteId) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-muted-foreground gap-4">
         <p>Select a note or create a new one to get started</p>
@@ -65,12 +67,12 @@ export function NotesEditor() {
   return (
     <div className="h-full flex flex-col">
       <FileTopbar
-        note={selectedNote}
+        note={selectedNote ?? placeHolderNote}
         onTitleChange={(title) => updateNoteTitle(currentNoteId, title)}
       />
       <div className="flex-1 overflow-hidden">
         <SimpleEditor
-          note={selectedNote}
+          note={selectedNote ?? placeHolderNote}
           onUpdate={({ editor }) => updateNoteContent(editor)}
           className="h-full"
         />
@@ -78,3 +80,22 @@ export function NotesEditor() {
     </div>
   );
 }
+
+const placeHolderNote: Note = {
+  _id: "placeholder" as Id<"notes">,
+  _creationTime: 0,
+  userId: "placeholder",
+  updatedAt: 0,
+  type: "notes",
+  content: {
+    type: "doc",
+    content: [
+      {
+        type: "paragraph",
+        content: [{ type: "text", text: " " }],
+      },
+    ],
+  },
+  name: " ",
+  hasSharedContent: false,
+};

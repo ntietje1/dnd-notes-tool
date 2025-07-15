@@ -5,7 +5,6 @@ import * as React from "react";
 import { EditorContent, EditorContext, useEditor } from "@tiptap/react";
 import "@/styles/variables.scss";
 import "@/styles/keyframe-animations.scss";
-import { TextSelection } from "@tiptap/pm/state";
 
 // --- Tiptap Core Extensions ---
 import { StarterKit } from "@tiptap/starter-kit";
@@ -13,12 +12,11 @@ import { Image } from "@tiptap/extension-image";
 import { TextAlign } from "@tiptap/extension-text-align";
 import { Typography } from "@tiptap/extension-typography";
 import { Highlight } from "@tiptap/extension-highlight";
-import { TextStyle, TextStyleKit } from "@tiptap/extension-text-style";
+import { TextStyleKit } from "@tiptap/extension-text-style";
 import { Focus, CharacterCount } from "@tiptap/extensions";
 
 // --- Custom Extensions ---
 import { Selection } from "@/components/tiptap-extension/selection-extension";
-import { TrailingNode } from "@/components/tiptap-extension/trailing-node-extension";
 import { CursorPlacement } from "@/components/custom-tiptap-extension/cursor-placement-extension";
 
 // --- UI Primitives ---
@@ -240,7 +238,6 @@ export function SimpleEditor({ onUpdate, note, className }: SimpleEditorProps) {
     },
     extensions: [
       StarterKit,
-      TextStyle.configure(),
       TextStyleKit.configure({
         backgroundColor: {
           types: ["textStyle"],
@@ -268,7 +265,6 @@ export function SimpleEditor({ onUpdate, note, className }: SimpleEditorProps) {
       Image,
       Typography,
       Selection,
-      TrailingNode,
       Focus,
       CharacterCount,
       SharedContentExtension,

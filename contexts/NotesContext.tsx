@@ -7,40 +7,113 @@ import {
   ReactNode,
   useState,
   useEffect,
+  useMemo,
 } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { Note, SidebarData } from "@/convex/types";
+import {
+  AnySidebarItem,
+  Note,
+  FolderNode,
+  SidebarItemType,
+} from "@/convex/types";
 import { Editor } from "@tiptap/core";
+
+export type SortOrder = "alphabetical" | "dateCreated" | "dateModified";
+export type SortDirection = "asc" | "desc";
+
+export interface SortOptions {
+  order: SortOrder;
+  direction: SortDirection;
+}
 
 type NotesContextType = {
   // State
   currentNoteId: Id<"notes"> | null | undefined;
   selectedNote: Note | null | undefined;
   expandedFolders: Set<Id<"folders">>;
-  sidebarData: SidebarData | undefined;
+  sidebarData: AnySidebarItem[] | undefined;
   isLoading: boolean;
+  sortOptions: SortOptions;
 
   // Actions
   selectNote: (noteId: Id<"notes">) => void;
   updateNoteContent: (editor: Editor) => Promise<void>;
-  updateNoteTitle: (noteId: Id<"notes">, title: string) => Promise<void>;
+  updateNoteName: (noteId: Id<"notes">, title: string) => Promise<void>;
   toggleFolder: (folderId: Id<"folders">) => void;
   openFolder: (folderId: Id<"folders">) => void;
   createNote: (folderId?: Id<"folders">) => Promise<void>;
   createFolder: () => Promise<void>;
   deleteNote: (noteId: Id<"notes">) => Promise<void>;
   deleteFolder: (folderId: Id<"folders">) => Promise<void>;
-  moveNote: (noteId: Id<"notes">, folderId?: Id<"folders">) => Promise<void>;
+  moveNote: (
+    noteId: Id<"notes">,
+    parentFolderId?: Id<"folders">,
+  ) => Promise<void>;
   moveFolder: (
     folderId: Id<"folders">,
     parentId?: Id<"folders">,
   ) => Promise<void>;
   updateFolderName: (folderId: Id<"folders">, name: string) => Promise<void>;
+  setSortOptions: (options: SortOptions) => void;
 };
 
 const NotesContext = createContext<NotesContextType | null>(null);
+
+const findItemInSidebar = (
+  targetId: Id<SidebarItemType>,
+  items: AnySidebarItem[],
+): AnySidebarItem | undefined => {
+  for (const item of items) {
+    if (item.type === "notes" && item._id === targetId) {
+      return item;
+    }
+    if (item.type === "folders" && item.children.length > 0) {
+      const found = findItemInSidebar(targetId, item.children);
+      if (found) return found;
+    }
+  }
+  return undefined;
+};
+
+function recursiveSortItemsByOptions(
+  items: AnySidebarItem[],
+  options: SortOptions,
+): AnySidebarItem[] {
+  const { order, direction } = options;
+
+  return [...items]
+    .sort((a, b) => {
+      switch (order) {
+        case "alphabetical":
+          const nameA = a.name || "";
+          const nameB = b.name || "";
+          return direction === "asc"
+            ? nameA.localeCompare(nameB)
+            : nameB.localeCompare(nameA);
+        case "dateCreated":
+          return direction === "asc"
+            ? a._creationTime - b._creationTime
+            : b._creationTime - a._creationTime;
+        case "dateModified":
+          return direction === "asc"
+            ? a.updatedAt - b.updatedAt
+            : b.updatedAt - a.updatedAt;
+        default:
+          return 0;
+      }
+    })
+    .map((item) => {
+      if (item.type === "folders") {
+        return {
+          ...item,
+          children: recursiveSortItemsByOptions(item.children, options),
+        };
+      }
+      return item;
+    });
+}
 
 export function NotesProvider({ children }: { children: ReactNode }) {
   // Local state
@@ -51,9 +124,24 @@ export function NotesProvider({ children }: { children: ReactNode }) {
   // Queries
   const currentEditor = useQuery(api.notes.getCurrentEditor);
   const selectedNote = useQuery(api.notes.getNote, {
-    noteId: currentEditor?.noteId,
+    noteId: currentEditor?.activeNoteId,
   });
-  const sidebarData = useQuery(api.notes.getSidebarData, {});
+  const sidebarItems = useQuery(api.notes.getSidebarData);
+
+  // Get sort options from editor state
+  const sortOptions: SortOptions = useMemo(
+    () => ({
+      order: currentEditor?.sortOrder ?? "alphabetical",
+      direction: currentEditor?.sortDirection ?? "asc",
+    }),
+    [currentEditor?.sortOrder, currentEditor?.sortDirection],
+  );
+
+  // Compute sorted sidebar data
+  const sidebarData = useMemo(() => {
+    if (!sidebarItems) return undefined;
+    return recursiveSortItemsByOptions(sidebarItems, sortOptions);
+  }, [sidebarItems, sortOptions]);
 
   // Loading state - true until all initial data is loaded
   const isLoading = currentEditor === undefined || sidebarData === undefined;
@@ -61,7 +149,7 @@ export function NotesProvider({ children }: { children: ReactNode }) {
   // Mutations
   const setCurrentEditor = useMutation(
     api.notes.setCurrentEditor,
-  ).withOptimisticUpdate((store, { noteId }) => {
+  ).withOptimisticUpdate((store, { noteId, sortOrder, sortDirection }) => {
     // Optimistically update the getCurrentEditor query
     const currentEditor = store.getQuery(api.notes.getCurrentEditor, {});
     if (currentEditor) {
@@ -70,22 +158,34 @@ export function NotesProvider({ children }: { children: ReactNode }) {
         {},
         {
           ...currentEditor,
-          noteId,
+          ...(noteId !== undefined && { activeNoteId: noteId }),
+          ...(sortOrder !== undefined && { sortOrder }),
+          ...(sortDirection !== undefined && { sortDirection }),
         },
       );
     }
 
-    // If we have the note data in the sidebar, optimistically update getNote query
-    const sidebarData = store.getQuery(api.notes.getSidebarData, {});
-    if (!sidebarData) return;
+    // Optimistically update the getNote query for the new note
+    if (noteId) {
+      // Try to get the note from the existing getNote query
+      const existingNote = store.getQuery(api.notes.getNote, { noteId });
+      if (existingNote) {
+        store.setQuery(api.notes.getNote, { noteId }, existingNote);
+        return;
+      }
 
-    const note = sidebarData.notes.find((note) => note._id === noteId);
-    if (note) {
-      store.setQuery(api.notes.getNote, { noteId }, note);
+      // If note not in getNote query, try to find it in the sidebar data
+      const sidebarData = store.getQuery(api.notes.getSidebarData, {});
+      if (sidebarData) {
+        const foundNote = findItemInSidebar(noteId, sidebarData) as Note;
+        if (foundNote) {
+          store.setQuery(api.notes.getNote, { noteId }, foundNote);
+        }
+      }
     }
   });
   const updateNote = useMutation(api.notes.updateNote).withOptimisticUpdate(
-    (store, { noteId, content, title }) => {
+    (store, { noteId, content, name }) => {
       // Optimistically update the getNote query
       const note = store.getQuery(api.notes.getNote, { noteId });
       if (note) {
@@ -95,7 +195,7 @@ export function NotesProvider({ children }: { children: ReactNode }) {
           {
             ...note,
             ...(content !== undefined && { content }),
-            ...(title !== undefined && { title }),
+            ...(name !== undefined && { name }),
           },
         );
       }
@@ -104,24 +204,17 @@ export function NotesProvider({ children }: { children: ReactNode }) {
       const sidebarData = store.getQuery(api.notes.getSidebarData, {});
       if (!sidebarData) return;
 
-      const updatedNotes = sidebarData.notes.map((note) =>
-        note._id === noteId
+      const updatedItems = sidebarData.map((item) =>
+        item._id === noteId && item.type === "notes"
           ? {
-              ...note,
+              ...item,
               ...(content !== undefined && { content }),
-              ...(title !== undefined && { title }),
+              ...(name !== undefined && { name }),
             }
-          : note,
+          : item,
       );
 
-      store.setQuery(
-        api.notes.getSidebarData,
-        {},
-        {
-          ...sidebarData,
-          notes: updatedNotes,
-        },
-      );
+      store.setQuery(api.notes.getSidebarData, {}, updatedItems);
     },
   );
   const createNoteAction = useMutation(api.notes.createNote);
@@ -134,37 +227,27 @@ export function NotesProvider({ children }: { children: ReactNode }) {
     const sidebarData = store.getQuery(api.notes.getSidebarData, {});
     if (!sidebarData) return;
 
-    const updatedFolders = sidebarData.folders.map((folder) =>
-      folder._id === folderId ? { ...folder, folderId: parentId } : folder,
+    const updatedItems = sidebarData.map((item) =>
+      item._id === folderId && item.type === "folders"
+        ? { ...item, parentFolderId: parentId }
+        : item,
     );
 
-    store.setQuery(
-      api.notes.getSidebarData,
-      {},
-      {
-        ...sidebarData,
-        folders: updatedFolders,
-      },
-    );
+    store.setQuery(api.notes.getSidebarData, {}, updatedItems);
   });
 
   const moveNoteAction = useMutation(api.notes.moveNote).withOptimisticUpdate(
-    (store, { noteId, folderId }) => {
+    (store, { noteId, parentFolderId }) => {
       const sidebarData = store.getQuery(api.notes.getSidebarData, {});
       if (!sidebarData) return;
 
-      const updatedNotes = sidebarData.notes.map((note) =>
-        note._id === noteId ? { ...note, folderId } : note,
+      const updatedItems = sidebarData.map((item) =>
+        item._id === noteId && item.type === "notes"
+          ? { ...item, parentFolderId }
+          : item,
       );
 
-      store.setQuery(
-        api.notes.getSidebarData,
-        {},
-        {
-          ...sidebarData,
-          notes: updatedNotes,
-        },
-      );
+      store.setQuery(api.notes.getSidebarData, {}, updatedItems);
     },
   );
   const updateFolder = useMutation(api.notes.updateFolder).withOptimisticUpdate(
@@ -172,18 +255,13 @@ export function NotesProvider({ children }: { children: ReactNode }) {
       const sidebarData = store.getQuery(api.notes.getSidebarData, {});
       if (!sidebarData) return;
 
-      const updatedFolders = sidebarData.folders.map((folder) =>
-        folder._id === folderId ? { ...folder, name: name || "" } : folder,
+      const updatedItems = sidebarData.map((item) =>
+        item._id === folderId && item.type === "folders"
+          ? { ...item, name: name || "" }
+          : item,
       );
 
-      store.setQuery(
-        api.notes.getSidebarData,
-        {},
-        {
-          ...sidebarData,
-          folders: updatedFolders,
-        },
-      );
+      store.setQuery(api.notes.getSidebarData, {}, updatedItems);
     },
   );
 
@@ -204,9 +282,9 @@ export function NotesProvider({ children }: { children: ReactNode }) {
     [selectedNote?._id, updateNote],
   );
 
-  const updateNoteTitle = useCallback(
-    async (noteId: Id<"notes">, title: string) => {
-      await updateNote({ noteId, title });
+  const updateNoteName = useCallback(
+    async (noteId: Id<"notes">, name: string) => {
+      await updateNote({ noteId, name });
     },
     [updateNote],
   );
@@ -233,7 +311,7 @@ export function NotesProvider({ children }: { children: ReactNode }) {
 
   const createNote = useCallback(
     async (folderId?: Id<"folders">) => {
-      await createNoteAction({ folderId });
+      await createNoteAction({ parentFolderId: folderId });
     },
     [createNoteAction],
   );
@@ -245,7 +323,7 @@ export function NotesProvider({ children }: { children: ReactNode }) {
   const deleteNote = useCallback(
     async (noteId: Id<"notes">) => {
       await deleteNoteAction({ noteId });
-      if (currentEditor?.noteId === noteId) {
+      if (currentEditor?.activeNoteId === noteId) {
         await setCurrentEditor({ noteId: undefined });
       }
     },
@@ -267,8 +345,8 @@ export function NotesProvider({ children }: { children: ReactNode }) {
   );
 
   const moveNote = useCallback(
-    async (noteId: Id<"notes">, folderId?: Id<"folders">) => {
-      await moveNoteAction({ noteId, folderId });
+    async (noteId: Id<"notes">, parentFolderId?: Id<"folders">) => {
+      await moveNoteAction({ noteId, parentFolderId });
     },
     [moveNoteAction],
   );
@@ -280,18 +358,29 @@ export function NotesProvider({ children }: { children: ReactNode }) {
     [moveFolderAction],
   );
 
+  const setSortOptions = useCallback(
+    (options: SortOptions) => {
+      setCurrentEditor({
+        sortOrder: options.order,
+        sortDirection: options.direction,
+      });
+    },
+    [setCurrentEditor],
+  );
+
   const value: NotesContextType = {
     // State
-    currentNoteId: currentEditor?.noteId ?? null,
+    currentNoteId: currentEditor?.activeNoteId ?? null,
     selectedNote,
     expandedFolders,
     sidebarData,
     isLoading,
+    sortOptions,
 
     // Actions
     selectNote,
     updateNoteContent,
-    updateNoteTitle,
+    updateNoteName,
     toggleFolder,
     openFolder,
     createNote,
@@ -301,6 +390,7 @@ export function NotesProvider({ children }: { children: ReactNode }) {
     updateFolderName,
     moveNote,
     moveFolder,
+    setSortOptions,
   };
 
   return (

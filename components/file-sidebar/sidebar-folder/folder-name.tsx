@@ -2,9 +2,10 @@
 
 import { EditableName } from "@/components/shared/editable-name";
 import { UNTITLED_FOLDER_NAME } from "@/convex/types";
+import { Folder } from "@/convex/types";
 
 interface FolderNameProps {
-  folder: any;
+  folder: Folder;
   isRenaming: boolean;
   onFinishRename: (name: string) => void;
 }
@@ -16,7 +17,7 @@ export function FolderName({
 }: FolderNameProps) {
   return (
     <EditableName
-      initialName={folder.name}
+      initialName={folder.name || ""}
       defaultName={UNTITLED_FOLDER_NAME}
       isRenaming={isRenaming}
       onFinishRename={onFinishRename}

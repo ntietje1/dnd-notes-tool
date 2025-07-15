@@ -3,14 +3,12 @@
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { DroppableFolder } from "./droppable-folder";
 import { FolderButton } from "./folder-button";
-import { Note, FolderNode } from "@/convex/types";
+import { FolderNode } from "@/convex/types";
 import { Id } from "@/convex/_generated/dataModel";
-import { sortFoldersAndNotes, SortOptions } from "../sidebar-sort";
 import { SidebarItem } from "../sidebar-item";
 
 interface RecursiveFolderProps {
   folder: FolderNode;
-  sortOptions: SortOptions;
   expandedFolders: Set<Id<"folders">>;
   renamingId: Id<"folders"> | Id<"notes"> | null;
   selectedNoteId: Id<"notes"> | null;
@@ -26,7 +24,6 @@ interface RecursiveFolderProps {
 
 export function RecursiveFolder({
   folder,
-  sortOptions,
   expandedFolders,
   renamingId,
   selectedNoteId,
@@ -41,15 +38,7 @@ export function RecursiveFolder({
 }: RecursiveFolderProps) {
   const isExpanded = expandedFolders.has(folder._id);
   const isRenaming = renamingId === folder._id;
-  const hasItems =
-    folder.childFolders.length > 0 || folder.childNotes.length > 0;
-
-  // Sort folders and notes together
-  const { sortedItems } = sortFoldersAndNotes(
-    folder.childFolders,
-    folder.childNotes,
-    sortOptions,
-  );
+  const hasItems = folder.children.length > 0;
 
   return (
     <DroppableFolder folder={folder}>
@@ -76,14 +65,13 @@ export function RecursiveFolder({
         <CollapsibleContent>
           <div className="relative pl-3">
             {/* Vertical line */}
-            {sortedItems.length > 0 && (
+            {hasItems && (
               <div className="absolute left-[8px] top-[-4px] bottom-0 w-0.5 bg-muted-foreground/10" />
             )}
-            {sortedItems.map((item) => (
+            {folder.children.map((item) => (
               <SidebarItem
                 key={item._id}
                 item={item}
-                sortOptions={sortOptions}
                 expandedFolders={expandedFolders}
                 renamingId={renamingId}
                 selectedNoteId={selectedNoteId}
@@ -96,38 +84,6 @@ export function RecursiveFolder({
                 selectNote={selectNote}
                 createNote={createNote}
               />
-
-              //   <RecursiveFolder
-              //     key={childFolder._id}
-              //     folder={childFolder}
-              //     sortOptions={sortOptions}
-              //     expandedFolders={expandedFolders}
-              //     renamingId={renamingId}
-              //     selectedNoteId={selectedNoteId}
-              //     childFolders={childFolder.childFolders}
-              //     childNotes={childFolder.childNotes}
-              //     onToggleExpand={onToggleExpand}
-              //     onStartRename={onStartRename}
-              //     onFinishFolderRename={onFinishFolderRename}
-              //     onFinishNoteRename={onFinishNoteRename}
-              //     onDeleteFolder={onDeleteFolder}
-              //     onDeleteNote={onDeleteNote}
-              //     onNoteSelected={onNoteSelected}
-              //     onNewPage={onNewPage}
-              //   />
-              // ))}
-              // {childNotes.map((note) => (
-              //   <DraggableNote key={note._id} note={note}>
-              //     <NoteButton
-              //       note={note}
-              //       isRenaming={renamingId === note._id}
-              //       isSelected={selectedNoteId === note._id}
-              //       onNoteSelected={onNoteSelected}
-              //       onStartRename={() => onStartRename(note._id)}
-              //       onFinishRename={(name) => onFinishNoteRename(note._id, name)}
-              //       onDelete={() => onDeleteNote(note._id)}
-              //     />
-              //   </DraggableNote>
             ))}
           </div>
         </CollapsibleContent>

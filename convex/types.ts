@@ -1,37 +1,41 @@
 import { JSONContent } from "@tiptap/react";
 import { Id } from "./_generated/dataModel";
 
-export type Note = {
-  _id: Id<"notes">;
+// Only include actual database table types
+export type SidebarItemType = "notes" | "folders";
+
+// Generic type for all sidebar items
+export type SidebarItem<T extends SidebarItemType> = {
+  _id: Id<T>;
   _creationTime: number;
 
-  userId: Id<"users">;
-  title?: string;
-  content: JSONContent;
-  folderId?: Id<"folders">;
-  hasSharedContent?: boolean;
+  name?: string;
+  userId: string; //TODO: figure out why this isnt working as an Id<"users">
+  parentFolderId?: Id<"folders">;
   updatedAt: number;
+  type: T;
+};
+
+export type Note = SidebarItem<"notes"> & {
+  content: JSONContent;
+  hasSharedContent?: boolean;
 };
 
 export const UNTITLED_NOTE_TITLE = "Untitled Note";
 export const UNTITLED_FOLDER_NAME = "Untitled Folder";
 
-export type Folder = {
-  _id: Id<"folders">;
-  _creationTime: number;
+export type Folder = SidebarItem<"folders">;
 
-  userId: Id<"users">;
-  name?: string;
-  folderId?: Id<"folders">;
-  updatedAt: number;
-};
-
+// FolderNode extends Folder but adds tree structure properties
 export interface FolderNode extends Folder {
-  childFolders: FolderNode[];
-  childNotes: Note[];
+  type: "folders";
+  children: AnySidebarItem[];
 }
 
-export type SidebarData = {
+// Union type of all possible sidebar items (doesn't include Folder, as FolderNodes are used instead)
+export type AnySidebarItem = Note | FolderNode;
+
+export type RawSidebarData = {
   folders: Folder[];
   notes: Note[];
 };
@@ -41,5 +45,5 @@ export type Editor = {
   _creationTime: number;
 
   userId: Id<"users">;
-  noteId: Id<"notes"> | null;
+  activeNoteId: Id<"notes"> | null;
 };
