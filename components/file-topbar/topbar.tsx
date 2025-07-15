@@ -75,7 +75,7 @@ export function FileTopbar({
                 handleTitleSubmit();
               }
             }}
-            className="bg-transparent border-b border-transparent outline-none focus:ring-0 px-2 flex"
+            className="bg-transparent border-b border-transparent outline-none focus:ring-0 px-2 flex w-full"
             autoFocus
           />
         ) : (
