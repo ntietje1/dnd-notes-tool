@@ -204,11 +204,16 @@ export function SimpleEditor({ onUpdate, note, className }: SimpleEditorProps) {
   >("main");
   const toolbarRef = React.useRef<HTMLDivElement>(null);
   const prevNoteId = React.useRef<string | null>(null);
+  const isEditingContent = React.useRef(false);
 
   const editor = useEditor({
     immediatelyRender: true,
     enableContentCheck: true,
-    onUpdate: onUpdate,
+    onUpdate: (props) => {
+      if (!isEditingContent.current) {
+        onUpdate(props);
+      }
+    },
     editorProps: {
       attributes: {
         autocomplete: "off",
@@ -284,8 +289,13 @@ export function SimpleEditor({ onUpdate, note, className }: SimpleEditorProps) {
 
   React.useEffect(() => {
     if (editor && note?.content && note._id !== prevNoteId.current) {
+      isEditingContent.current = true;
       editor.commands.setContent(note.content);
       prevNoteId.current = note._id;
+      // Use setTimeout to ensure the flag is reset after the update cycle
+      setTimeout(() => {
+        isEditingContent.current = false;
+      }, 0);
     }
   }, [editor, note]);
 
