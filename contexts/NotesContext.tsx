@@ -117,7 +117,7 @@ export function NotesProvider({ children }: { children: ReactNode }) {
   );
 
   // Queries
-  const currentEditor = useQuery(api.notes.queries.getCurrentEditor);
+  const currentEditor = useQuery(api.editors.queries.getCurrentEditor);
   const selectedNote = useQuery(api.notes.queries.getNote, {
     noteId: currentEditor?.activeNoteId,
   });
@@ -143,16 +143,16 @@ export function NotesProvider({ children }: { children: ReactNode }) {
 
   // Mutations
   const setCurrentEditor = useMutation(
-    api.notes.mutations.setCurrentEditor,
+    api.editors.mutations.setCurrentEditor,
   ).withOptimisticUpdate((store, { noteId, sortOrder, sortDirection }) => {
     // Optimistically update the getCurrentEditor query
     const currentEditor = store.getQuery(
-      api.notes.queries.getCurrentEditor,
+      api.editors.queries.getCurrentEditor,
       {},
     );
     if (currentEditor) {
       store.setQuery(
-        api.notes.queries.getCurrentEditor,
+        api.editors.queries.getCurrentEditor,
         {},
         {
           ...currentEditor,

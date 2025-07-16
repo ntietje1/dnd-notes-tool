@@ -1,6 +1,5 @@
 import { mutation } from "../_generated/server";
 import { v } from "convex/values";
-import { checkForSharedContent } from "../sharedContent";
 import { Doc } from "../_generated/dataModel";
 import { Id } from "../_generated/dataModel";
 import { api } from "../_generated/api";
@@ -198,51 +197,24 @@ export const createNote = mutation({
       updatedAt: Date.now(),
     });
 
-    await ctx.runMutation(api.notes.mutations.setCurrentEditor, { noteId });
+    await ctx.runMutation(api.editors.mutations.setCurrentEditor, { noteId });
     return noteId;
   },
 });
 
-export const setCurrentEditor = mutation({
-  args: {
-    noteId: v.optional(v.id("notes")),
-    sortOrder: v.optional(
-      v.union(
-        v.literal("alphabetical"),
-        v.literal("dateCreated"),
-        v.literal("dateModified"),
-      ),
-    ),
-    sortDirection: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
-  },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
+// Function to check if content has shared blocks
+function checkForSharedContent(content: any): boolean {
+  if (!content) return false;
 
-    const baseUserId = getBaseUserId(identity.subject);
+  // Check if the current node is shared
+  if (content.attrs?.shared === true) {
+    return true;
+  }
 
-    const editor = await ctx.db
-      .query("editor")
-      .withIndex("by_user", (q) => q.eq("userId", baseUserId))
-      .first();
+  // Recursively check content array
+  if (Array.isArray(content.content)) {
+    return content.content.some(checkForSharedContent);
+  }
 
-    if (!editor) {
-      return ctx.db.insert("editor", {
-        userId: baseUserId,
-        activeNoteId: args.noteId,
-        sortOrder: args.sortOrder ?? "alphabetical",
-        sortDirection: args.sortDirection ?? "asc",
-      });
-    }
-
-    return ctx.db.patch(editor._id, {
-      ...(args.noteId !== undefined && { activeNoteId: args.noteId }),
-      ...(args.sortOrder !== undefined && { sortOrder: args.sortOrder }),
-      ...(args.sortDirection !== undefined && {
-        sortDirection: args.sortDirection,
-      }),
-    });
-  },
-});
+  return false;
+}

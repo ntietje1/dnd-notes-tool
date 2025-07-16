@@ -2,9 +2,7 @@ import { query } from "../_generated/server";
 import { v } from "convex/values";
 import { Note, Folder, FolderNode, AnySidebarItem } from "./types";
 import { Id } from "../_generated/dataModel";
-
-// Helper function to get base user ID from OAuth subject
-const getBaseUserId = (subject: string) => subject.split("|")[0];
+import { getBaseUserId } from "../auth";
 
 export const getNote = query({
   args: {
@@ -208,19 +206,63 @@ export const getFolderTree = query({
   },
 });
 
-export const getCurrentEditor = query({
+// Query to get notes with shared content
+export const getNotesWithSharedContent = query({
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new Error("Not authenticated");
     }
 
-    const userId = getBaseUserId(identity.subject);
-    const editor = await ctx.db
-      .query("editor")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .first();
+    const notes = await ctx.db
+      .query("notes")
+      .withIndex("by_shared", (q) =>
+        q.eq("hasSharedContent", true).eq("userId", identity.subject),
+      )
+      .collect();
 
-    return editor;
+    // Filter notes to match base user ID
+    const baseUserId = getBaseUserId(identity.subject);
+    return notes.filter((note) => getBaseUserId(note.userId) === baseUserId);
   },
 });
+
+// Query to get specific shared blocks from a note
+export const getSharedBlocks = query({
+  args: { noteId: v.id("notes") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+
+    const note = await ctx.db.get(args.noteId);
+    if (
+      !note ||
+      getBaseUserId(note.userId) !== getBaseUserId(identity.subject)
+    ) {
+      throw new Error("Note not found or access denied");
+    }
+
+    return extractSharedBlocks(note.content);
+  },
+});
+
+// Function to extract shared blocks from content
+function extractSharedBlocks(content: any): any[] {
+  if (!content) return [];
+
+  const sharedBlocks: any[] = [];
+
+  if (content.attrs?.shared === true) {
+    sharedBlocks.push(content);
+  }
+
+  if (Array.isArray(content.content)) {
+    content.content.forEach((node: any) => {
+      sharedBlocks.push(...extractSharedBlocks(node));
+    });
+  }
+
+  return sharedBlocks;
+}

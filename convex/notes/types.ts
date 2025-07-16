@@ -39,11 +39,3 @@ export type RawSidebarData = {
   folders: Folder[];
   notes: Note[];
 };
-
-export type Editor = {
-  _id: Id<"editor">;
-  _creationTime: number;
-
-  userId: Id<"users">;
-  activeNoteId: Id<"notes"> | null;
-};
