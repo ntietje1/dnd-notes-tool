@@ -10,7 +10,7 @@ export type SidebarItem<T extends SidebarItemType> = {
   _creationTime: number;
 
   name?: string;
-  userId: string; //TODO: figure out why this isnt working as an Id<"users">
+  userId: string;
   parentFolderId?: Id<"folders">;
   updatedAt: number;
   type: T;
