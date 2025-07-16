@@ -11,7 +11,7 @@ export default defineSchema({
     userId: v.string(),
     name: v.optional(v.string()),
     content: v.any(), // TipTap JSON content
-    parentFolderId: v.optional(v.id("folders")), // Reference to parent folder
+    parentFolderId: v.optional(v.id("folders")),
     hasSharedContent: v.optional(v.boolean()),
     updatedAt: v.number(),
   })
@@ -36,4 +36,18 @@ export default defineSchema({
     ),
     sortDirection: v.union(v.literal("asc"), v.literal("desc")),
   }).index("by_user", ["userId"]),
+  campaigns: defineTable({
+    userId: v.string(),
+    name: v.string(),
+    description: v.optional(v.string()),
+    updatedAt: v.number(),
+    token: v.string(),
+  }).index("by_user", ["userId"]),
+  campaignMembers: defineTable({
+    userId: v.string(),
+    campaignId: v.id("campaigns"),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_campaign", ["campaignId"]),
 });

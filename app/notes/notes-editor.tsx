@@ -5,7 +5,7 @@ import { FileTopbar } from "@/components/file-topbar/topbar";
 import { SimpleEditor } from "@/components/custom-tiptap-ui/editor/editor";
 import { useConvexAuth } from "convex/react";
 import { Button } from "@/components/ui/button";
-import { Note } from "@/convex/types";
+import { Note } from "@/convex/notes/types";
 import { Id } from "@/convex/_generated/dataModel";
 
 function ToolbarSkeleton() {

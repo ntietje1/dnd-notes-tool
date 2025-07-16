@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { FolderName } from "./folder-name";
 import { FolderContextMenu } from "./folder-context-menu";
-import { Folder } from "@/convex/types";
+import { Folder } from "@/convex/notes/types";
 import { DraggableFolder } from "./draggable-folder";
 
 interface FolderButtonProps {

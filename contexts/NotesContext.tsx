@@ -12,12 +12,7 @@ import {
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import {
-  AnySidebarItem,
-  Note,
-  FolderNode,
-  SidebarItemType,
-} from "@/convex/types";
+import { AnySidebarItem, Note, SidebarItemType } from "@/convex/notes/types";
 import { Editor } from "@tiptap/core";
 
 export type SortOrder = "alphabetical" | "dateCreated" | "dateModified";
@@ -122,11 +117,11 @@ export function NotesProvider({ children }: { children: ReactNode }) {
   );
 
   // Queries
-  const currentEditor = useQuery(api.notes.getCurrentEditor);
-  const selectedNote = useQuery(api.notes.getNote, {
+  const currentEditor = useQuery(api.notes.queries.getCurrentEditor);
+  const selectedNote = useQuery(api.notes.queries.getNote, {
     noteId: currentEditor?.activeNoteId,
   });
-  const sidebarItems = useQuery(api.notes.getSidebarData);
+  const sidebarItems = useQuery(api.notes.queries.getSidebarData);
 
   // Get sort options from editor state
   const sortOptions: SortOptions = useMemo(
@@ -148,13 +143,16 @@ export function NotesProvider({ children }: { children: ReactNode }) {
 
   // Mutations
   const setCurrentEditor = useMutation(
-    api.notes.setCurrentEditor,
+    api.notes.mutations.setCurrentEditor,
   ).withOptimisticUpdate((store, { noteId, sortOrder, sortDirection }) => {
     // Optimistically update the getCurrentEditor query
-    const currentEditor = store.getQuery(api.notes.getCurrentEditor, {});
+    const currentEditor = store.getQuery(
+      api.notes.queries.getCurrentEditor,
+      {},
+    );
     if (currentEditor) {
       store.setQuery(
-        api.notes.getCurrentEditor,
+        api.notes.queries.getCurrentEditor,
         {},
         {
           ...currentEditor,
@@ -168,102 +166,104 @@ export function NotesProvider({ children }: { children: ReactNode }) {
     // Optimistically update the getNote query for the new note
     if (noteId) {
       // Try to get the note from the existing getNote query
-      const existingNote = store.getQuery(api.notes.getNote, { noteId });
+      const existingNote = store.getQuery(api.notes.queries.getNote, {
+        noteId,
+      });
       if (existingNote) {
-        store.setQuery(api.notes.getNote, { noteId }, existingNote);
+        store.setQuery(api.notes.queries.getNote, { noteId }, existingNote);
         return;
       }
 
       // If note not in getNote query, try to find it in the sidebar data
-      const sidebarData = store.getQuery(api.notes.getSidebarData, {});
+      const sidebarData = store.getQuery(api.notes.queries.getSidebarData, {});
       if (sidebarData) {
         const foundNote = findItemInSidebar(noteId, sidebarData) as Note;
         if (foundNote) {
-          store.setQuery(api.notes.getNote, { noteId }, foundNote);
+          store.setQuery(api.notes.queries.getNote, { noteId }, foundNote);
         }
       }
     }
   });
-  const updateNote = useMutation(api.notes.updateNote).withOptimisticUpdate(
-    (store, { noteId, content, name }) => {
-      // Optimistically update the getNote query
-      const note = store.getQuery(api.notes.getNote, { noteId });
-      if (note) {
-        store.setQuery(
-          api.notes.getNote,
-          { noteId },
-          {
-            ...note,
-            ...(content !== undefined && { content }),
-            ...(name !== undefined && { name }),
-          },
-        );
-      }
-
-      // Optimistically update the note in the sidebar data
-      const sidebarData = store.getQuery(api.notes.getSidebarData, {});
-      if (!sidebarData) return;
-
-      const updatedItems = sidebarData.map((item) =>
-        item._id === noteId && item.type === "notes"
-          ? {
-              ...item,
-              ...(content !== undefined && { content }),
-              ...(name !== undefined && { name }),
-            }
-          : item,
+  const updateNote = useMutation(
+    api.notes.mutations.updateNote,
+  ).withOptimisticUpdate((store, { noteId, content, name }) => {
+    // Optimistically update the getNote query
+    const note = store.getQuery(api.notes.queries.getNote, { noteId });
+    if (note) {
+      store.setQuery(
+        api.notes.queries.getNote,
+        { noteId },
+        {
+          ...note,
+          ...(content !== undefined && { content }),
+          ...(name !== undefined && { name }),
+        },
       );
+    }
 
-      store.setQuery(api.notes.getSidebarData, {}, updatedItems);
-    },
-  );
-  const createNoteAction = useMutation(api.notes.createNote);
-  const createFolderAction = useMutation(api.notes.createFolder);
-  const deleteNoteAction = useMutation(api.notes.deleteNote);
-  const deleteFolderAction = useMutation(api.notes.deleteFolder);
-  const moveFolderAction = useMutation(
-    api.notes.moveFolder,
-  ).withOptimisticUpdate((store, { folderId, parentId }) => {
-    const sidebarData = store.getQuery(api.notes.getSidebarData, {});
+    // Optimistically update the note in the sidebar data
+    const sidebarData = store.getQuery(api.notes.queries.getSidebarData, {});
     if (!sidebarData) return;
 
-    const updatedItems = sidebarData.map((item) =>
+    const updatedItems = sidebarData.map((item: AnySidebarItem) =>
+      item._id === noteId && item.type === "notes"
+        ? {
+            ...item,
+            ...(content !== undefined && { content }),
+            ...(name !== undefined && { name }),
+          }
+        : item,
+    );
+
+    store.setQuery(api.notes.queries.getSidebarData, {}, updatedItems);
+  });
+  const createNoteAction = useMutation(api.notes.mutations.createNote);
+  const createFolderAction = useMutation(api.notes.mutations.createFolder);
+  const deleteNoteAction = useMutation(api.notes.mutations.deleteNote);
+  const deleteFolderAction = useMutation(api.notes.mutations.deleteFolder);
+  const moveFolderAction = useMutation(
+    api.notes.mutations.moveFolder,
+  ).withOptimisticUpdate((store, { folderId, parentId }) => {
+    const sidebarData = store.getQuery(api.notes.queries.getSidebarData, {});
+    if (!sidebarData) return;
+
+    const updatedItems = sidebarData.map((item: AnySidebarItem) =>
       item._id === folderId && item.type === "folders"
         ? { ...item, parentFolderId: parentId }
         : item,
     );
 
-    store.setQuery(api.notes.getSidebarData, {}, updatedItems);
+    store.setQuery(api.notes.queries.getSidebarData, {}, updatedItems);
   });
 
-  const moveNoteAction = useMutation(api.notes.moveNote).withOptimisticUpdate(
-    (store, { noteId, parentFolderId }) => {
-      const sidebarData = store.getQuery(api.notes.getSidebarData, {});
-      if (!sidebarData) return;
+  const moveNoteAction = useMutation(
+    api.notes.mutations.moveNote,
+  ).withOptimisticUpdate((store, { noteId, parentFolderId }) => {
+    const sidebarData = store.getQuery(api.notes.queries.getSidebarData, {});
+    if (!sidebarData) return;
 
-      const updatedItems = sidebarData.map((item) =>
-        item._id === noteId && item.type === "notes"
-          ? { ...item, parentFolderId }
-          : item,
-      );
+    const updatedItems = sidebarData.map((item: AnySidebarItem) =>
+      item._id === noteId && item.type === "notes"
+        ? { ...item, parentFolderId }
+        : item,
+    );
 
-      store.setQuery(api.notes.getSidebarData, {}, updatedItems);
-    },
-  );
-  const updateFolder = useMutation(api.notes.updateFolder).withOptimisticUpdate(
-    (store, { folderId, name }) => {
-      const sidebarData = store.getQuery(api.notes.getSidebarData, {});
-      if (!sidebarData) return;
+    store.setQuery(api.notes.queries.getSidebarData, {}, updatedItems);
+  });
+  const updateFolder = useMutation(
+    api.notes.mutations.updateFolder,
+  ).withOptimisticUpdate((store, { folderId, name }) => {
+    const sidebarData = store.getQuery(api.notes.queries.getSidebarData, {});
+    if (!sidebarData) return;
 
-      const updatedItems = sidebarData.map((item) =>
-        item._id === folderId && item.type === "folders"
-          ? { ...item, name: name || "" }
-          : item,
-      );
+    const updatedItems = sidebarData.map((item: AnySidebarItem) =>
+      item._id === folderId && item.type === "folders"
+        ? { ...item, name: name || "" }
+        : item,
+    );
 
-      store.setQuery(api.notes.getSidebarData, {}, updatedItems);
-    },
-  );
+    store.setQuery(api.notes.queries.getSidebarData, {}, updatedItems);
+  });
 
   // Actions
   const selectNote = useCallback(

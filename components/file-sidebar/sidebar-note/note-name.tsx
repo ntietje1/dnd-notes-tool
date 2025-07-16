@@ -1,8 +1,8 @@
 "use client";
 
 import { EditableName } from "@/components/shared/editable-name";
-import { UNTITLED_NOTE_TITLE } from "@/convex/types";
-import { Note } from "@/convex/types";
+import { UNTITLED_NOTE_TITLE } from "@/convex/notes/types";
+import { Note } from "@/convex/notes/types";
 
 interface NoteNameProps {
   note: Note;

@@ -1,8 +1,8 @@
 "use client";
 
 import { EditableName } from "@/components/shared/editable-name";
-import { UNTITLED_FOLDER_NAME } from "@/convex/types";
-import { Folder } from "@/convex/types";
+import { UNTITLED_FOLDER_NAME } from "@/convex/notes/types";
+import { Folder } from "@/convex/notes/types";
 
 interface FolderNameProps {
   folder: Folder;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useDraggable } from "@dnd-kit/core";
-import { Note } from "@/convex/types";
+import { Note } from "@/convex/notes/types";
 import { cn } from "@/lib/utils";
 
 interface DraggableNoteProps {

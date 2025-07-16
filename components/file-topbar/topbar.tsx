@@ -1,6 +1,6 @@
 "use client";
 
-import { Note } from "@/convex/types";
+import { Note } from "@/convex/notes/types";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { X, MoreVertical, Download, Trash2, Share, Users } from "lucide-react";
-import { UNTITLED_NOTE_TITLE } from "@/convex/types";
+import { UNTITLED_NOTE_TITLE } from "@/convex/notes/types";
 import { useCallback, useState, useEffect, useRef } from "react";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -35,7 +35,7 @@ export function FileTopbar({
   const [title, setTitle] = useState(note?.name ?? "");
   const [isEditing, setIsEditing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const updateNote = useMutation(api.notes.updateNote);
+  const updateNote = useMutation(api.notes.mutations.updateNote);
 
   useEffect(() => {
     setTitle(note?.name ?? "");

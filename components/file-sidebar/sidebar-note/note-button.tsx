@@ -2,7 +2,7 @@
 
 import { FileText, FilePen } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Note } from "@/convex/types";
+import { Note } from "@/convex/notes/types";
 import { NoteName } from "./note-name";
 import { NoteContextMenu } from "./note-context-menu";
 import { cn } from "@/lib/utils";

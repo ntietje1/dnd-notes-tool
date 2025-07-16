@@ -1,5 +1,5 @@
 import { JSONContent } from "@tiptap/react";
-import { Id } from "./_generated/dataModel";
+import { Id } from "../_generated/dataModel";
 
 // Only include actual database table types
 export type SidebarItemType = "notes" | "folders";

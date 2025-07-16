@@ -80,7 +80,7 @@ import "@/components/custom-tiptap-extension/shared-content.scss";
 import { ShareButton } from "../share-button/shareButton";
 import { SharedContentExtension } from "@/components/custom-tiptap-extension/shared-content-extension";
 import { type Editor } from "@tiptap/react";
-import { Note } from "@/convex/types";
+import { Note } from "@/convex/notes/types";
 
 const MainToolbarContent = ({
   onHighlighterClick,

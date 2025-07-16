@@ -1,10 +1,8 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { Folder, Note, FolderNode, AnySidebarItem } from "@/convex/types";
+import { Note, FolderNode, AnySidebarItem } from "@/convex/notes/types";
 import {
   DndContext,
   DragEndEvent,
@@ -24,11 +22,7 @@ import {
 } from "@/components/ui/tooltip";
 
 import { DroppableRoot } from "./sidebar-root/droppable-root";
-import { RecursiveFolder } from "./sidebar-folder/recursive-folder";
-import { DraggableNote } from "./sidebar-note/draggable-note";
-import { NoteButton } from "./sidebar-note/note-button";
 import { useNotes } from "@/contexts/NotesContext";
-import { FolderButton } from "./sidebar-folder/folder-button";
 import { SidebarItem } from "./sidebar-item";
 import { SortMenu } from "./sort-menu";
 
@@ -202,6 +196,7 @@ export function FileSidebar() {
   const selectedNoteId: Id<"notes"> | null = currentNoteId ?? null;
 
   return (
+    //TODO: tooltip doesnt show up for sort menu. Also move the buttons menu to its own component
     <DndContext
       sensors={sensors}
       onDragStart={handleDragStart}
@@ -211,7 +206,12 @@ export function FileSidebar() {
         <div className="pl-4 p-2 h-12 flex justify-between flex-shrink-0 bg-background z-10 border-b">
           <h2 className="text-lg font-semibold justify-start pr-4">Files</h2>
           <div className="flex justify-end">
-            <SortMenu />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <SortMenu />
+              </TooltipTrigger>
+              <TooltipContent>Sort by</TooltipContent>
+            </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="ghost" size="icon" onClick={createFolder}>

@@ -3,7 +3,7 @@
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { DroppableFolder } from "./droppable-folder";
 import { FolderButton } from "./folder-button";
-import { FolderNode } from "@/convex/types";
+import { FolderNode } from "@/convex/notes/types";
 import { Id } from "@/convex/_generated/dataModel";
 import { SidebarItem } from "../sidebar-item";
 

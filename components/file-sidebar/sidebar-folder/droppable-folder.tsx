@@ -2,7 +2,7 @@
 
 import { useDroppable } from "@dnd-kit/core";
 import { cn } from "@/lib/utils";
-import { Folder } from "@/convex/types";
+import { Folder } from "@/convex/notes/types";
 
 interface DroppableFolderProps {
   folder: Folder;

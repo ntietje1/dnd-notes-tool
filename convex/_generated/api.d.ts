@@ -16,9 +16,10 @@ import type {
 import type * as auth from "../auth.js";
 import type * as http from "../http.js";
 import type * as myFunctions from "../myFunctions.js";
-import type * as notes from "../notes.js";
+import type * as notes_mutations from "../notes/mutations.js";
+import type * as notes_queries from "../notes/queries.js";
+import type * as notes_types from "../notes/types.js";
 import type * as sharedContent from "../sharedContent.js";
-import type * as types from "../types.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -32,9 +33,10 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   http: typeof http;
   myFunctions: typeof myFunctions;
-  notes: typeof notes;
+  "notes/mutations": typeof notes_mutations;
+  "notes/queries": typeof notes_queries;
+  "notes/types": typeof notes_types;
   sharedContent: typeof sharedContent;
-  types: typeof types;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,
