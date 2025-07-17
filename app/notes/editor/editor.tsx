@@ -18,7 +18,7 @@ import { Focus, CharacterCount } from "@tiptap/extensions";
 // --- Custom Extensions ---
 import { Selection } from "@/components/tiptap-extension/selection-extension";
 import { CursorPlacement } from "@/app/notes/editor/tiptap-extension/cursor-placement-extension";
-import { LinkCursor } from "@/components/tiptap-extension/link-cursor-extension";
+import { LinkCursor } from "@/app/notes/editor/tiptap-extension/link-cursor-extension";
 
 // --- UI Primitives ---
 import { Button } from "@/components/tiptap-ui-primitive/button";
