@@ -54,9 +54,5 @@ export function EditableName({
     );
   }
 
-  return (
-    <span className="truncate px-0.5">
-      {initialName || <span className="opacity-85">{defaultName}</span>}
-    </span>
-  );
+  return <span className="truncate px-0.5">{initialName || defaultName}</span>;
 }

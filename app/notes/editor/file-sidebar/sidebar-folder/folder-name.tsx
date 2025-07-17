@@ -1,6 +1,6 @@
 "use client";
 
-import { EditableName } from "@/components/shared/editable-name";
+import { EditableName } from "@/app/notes/editor/file-sidebar/editable-name";
 import { UNTITLED_FOLDER_NAME } from "@/convex/notes/types";
 import { Folder } from "@/convex/notes/types";
 

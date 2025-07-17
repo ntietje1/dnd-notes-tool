@@ -1,8 +1,8 @@
 "use client";
 
 import { useNotes } from "@/contexts/NotesContext";
-import { FileTopbar } from "@/components/file-topbar/topbar";
-import { SimpleEditor } from "@/components/custom-tiptap-ui/editor/editor";
+import { FileTopbar } from "@/app/notes/editor/file-topbar/topbar";
+import { SimpleEditor } from "@/app/notes/editor/editor";
 import { useConvexAuth } from "convex/react";
 import { Button } from "@/components/ui/button";
 import { Note } from "@/convex/notes/types";
@@ -68,7 +68,7 @@ export function NotesEditor() {
     <div className="h-full flex flex-col">
       <FileTopbar
         note={selectedNote ?? placeHolderNote}
-        onTitleChange={(title) => updateNoteTitle(currentNoteId, title)}
+        onTitleChange={(title: string) => updateNoteTitle(currentNoteId, title)}
       />
       <div className="flex-1 overflow-hidden">
         <SimpleEditor

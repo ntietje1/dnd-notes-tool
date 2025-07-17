@@ -5,7 +5,7 @@ import {
 } from "@/components/ui/resizable";
 import { NotesEditor } from "./notes-editor";
 import { NotesProvider } from "@/contexts/NotesContext";
-import { FileSidebar } from "@/components/file-sidebar/sidebar";
+import { FileSidebar } from "@/app/notes/editor/file-sidebar/sidebar";
 
 export default function NotesPage() {
   return (
