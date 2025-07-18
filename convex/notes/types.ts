@@ -11,6 +11,7 @@ export type SidebarItem<T extends SidebarItemType> = {
 
   name?: string;
   userId: string;
+  campaignId: Id<"campaigns">;
   parentFolderId?: Id<"folders">;
   updatedAt: number;
   type: T;

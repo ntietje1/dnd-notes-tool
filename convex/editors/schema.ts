@@ -4,6 +4,7 @@ import { v } from "convex/values";
 export const editorTables = {
   editor: defineTable({
     userId: v.string(),
+    campaignId: v.id("campaigns"),
     activeNoteId: v.optional(v.id("notes")),
     sortOrder: v.union(
       v.literal("alphabetical"),

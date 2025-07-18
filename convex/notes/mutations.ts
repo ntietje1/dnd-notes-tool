@@ -162,6 +162,7 @@ export const updateFolder = mutation({
 export const createFolder = mutation({
   args: {
     name: v.optional(v.string()),
+    campaignId: v.id("campaigns"),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -172,6 +173,7 @@ export const createFolder = mutation({
     return await ctx.db.insert("folders", {
       userId: getBaseUserId(identity.subject),
       name: args.name || "",
+      campaignId: args.campaignId,
       updatedAt: Date.now(),
     });
   },
@@ -181,6 +183,7 @@ export const createNote = mutation({
   args: {
     name: v.optional(v.string()),
     parentFolderId: v.optional(v.id("folders")),
+    campaignId: v.id("campaigns"),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -195,6 +198,7 @@ export const createNote = mutation({
       parentFolderId: args.parentFolderId,
       hasSharedContent: false,
       updatedAt: Date.now(),
+      campaignId: args.campaignId,
     });
 
     await ctx.runMutation(api.editors.mutations.setCurrentEditor, { noteId });

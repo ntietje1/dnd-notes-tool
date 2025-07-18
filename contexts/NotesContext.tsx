@@ -311,13 +311,24 @@ export function NotesProvider({ children }: { children: ReactNode }) {
 
   const createNote = useCallback(
     async (folderId?: Id<"folders">) => {
-      await createNoteAction({ parentFolderId: folderId });
+      if (!currentEditor?.campaignId) {
+        throw new Error("Campaign ID is required");
+      }
+      await createNoteAction({
+        parentFolderId: folderId,
+        campaignId: currentEditor.campaignId,
+      });
     },
     [createNoteAction],
   );
 
   const createFolder = useCallback(async () => {
-    await createFolderAction({});
+    if (!currentEditor?.campaignId) {
+      throw new Error("Campaign ID is required");
+    }
+    await createFolderAction({
+      campaignId: currentEditor.campaignId,
+    });
   }, [createFolderAction]);
 
   const deleteNote = useCallback(

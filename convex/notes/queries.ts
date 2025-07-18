@@ -1,8 +1,28 @@
-import { query } from "../_generated/server";
+import { query, QueryCtx } from "../_generated/server";
 import { v } from "convex/values";
 import { Note, Folder, FolderNode, AnySidebarItem } from "./types";
 import { Id } from "../_generated/dataModel";
 import { getBaseUserId } from "../auth";
+
+const getCurrentCampaignId = async (ctx: QueryCtx) => {
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity) {
+    throw new Error("Not authenticated");
+  }
+
+  const baseUserId = getBaseUserId(identity.subject);
+
+  const state = await ctx.db
+    .query("userCampaignState")
+    .withIndex("by_user", (q) => q.eq("userId", baseUserId))
+    .unique();
+
+  if (!state) {
+    throw new Error("No active campaign");
+  }
+
+  return state.activeCampaignId;
+};
 
 export const getNote = query({
   args: {
@@ -27,45 +47,6 @@ export const getNote = query({
   },
 });
 
-export const getUserNotes = query({
-  handler: async (ctx): Promise<Note[]> => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
-
-    const baseUserId = getBaseUserId(identity.subject);
-
-    const notes = await ctx.db
-      .query("notes")
-      .withIndex("by_user", (q) => q.eq("userId", baseUserId))
-      .collect();
-
-    return notes.map((note) => ({ ...note, type: "notes" })) as Note[];
-  },
-});
-
-export const getUserFolders = query({
-  handler: async (ctx): Promise<Folder[]> => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
-
-    const baseUserId = getBaseUserId(identity.subject);
-
-    const folders = await ctx.db
-      .query("folders")
-      .withIndex("by_user", (q) => q.eq("userId", baseUserId))
-      .collect();
-
-    return folders.map((folder) => ({
-      ...folder,
-      type: "folders",
-    })) as Folder[];
-  },
-});
-
 export const getSidebarData = query({
   handler: async (ctx): Promise<AnySidebarItem[]> => {
     const identity = await ctx.auth.getUserIdentity();
@@ -73,17 +54,17 @@ export const getSidebarData = query({
       throw new Error("Not authenticated");
     }
 
-    const baseUserId = getBaseUserId(identity.subject);
+    const campaignId = await getCurrentCampaignId(ctx);
 
     // Get all folders and notes for the user
     const [folders, notes] = await Promise.all([
       ctx.db
         .query("folders")
-        .withIndex("by_user", (q) => q.eq("userId", baseUserId))
+        .withIndex("by_campaign", (q) => q.eq("campaignId", campaignId))
         .collect(),
       ctx.db
         .query("notes")
-        .withIndex("by_user", (q) => q.eq("userId", baseUserId))
+        .withIndex("by_campaign", (q) => q.eq("campaignId", campaignId))
         .collect(),
     ]);
 
@@ -139,130 +120,63 @@ export const getSidebarData = query({
   },
 });
 
-export const getFolderTree = query({
-  handler: async (ctx): Promise<FolderNode[]> => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
+// // Query to get notes with shared content
+// export const getNotesWithSharedContent = query({
+//   handler: async (ctx) => {
+//     const identity = await ctx.auth.getUserIdentity();
+//     if (!identity) {
+//       throw new Error("Not authenticated");
+//     }
 
-    const baseUserId = getBaseUserId(identity.subject);
+//     const notes = await ctx.db
+//       .query("notes")
+//       .withIndex("by_shared", (q) =>
+//         q.eq("hasSharedContent", true).eq("userId", identity.subject),
+//       )
+//       .collect();
 
-    // Get all folders and notes for the user
-    const [folders, notes] = await Promise.all([
-      ctx.db
-        .query("folders")
-        .withIndex("by_user", (q) => q.eq("userId", baseUserId))
-        .collect(),
-      ctx.db
-        .query("notes")
-        .withIndex("by_user", (q) => q.eq("userId", baseUserId))
-        .collect(),
-    ]);
+//     // Filter notes to match base user ID
+//     const baseUserId = getBaseUserId(identity.subject);
+//     return notes.filter((note) => getBaseUserId(note.userId) === baseUserId);
+//   },
+// });
 
-    // Transform notes to add type
-    const typedNotes = notes.map((note) => ({
-      ...note,
-      type: "notes" as const,
-    }));
+// // Query to get specific shared blocks from a note
+// export const getSharedBlocks = query({
+//   args: { noteId: v.id("notes") },
+//   handler: async (ctx, args) => {
+//     const identity = await ctx.auth.getUserIdentity();
+//     if (!identity) {
+//       throw new Error("Not authenticated");
+//     }
 
-    // Create a map of folder ID to its FolderNode
-    const folderMap = new Map<Id<"folders">, FolderNode>();
+//     const note = await ctx.db.get(args.noteId);
+//     if (
+//       !note ||
+//       getBaseUserId(note.userId) !== getBaseUserId(identity.subject)
+//     ) {
+//       throw new Error("Note not found or access denied");
+//     }
 
-    // Initialize the map with empty children arrays
-    folders.forEach((folder) => {
-      folderMap.set(folder._id, {
-        ...folder,
-        type: "folders" as const,
-        children: [],
-      });
-    });
+//     return extractSharedBlocks(note.content);
+//   },
+// });
 
-    // Build the folder tree
-    folders.forEach((folder) => {
-      if (folder.parentFolderId) {
-        const parentNode = folderMap.get(folder.parentFolderId);
-        const node = folderMap.get(folder._id);
-        if (parentNode && node) {
-          parentNode.children.push(node);
-        }
-      }
-    });
+// // Function to extract shared blocks from content
+// function extractSharedBlocks(content: any): any[] {
+//   if (!content) return [];
 
-    // Add notes to their parent folders
-    typedNotes.forEach((note) => {
-      if (note.parentFolderId) {
-        const parentNode = folderMap.get(note.parentFolderId);
-        if (parentNode) {
-          parentNode.children.push(note);
-        }
-      }
-    });
+//   const sharedBlocks: any[] = [];
 
-    // Return only root folders (those without a parent)
-    return Array.from(folderMap.values()).filter(
-      (folder) => !folder.parentFolderId,
-    );
-  },
-});
+//   if (content.attrs?.shared === true) {
+//     sharedBlocks.push(content);
+//   }
 
-// Query to get notes with shared content
-export const getNotesWithSharedContent = query({
-  handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
+//   if (Array.isArray(content.content)) {
+//     content.content.forEach((node: any) => {
+//       sharedBlocks.push(...extractSharedBlocks(node));
+//     });
+//   }
 
-    const notes = await ctx.db
-      .query("notes")
-      .withIndex("by_shared", (q) =>
-        q.eq("hasSharedContent", true).eq("userId", identity.subject),
-      )
-      .collect();
-
-    // Filter notes to match base user ID
-    const baseUserId = getBaseUserId(identity.subject);
-    return notes.filter((note) => getBaseUserId(note.userId) === baseUserId);
-  },
-});
-
-// Query to get specific shared blocks from a note
-export const getSharedBlocks = query({
-  args: { noteId: v.id("notes") },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
-
-    const note = await ctx.db.get(args.noteId);
-    if (
-      !note ||
-      getBaseUserId(note.userId) !== getBaseUserId(identity.subject)
-    ) {
-      throw new Error("Note not found or access denied");
-    }
-
-    return extractSharedBlocks(note.content);
-  },
-});
-
-// Function to extract shared blocks from content
-function extractSharedBlocks(content: any): any[] {
-  if (!content) return [];
-
-  const sharedBlocks: any[] = [];
-
-  if (content.attrs?.shared === true) {
-    sharedBlocks.push(content);
-  }
-
-  if (Array.isArray(content.content)) {
-    content.content.forEach((node: any) => {
-      sharedBlocks.push(...extractSharedBlocks(node));
-    });
-  }
-
-  return sharedBlocks;
-}
+//   return sharedBlocks;
+// }

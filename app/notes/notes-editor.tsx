@@ -87,6 +87,7 @@ const placeHolderNote: Note = {
   userId: "placeholder",
   updatedAt: 0,
   type: "notes",
+  campaignId: "placeholder" as Id<"campaigns">,
   content: {
     type: "doc",
     content: [

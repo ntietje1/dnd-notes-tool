@@ -12,7 +12,7 @@ export const getCurrentEditor = query({
     const editor = await ctx.db
       .query("editor")
       .withIndex("by_user", (q) => q.eq("userId", userId))
-      .first();
+      .unique();
 
     return editor;
   },

@@ -5,5 +5,6 @@ export type Editor = {
   _creationTime: number;
 
   userId: Id<"users">;
+  campaignId: Id<"campaigns">;
   activeNoteId: Id<"notes"> | null;
 };
