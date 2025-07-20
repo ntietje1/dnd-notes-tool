@@ -4,8 +4,7 @@ import { getBaseUserId } from "../auth";
 
 export const setCurrentEditor = mutation({
   args: {
-    noteId: v.optional(v.id("notes")),
-    campaignId: v.optional(v.id("campaigns")),
+    campaignId: v.id("campaigns"),
     sortOrder: v.optional(
       v.union(
         v.literal("alphabetical"),
@@ -40,7 +39,6 @@ export const setCurrentEditor = mutation({
     }
 
     return ctx.db.patch(editor._id, {
-      ...(args.campaignId !== undefined && { campaignId: args.campaignId }),
       ...(args.sortOrder !== undefined && { sortOrder: args.sortOrder }),
       ...(args.sortDirection !== undefined && {
         sortDirection: args.sortDirection,

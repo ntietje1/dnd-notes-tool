@@ -13,7 +13,7 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { AnySidebarItem, Note, SidebarItemType } from "@/convex/notes/types";
 import { Editor } from "@tiptap/core";
-import { redirect, useRouter } from "next/navigation";
+import { redirect } from "next/navigation";
 
 export type SortOrder = "alphabetical" | "dateCreated" | "dateModified";
 export type SortDirection = "asc" | "desc";
@@ -122,13 +122,11 @@ export function NotesProvider({
   noteId,
   children,
 }: NotesProviderProps) {
-
-  
   // Local state
   const [expandedFolders, setExpandedFolders] = useState<Set<Id<"folders">>>(
     new Set(),
   );
-  
+
   const currentCampaign = useQuery(api.campaigns.queries.getCampaignBySlug, {
     dmUsername: dmUsername,
     slug: campaignSlug,
@@ -138,7 +136,7 @@ export function NotesProvider({
   const currentEditor = useQuery(api.editors.queries.getCurrentEditor, {
     campaignId: currentCampaign?._id,
   });
-  
+
   const sidebarItems = useQuery(api.notes.queries.getSidebarData, {
     campaignId: currentCampaign?._id,
   });
@@ -146,12 +144,12 @@ export function NotesProvider({
   const currentNote = useQuery(api.notes.queries.getNote, {
     noteId: noteId,
   });
-  
+
   // Get sort options from editor state
   const sortOptions: SortOptions = useMemo(
     () => ({
-      order: currentEditor?.sortOrder ?? "alphabetical",
-      direction: currentEditor?.sortDirection ?? "asc",
+      order: currentEditor?.sortOrder ?? "dateCreated",
+      direction: currentEditor?.sortDirection ?? "desc",
     }),
     [currentEditor?.sortOrder, currentEditor?.sortDirection],
   );
@@ -165,61 +163,41 @@ export function NotesProvider({
   // Compute optimistic current note: use sidebarData if currentNote is undefined
   let optimisticCurrentNote = currentNote;
   if (optimisticCurrentNote === undefined && noteId && sidebarData) {
-    const found = sidebarData && sidebarData.length > 0 ? findItemInSidebar(noteId as Id<"notes">, sidebarData) : undefined;
+    const found =
+      sidebarData && sidebarData.length > 0
+        ? findItemInSidebar(noteId as Id<"notes">, sidebarData)
+        : undefined;
     if (found && found.type === "notes") {
       optimisticCurrentNote = found as Note;
     }
   }
 
-  // Loading state - true until all initial data is loaded OR when switching notes and no sidebar fallback
-  const isLoading = currentCampaign === undefined || currentEditor === undefined || sidebarData === undefined || (!!noteId && optimisticCurrentNote === undefined);
-  
-  // All mutations must be called before any conditional returns
-  const setCurrentEditor = useMutation(
-    api.editors.mutations.setCurrentEditor,
-  ).withOptimisticUpdate((store, { noteId, sortOrder, sortDirection }) => {
-    // Optimistically update the getCurrentEditor query
-    const currentEditor = store.getQuery(
-      api.editors.queries.getCurrentEditor,
-      { campaignId: currentCampaign?._id },
-    );
-    if (currentEditor) {
-      store.setQuery(
-        api.editors.queries.getCurrentEditor,
-        { campaignId: currentCampaign?._id },
-        {
-          ...currentEditor,
-          ...(noteId !== undefined && { activeNoteId: noteId }),
-          ...(sortOrder !== undefined && { sortOrder }),
-          ...(sortDirection !== undefined && { sortDirection }),
-        },
-      );
-    }
+  const isLoading =
+    currentCampaign === undefined ||
+    currentEditor === undefined ||
+    sidebarData === undefined ||
+    (!!noteId && optimisticCurrentNote === undefined);
 
-    // Optimistically update the getNote query for the new note
-    if (noteId) {
-      // Try to get the note from the existing getNote query
-      const existingNote = store.getQuery(api.notes.queries.getNote, {
-        noteId,
-      });
-      if (existingNote) {
-        store.setQuery(api.notes.queries.getNote, { noteId }, existingNote);
-        return;
-      }
+  const setCurrentEditor = useMutation(api.editors.mutations.setCurrentEditor);
+  // .withOptimisticUpdate((store, { sortOrder, sortDirection }) => {
+  //   // Optimistically update the getCurrentEditor query
+  //   const currentEditor = store.getQuery(api.editors.queries.getCurrentEditor, {
+  //     campaignId: currentCampaign?._id,
+  //   });
+  //   if (currentEditor) {
+  //     store.setQuery(
+  //       api.editors.queries.getCurrentEditor,
+  //       { campaignId: currentCampaign?._id },
+  //       {
+  //         ...currentEditor,
+  //         ...(sortOrder !== undefined && { sortOrder }),
+  //         ...(sortDirection !== undefined && { sortDirection }),
+  //       },
+  //     );
+  //   }
+  // }
+  // );
 
-      // If note not in getNote query, try to find it in the sidebar data
-      const sidebarData = store.getQuery(api.notes.queries.getSidebarData, {
-        campaignId: currentCampaign?._id,
-      });
-      if (sidebarData) {
-        const foundNote = findItemInSidebar(noteId, sidebarData) as Note;
-        if (foundNote) {
-          store.setQuery(api.notes.queries.getNote, { noteId }, foundNote);
-        }
-      }
-    }
-  });
-  
   const updateNote = useMutation(
     api.notes.mutations.updateNote,
   ).withOptimisticUpdate((store, { noteId, content, name }) => {
@@ -253,14 +231,18 @@ export function NotesProvider({
         : item,
     );
 
-    store.setQuery(api.notes.queries.getSidebarData, { campaignId: currentCampaign?._id }, updatedItems);
+    store.setQuery(
+      api.notes.queries.getSidebarData,
+      { campaignId: currentCampaign?._id },
+      updatedItems,
+    );
   });
-  
+
   const createNoteAction = useMutation(api.notes.mutations.createNote);
   const createFolderAction = useMutation(api.notes.mutations.createFolder);
   const deleteNoteAction = useMutation(api.notes.mutations.deleteNote);
   const deleteFolderAction = useMutation(api.notes.mutations.deleteFolder);
-  
+
   const moveFolderAction = useMutation(
     api.notes.mutations.moveFolder,
   ).withOptimisticUpdate((store, { folderId, parentId }) => {
@@ -275,7 +257,11 @@ export function NotesProvider({
         : item,
     );
 
-    store.setQuery(api.notes.queries.getSidebarData, { campaignId: currentCampaign?._id }, updatedItems);
+    store.setQuery(
+      api.notes.queries.getSidebarData,
+      { campaignId: currentCampaign?._id },
+      updatedItems,
+    );
   });
 
   const moveNoteAction = useMutation(
@@ -292,9 +278,13 @@ export function NotesProvider({
         : item,
     );
 
-    store.setQuery(api.notes.queries.getSidebarData, { campaignId: currentCampaign?._id }, updatedItems);
+    store.setQuery(
+      api.notes.queries.getSidebarData,
+      { campaignId: currentCampaign?._id },
+      updatedItems,
+    );
   });
-  
+
   const updateFolder = useMutation(
     api.notes.mutations.updateFolder,
   ).withOptimisticUpdate((store, { folderId, name }) => {
@@ -309,19 +299,20 @@ export function NotesProvider({
         : item,
     );
 
-    store.setQuery(api.notes.queries.getSidebarData, { campaignId: currentCampaign?._id }, updatedItems);
+    store.setQuery(
+      api.notes.queries.getSidebarData,
+      { campaignId: currentCampaign?._id },
+      updatedItems,
+    );
   });
 
   // Actions
-  const selectNote = useCallback(
-    (noteId: Id<"notes">) => {
-      // Update the noteId query param in the URL without a full navigation (shallow routing)
-      const url = new URL(window.location.href);
-      url.searchParams.set("noteId", noteId);
-      window.history.pushState({}, '', url.toString());
-    },
-    []
-  );
+  const selectNote = useCallback((noteId: Id<"notes">) => {
+    // Update the noteId query param in the URL without a full navigation (shallow routing)
+    const url = new URL(window.location.href);
+    url.searchParams.set("noteId", noteId);
+    window.history.pushState({}, "", url.toString());
+  }, []);
 
   const updateNoteContent = useCallback(
     async (editor: Editor) => {
@@ -386,11 +377,10 @@ export function NotesProvider({
     async (noteId: Id<"notes">) => {
       await deleteNoteAction({ noteId });
       if (currentNote?._id === noteId) {
-        await setCurrentEditor({ noteId: undefined });
         redirect(`/campaigns/${dmUsername}/${campaignSlug}/notes`);
       }
     },
-    [deleteNoteAction, currentNote?._id, setCurrentEditor, dmUsername, campaignSlug],
+    [deleteNoteAction, currentNote?._id, dmUsername, campaignSlug],
   );
 
   const deleteFolder = useCallback(
@@ -423,7 +413,11 @@ export function NotesProvider({
 
   const setSortOptions = useCallback(
     (options: SortOptions) => {
+      if (!currentCampaign?._id) {
+        throw new Error("Campaign ID is required");
+      }
       setCurrentEditor({
+        campaignId: currentCampaign?._id,
         sortOrder: options.order,
         sortDirection: options.direction,
       });
