@@ -27,7 +27,7 @@ export default function NotesSectionLayout({ children, params }: NotesSectionLay
           className="flex-1 overflow-hidden"
         >
           <ResizablePanel
-            defaultSize={25}
+            defaultSize={20}
             minSize={10}
             className="overflow-y-auto"
           >
@@ -35,7 +35,7 @@ export default function NotesSectionLayout({ children, params }: NotesSectionLay
           </ResizablePanel>
           <ResizableHandle />
           <ResizablePanel
-            defaultSize={75}
+            defaultSize={80}
             minSize={25}
             className="overflow-hidden"
           >

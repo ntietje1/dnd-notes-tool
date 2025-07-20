@@ -18,9 +18,9 @@ function ToolbarSkeleton() {
 function LoadingState() {
   return (
     <div className="flex flex-col h-full">
-      <div className="h-8 border-b flex items-center px-4">
+      {/* <div className="h-8 border-b flex items-center px-4">
         <div className="h-5 w-48 bg-gray-200 animate-pulse rounded" />
-      </div>
+      </div> */}
       <ToolbarSkeleton />
       <div className="flex-1 p-4">
         <div className="space-y-4 animate-pulse">
@@ -60,10 +60,10 @@ export function NotesEditor() {
 
   return (
     <div className="h-full flex flex-col">
-      <FileTopbar
+      {/* <FileTopbar
         note={currentNote}
         onTitleChange={(title: string) => updateNoteName(currentNote._id, title)}
-      />
+      /> */}
       <div className="flex-1 overflow-hidden">
         <SimpleEditor
           note={currentNote}

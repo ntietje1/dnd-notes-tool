@@ -3,7 +3,7 @@
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, FileText, User, MapPin, Users, Sword, Settings } from "lucide-react";
 import React from "react";
 
 interface CampaignPageProps {
@@ -50,36 +50,45 @@ export default function CampaignPage({ params }: CampaignPageProps) {
   }
 
   return (
-    <div className="p-6">
-      <h1 className="text-3xl font-bold mb-4">{campaign.name}</h1>
-      {campaign.description && (
-        <p className="text-gray-600 mb-6">{campaign.description}</p>
-      )}
+    <div>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-4">{campaign.name}</h1>
+        {campaign.description && (
+          <p className="text-slate-600 text-lg">{campaign.description}</p>
+        )}
+      </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <button
-          onClick={() => router.push(`/campaigns/${dmUsername}/${campaignSlug}/notes`)}
-          className="p-4 border rounded-lg hover:bg-gray-50"
-        >
-          <h3 className="font-semibold">Notes</h3>
-          <p className="text-sm text-gray-600">Manage campaign notes</p>
-        </button>
-        
-        <button
-          onClick={() => router.push(`/campaigns/${dmUsername}/${campaignSlug}/characters`)}
-          className="p-4 border rounded-lg hover:bg-gray-50"
-        >
-          <h3 className="font-semibold">Characters</h3>
-          <p className="text-sm text-gray-600">Manage characters</p>
-        </button>
-        
-        <button
-          onClick={() => router.push(`/campaigns/${dmUsername}/${campaignSlug}/locations`)}
-          className="p-4 border rounded-lg hover:bg-gray-50"
-        >
-          <h3 className="font-semibold">Locations</h3>
-          <p className="text-sm text-gray-600">Manage locations</p>
-        </button>
+      <div className="bg-white rounded-lg border border-slate-200 p-6">
+        <h2 className="text-xl font-semibold mb-4">Welcome to your campaign!</h2>
+        <p className="text-slate-600 mb-4">
+          Use the sidebar navigation to access different sections of your campaign:
+        </p>
+        <ul className="space-y-2 text-slate-600">
+          <li className="flex items-center gap-2">
+            <FileText className="h-4 w-4 text-amber-600" />
+            <span><strong>Notes:</strong> Manage campaign notes and documentation</span>
+          </li>
+          <li className="flex items-center gap-2">
+            <User className="h-4 w-4 text-amber-600" />
+            <span><strong>Characters:</strong> Manage player and NPC characters</span>
+          </li>
+          <li className="flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-amber-600" />
+            <span><strong>Locations:</strong> Track important places and maps</span>
+          </li>
+          <li className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-amber-600" />
+            <span><strong>Players:</strong> Manage player information and permissions</span>
+          </li>
+          <li className="flex items-center gap-2">
+            <Sword className="h-4 w-4 text-amber-600" />
+            <span><strong>Scene:</strong> Current scene and encounter management</span>
+          </li>
+          <li className="flex items-center gap-2">
+            <Settings className="h-4 w-4 text-amber-600" />
+            <span><strong>Settings:</strong> Campaign configuration and preferences</span>
+          </li>
+        </ul>
       </div>
     </div>
   );
