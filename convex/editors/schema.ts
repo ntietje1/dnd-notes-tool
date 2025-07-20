@@ -5,12 +5,11 @@ export const editorTables = {
   editor: defineTable({
     userId: v.string(),
     campaignId: v.id("campaigns"),
-    activeNoteId: v.optional(v.id("notes")),
     sortOrder: v.union(
       v.literal("alphabetical"),
       v.literal("dateCreated"),
       v.literal("dateModified"),
     ),
     sortDirection: v.union(v.literal("asc"), v.literal("desc")),
-  }).index("by_user", ["userId"]),
+  }).index("by_campaign_user", ["campaignId", "userId"]),
 };

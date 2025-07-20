@@ -63,10 +63,10 @@ export function RecursiveFolder({
           }}
         />
         <CollapsibleContent>
-          <div className="relative pl-3">
+          <div className="relative pl-4">
             {/* Vertical line */}
             {hasItems && (
-              <div className="absolute left-[8px] top-[-4px] bottom-0 w-0.5 bg-muted-foreground/10" />
+              <div className="absolute left-2 top-0 bottom-0 w-0.5 bg-muted-foreground/10" />
             )}
             {folder.children.map((item) => (
               <SidebarItem

@@ -25,6 +25,9 @@ import type * as notes_mutations from "../notes/mutations.js";
 import type * as notes_queries from "../notes/queries.js";
 import type * as notes_types from "../notes/types.js";
 import type * as sharedContent from "../sharedContent.js";
+import type * as slugify from "../slugify.js";
+import type * as users_mutations from "../users/mutations.js";
+import type * as users_queries from "../users/queries.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -47,6 +50,9 @@ declare const fullApi: ApiFromModules<{
   "notes/queries": typeof notes_queries;
   "notes/types": typeof notes_types;
   sharedContent: typeof sharedContent;
+  slugify: typeof slugify;
+  "users/mutations": typeof users_mutations;
+  "users/queries": typeof users_queries;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,

@@ -1,7 +1,8 @@
 import { v } from "convex/values";
 import { query } from "../_generated/server";
 import { getBaseUserId } from "../auth";
-import { Campaign, UserCampaign } from "./types";
+import { Campaign, CampaignSlug, UserCampaign } from "./types";
+
 
 export const getUserCampaigns = query({
   args: {},
@@ -26,21 +27,31 @@ export const getUserCampaigns = query({
 
     const campaignsWithNotes = await Promise.all(
       campaigns.map(async (campaign) => {
+        if (!campaign) {
+          return null;
+        }
+
         const membership = campaignMemberships.find(
-          (membership) => membership.campaignId === campaign?._id,
+          (membership) => membership.campaignId === campaign._id,
         );
+
+        const campaignSlug = await ctx.db
+          .query("campaignSlugs")
+          .withIndex("by_campaign", (q) => q.eq("campaignId", campaign._id))
+          .unique() as CampaignSlug | null;
 
         let notes = undefined;
         if (membership?.role === "DM") {
           notes = await ctx.db
             .query("notes")
-            .withIndex("by_campaign", (q) => q.eq("campaignId", campaign!._id))
+            .withIndex("by_campaign", (q) => q.eq("campaignId", campaign._id))
             .collect();
         }
 
         return {
           ...campaign,
           role: membership?.role,
+          campaignSlug,
           notes,
         } as UserCampaign;
       }),
@@ -50,33 +61,49 @@ export const getUserCampaigns = query({
   },
 });
 
-export const getCampaignByToken = query({
+export const getCampaignBySlug = query({
   args: {
-    token: v.string(),
+    dmUsername: v.string(),
+    slug: v.string(),
   },
   handler: async (ctx, args) => {
-    return (await ctx.db
-      .query("campaigns")
-      .withIndex("by_token", (q) => q.eq("token", args.token))
-      .unique()) as Campaign | null;
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+
+    const campaignSlug = await ctx.db.query("campaignSlugs").withIndex("by_slug_username", (q) => q.eq("slug", args.slug).eq("username", args.dmUsername)).unique();
+    if (!campaignSlug) {
+      return null;
+    }
+
+    const campaign = await ctx.db.get(campaignSlug.campaignId) as Campaign | null;
+
+    if (!campaign) {
+      return null;
+    }
+
+    // Check if the current user has access to this campaign
+    const baseUserId = getBaseUserId(identity.subject);
+    const membership = await ctx.db
+      .query("campaignMembers")
+      .withIndex("by_user", (q) => q.eq("userId", baseUserId))
+      .filter((q) => q.eq(q.field("campaignId"), campaign._id))
+      .unique();
+
+    if (!membership) {
+      return null;
+    }
+
+    return campaign;
   },
 });
 
-export const checkCampaignTokenExists = query({
+export const checkCampaignSlugExists = query({
   args: {
-    token: v.string(),
+    slug: v.string(),
   },
   handler: async (ctx, args) => {
-    return await ctx.db
-      .query("campaigns")
-      .withIndex("by_token", (q) => q.eq("token", args.token))
-      .unique()
-      .then((campaign) => campaign !== null);
-  },
-});
-
-export const getActiveCampaign = query({
-  handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new Error("Not authenticated");
@@ -84,24 +111,16 @@ export const getActiveCampaign = query({
 
     const baseUserId = getBaseUserId(identity.subject);
 
-    const state = await ctx.db
-      .query("userCampaignState")
-      .withIndex("by_user", (q) => q.eq("userId", baseUserId))
-      .unique();
+    const userProfile = await ctx.db.query("userProfiles").withIndex("by_user", (q) => q.eq("userId", baseUserId)).unique();
+    if (!userProfile) {
+      throw new Error("User profile not found");
+    }
 
-    if (!state) return null;
+    const slug = await ctx.db
+      .query("campaignSlugs")
+      .withIndex("by_slug_username", (q) => q.eq("slug", args.slug).eq("username", userProfile.username))
+      .unique()
 
-    const campaign = await ctx.db.get(state.activeCampaignId);
-    if (!campaign) return null;
-
-    const membership = await ctx.db
-      .query("campaignMembers")
-      .withIndex("by_campaign", (q) => q.eq("campaignId", campaign._id))
-      .unique();
-
-    return {
-      ...campaign,
-      role: membership?.role,
-    } as UserCampaign;
+    return slug !== null;
   },
 });

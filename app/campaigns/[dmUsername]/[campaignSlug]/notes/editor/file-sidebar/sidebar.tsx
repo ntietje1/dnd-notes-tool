@@ -38,7 +38,7 @@ type DraggableItem =
 
 export function FileSidebar() {
   const {
-    currentNoteId,
+    currentNote,
     expandedFolders,
     selectNote,
     createNote,
@@ -193,8 +193,6 @@ export function FileSidebar() {
     );
   }
 
-  const selectedNoteId: Id<"notes"> | null = currentNoteId ?? null;
-
   return (
     //TODO: tooltip doesnt show up for sort menu. Also move the buttons menu to its own component
     <DndContext
@@ -246,7 +244,7 @@ export function FileSidebar() {
                   item={item}
                   expandedFolders={expandedFolders}
                   renamingId={renamingId}
-                  selectedNoteId={selectedNoteId}
+                  selectedNoteId={currentNote?._id ?? null}
                   toggleFolder={toggleFolder}
                   setRenamingId={setRenamingId}
                   handleFinishFolderRename={handleFinishFolderRename}

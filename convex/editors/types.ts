@@ -1,10 +1,13 @@
 import { Id } from "../_generated/dataModel";
 
+export type SortOrder = "alphabetical" | "dateCreated" | "dateModified";
+export type SortDirection = "asc" | "desc";
+
 export type Editor = {
   _id: Id<"editor">;
   _creationTime: number;
 
   userId: Id<"users">;
-  campaignId: Id<"campaigns">;
-  activeNoteId: Id<"notes"> | null;
+  sortOrder: SortOrder;
+  sortDirection: SortDirection;
 };

@@ -40,7 +40,7 @@ export function NoteButton({
           onNoteSelected(note._id);
         }}
       >
-        <div className="flex items-center gap-1 min-w-0 w-full pl-4">
+        <div className="flex items-center gap-1 min-w-0 w-full pl-2">
           {isRenaming ? (
             <FilePen className="h-4 w-4 shrink-0" />
           ) : (

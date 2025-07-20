@@ -6,10 +6,9 @@ export const campaignTables = {
     name: v.string(),
     description: v.optional(v.string()),
     updatedAt: v.number(),
-    token: v.string(),
     playerCount: v.number(),
     status: v.union(v.literal("Active"), v.literal("Inactive")),
-  }).index("by_token", ["token"]),
+  }),
 
   campaignMembers: defineTable({
     userId: v.string(),
@@ -20,9 +19,12 @@ export const campaignTables = {
     .index("by_user", ["userId"])
     .index("by_campaign", ["campaignId"]),
 
-  userCampaignState: defineTable({
-    userId: v.string(),
-    activeCampaignId: v.id("campaigns"),
+  campaignSlugs: defineTable({
+    campaignId: v.id("campaigns"),
+    slug: v.string(),
     updatedAt: v.number(),
-  }).index("by_user", ["userId"]),
+    username: v.string(),
+  })
+    .index("by_slug_username", ["slug", "username"])
+    .index("by_campaign", ["campaignId"]),
 };

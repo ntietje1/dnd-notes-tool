@@ -13,7 +13,7 @@ export function Header() {
   const router = useRouter();
   const pathname = usePathname();
 
-  const nonHeaderPages = ["/", "/signin", "/signup"];
+  const nonHeaderPages = ["/", "/signin", "/onboarding"];
 
   // Always render the header when the user is authenticated already.
   // Don't render the header on landing page or signin/signup flows.

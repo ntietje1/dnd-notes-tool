@@ -25,13 +25,14 @@ export const setCurrentEditor = mutation({
 
     const editor = await ctx.db
       .query("editor")
-      .withIndex("by_user", (q) => q.eq("userId", baseUserId))
+      .withIndex("by_campaign_user", (q) =>
+        q.eq("campaignId", args.campaignId!).eq("userId", baseUserId),
+      )
       .unique();
 
     if (!editor) {
       return ctx.db.insert("editor", {
         userId: baseUserId,
-        activeNoteId: args.noteId,
         campaignId: args.campaignId!,
         sortOrder: args.sortOrder ?? "alphabetical",
         sortDirection: args.sortDirection ?? "asc",
@@ -39,7 +40,6 @@ export const setCurrentEditor = mutation({
     }
 
     return ctx.db.patch(editor._id, {
-      ...(args.noteId !== undefined && { activeNoteId: args.noteId }),
       ...(args.campaignId !== undefined && { campaignId: args.campaignId }),
       ...(args.sortOrder !== undefined && { sortOrder: args.sortOrder }),
       ...(args.sortDirection !== undefined && {

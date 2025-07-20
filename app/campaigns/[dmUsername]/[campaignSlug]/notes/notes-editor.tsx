@@ -1,12 +1,9 @@
 "use client";
 
 import { useNotes } from "@/contexts/NotesContext";
-import { FileTopbar } from "@/app/notes/editor/file-topbar/topbar";
-import { SimpleEditor } from "@/app/notes/editor/editor";
-import { useConvexAuth } from "convex/react";
+import { FileTopbar } from "@/app/campaigns/[dmUsername]/[campaignSlug]/notes/editor/file-topbar/topbar";
+import { SimpleEditor } from "@/app/campaigns/[dmUsername]/[campaignSlug]/notes/editor/editor";
 import { Button } from "@/components/ui/button";
-import { Note } from "@/convex/notes/types";
-import { Id } from "@/convex/_generated/dataModel";
 
 function ToolbarSkeleton() {
   return (
@@ -39,21 +36,18 @@ function LoadingState() {
 
 export function NotesEditor() {
   const {
-    currentNoteId,
-    selectedNote,
+    currentNote,
     updateNoteContent,
-    updateNoteName: updateNoteTitle,
-    isLoading: isDataLoading,
+    updateNoteName,
     createNote,
+    isLoading,
   } = useNotes();
 
-  const { isLoading: isAuthLoading } = useConvexAuth();
-
-  if (isAuthLoading || isDataLoading) {
+  if (isLoading) {
     return <LoadingState />;
   }
 
-  if (!currentNoteId) {
+  if (!currentNote) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-muted-foreground gap-4">
         <p>Select a note or create a new one to get started</p>
@@ -67,12 +61,12 @@ export function NotesEditor() {
   return (
     <div className="h-full flex flex-col">
       <FileTopbar
-        note={selectedNote ?? placeHolderNote}
-        onTitleChange={(title: string) => updateNoteTitle(currentNoteId, title)}
+        note={currentNote}
+        onTitleChange={(title: string) => updateNoteName(currentNote._id, title)}
       />
       <div className="flex-1 overflow-hidden">
         <SimpleEditor
-          note={selectedNote ?? placeHolderNote}
+          note={currentNote}
           onUpdate={({ editor }) => updateNoteContent(editor)}
           className="h-full"
         />
@@ -80,23 +74,3 @@ export function NotesEditor() {
     </div>
   );
 }
-
-const placeHolderNote: Note = {
-  _id: "placeholder" as Id<"notes">,
-  _creationTime: 0,
-  userId: "placeholder",
-  updatedAt: 0,
-  type: "notes",
-  campaignId: "placeholder" as Id<"campaigns">,
-  content: {
-    type: "doc",
-    content: [
-      {
-        type: "paragraph",
-        content: [{ type: "text", text: " " }],
-      },
-    ],
-  },
-  name: " ",
-  hasSharedContent: false,
-};

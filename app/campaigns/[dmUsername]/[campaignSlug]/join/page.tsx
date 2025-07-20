@@ -17,20 +17,27 @@ import { useAuthActions } from "@convex-dev/auth/react";
 
 interface JoinCampaignPageProps {
   params: {
-    customLink: string;
+    dmUsername: string;
+    campaignSlug: string;
   };
 }
 
 export default function JoinCampaignPage({ params }: JoinCampaignPageProps) {
-  const { customLink } = params;
+  const { dmUsername, campaignSlug } = params;
   const router = useRouter();
   const { signIn } = useAuthActions();
 
-  const campaign = useQuery(api.campaigns.queries.getCampaignByToken, {
-    token: customLink,
+  const campaign = useQuery(api.campaigns.queries.getCampaignBySlug, {
+    dmUsername: dmUsername,
+    slug: campaignSlug,
   });
+
+  const currentUser = useQuery(api.users.queries.getUserProfile);
+
+  if (!currentUser) {
+    throw new Error("User profile not found");
+  }
   const joinCampaign = useMutation(api.campaigns.mutations.joinCampaign);
-  const currentUser = useQuery(api.editors.queries.getCurrentEditor);
 
   useEffect(() => {
     // If user is authenticated and campaign exists, automatically join
@@ -43,7 +50,7 @@ export default function JoinCampaignPage({ params }: JoinCampaignPageProps) {
     if (!campaign) return;
 
     try {
-      await joinCampaign({ token: customLink });
+      await joinCampaign({ slug: campaignSlug, dmUsername: dmUsername });
       router.push(`/notes/${campaign._id}`);
     } catch (error) {
       console.error("Failed to join campaign:", error);
@@ -51,7 +58,7 @@ export default function JoinCampaignPage({ params }: JoinCampaignPageProps) {
   };
 
   const handleSignIn = () => {
-    signIn("github", { redirectTo: `/join/${customLink}` });
+    signIn("github", { redirectTo: `/join/${dmUsername}/${campaignSlug}` });
   };
 
   if (!campaign) {

@@ -2,11 +2,11 @@
 
 import type React from "react";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
 import { api } from "../../convex/_generated/api";
-import type { Campaign, UserCampaign } from "@/convex/campaigns/types";
+import type { UserCampaign } from "@/convex/campaigns/types";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -21,25 +21,27 @@ import CreateCampaignDialog, {
   CreateCampaignCard,
 } from "./create-campaign-dialog";
 
+const defaultFormData = {
+  name: "",
+  description: "",
+  customLink: Math.random().toString(36).substring(2, 15),
+}
+
 export default function CampaignDashboard() {
   const router = useRouter();
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    playerCount: 4,
-    artwork: null as File | null,
-    customLink: Math.random().toString(36).substring(2, 15),
-  });
+  const [formData, setFormData] = useState(defaultFormData);
+
+  const userProfile = useQuery(api.users.queries.getUserProfile);
 
   const campaigns = useQuery(api.campaigns.queries.getUserCampaigns);
   const createCampaign = useMutation(api.campaigns.mutations.createCampaign);
-  const linkNotAvailable = useQuery(
-    api.campaigns.queries.checkCampaignTokenExists,
+  const slugExists = useQuery(
+    api.campaigns.queries.checkCampaignSlugExists,
     {
-      token: formData.customLink || "",
+      slug: formData.customLink,
     },
   );
 
@@ -50,15 +52,6 @@ export default function CampaignDashboard() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const checkTokenExists = async (token: string): Promise<boolean> => {
-    if (!token || token.length < 3) {
-      return false;
-    }
-
-    // The query hook will automatically revalidate when the token changes
-    return linkNotAvailable ?? false;
-  };
-
   const handleCreateCampaign = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -67,20 +60,16 @@ export default function CampaignDashboard() {
       const campaignId = await createCampaign({
         name: formData.name,
         description: formData.description,
-        token: formData.customLink,
+        slug: formData.customLink,
       });
 
       setIsCreateModalOpen(false);
-      setFormData({
-        name: "",
-        description: "",
-        playerCount: 4,
-        artwork: null,
-        customLink: "",
-      });
-
-      // Navigate to notes editor with the new campaign
-      router.push(`/notes/${campaignId}`);
+      setFormData(defaultFormData);
+      
+      // Redirect to the new campaign with the new URL structure
+      if (userProfile?.username) {
+        router.push(`/campaigns/${userProfile.username}/${formData.customLink}/notes`);
+      }
     } catch (error) {
       console.error(error);
     } finally {
@@ -88,19 +77,11 @@ export default function CampaignDashboard() {
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        console.error("Image must be smaller than 5MB");
-        return;
-      }
-      handleInputChange("artwork", file);
-    }
-  };
-
   const handleCampaignSelect = (campaignId: string) => {
-    router.push(`/notes/${campaignId}`);
+    const campaign = campaigns?.find((campaign) => campaign._id === campaignId);
+    if (campaign && campaign.campaignSlug) {
+      router.push(`/campaigns/${campaign.campaignSlug.username}/${campaign.campaignSlug.slug}/notes`);
+    }
   };
 
   if (!campaigns) {
@@ -144,9 +125,9 @@ export default function CampaignDashboard() {
             handleCreateCampaign={handleCreateCampaign}
             formData={formData}
             handleInputChange={handleInputChange}
-            handleFileUpload={handleFileUpload}
             isLoading={isLoading}
-            checkTokenExists={checkTokenExists}
+            dmUsername={userProfile?.username}
+            slugExists={slugExists ?? false}
           />
 
           {campaigns.length === 0 ? (
@@ -178,11 +159,9 @@ export default function CampaignDashboard() {
             /* Campaigns Grid */
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* Create New Campaign Card */}
-              <div onClick={() => setIsCreateModalOpen(true)}>
-                <CreateCampaignCard
-                  onClick={() => setIsCreateModalOpen(true)}
-                />
-              </div>
+              <CreateCampaignCard
+                onClick={() => setIsCreateModalOpen(true)}
+              />
 
               {/* Existing Campaigns */}
               {campaigns
@@ -199,13 +178,15 @@ export default function CampaignDashboard() {
                           <CardTitle className="text-xl text-slate-800 group-hover:text-amber-700 transition-colors line-clamp-1">
                             {campaign.name}
                           </CardTitle>
-                          <CardDescription className="mt-1 line-clamp-2">
-                            {campaign.description || "No description provided"}
-                          </CardDescription>
+                          {campaign.description && (
+                            <CardDescription className="mt-1 line-clamp-2">
+                              {campaign.description}
+                            </CardDescription>
+                          )}
                         </div>
-                        <div className="ml-3 p-2 bg-slate-100 rounded-lg group-hover:bg-amber-100 transition-colors">
+                        {/* <div className="ml-3 p-2 bg-slate-100 rounded-lg group-hover:bg-amber-100 transition-colors">
                           <ImageIcon className="h-5 w-5 text-slate-600 group-hover:text-amber-600" />
-                        </div>
+                        </div> */}
                       </div>
                     </CardHeader>
 

@@ -34,7 +34,7 @@ function SignInButton() {
     <Button
       size="lg"
       className="text-lg px-8"
-      onClick={() => router.push("/notes")}
+      onClick={() => router.push("/signin")}
     >
       Get Started
     </Button>
@@ -47,7 +47,7 @@ function ContinueButton() {
     <Button
       size="lg"
       className="text-lg px-8"
-      onClick={() => router.push("/notes")}
+      onClick={() => router.push("/campaigns")}
     >
       Continue
     </Button>

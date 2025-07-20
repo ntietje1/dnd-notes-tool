@@ -2,10 +2,8 @@ import { mutation } from "../_generated/server";
 import { v } from "convex/values";
 import { Doc } from "../_generated/dataModel";
 import { Id } from "../_generated/dataModel";
-import { api } from "../_generated/api";
-
-// Helper function to get base user ID from OAuth subject
-const getBaseUserId = (subject: string) => subject.split("|")[0];
+import { getBaseUserId } from "../auth";
+import { uniqueSlugify } from "../slugify";
 
 export const updateNote = mutation({
   args: {
@@ -201,7 +199,6 @@ export const createNote = mutation({
       campaignId: args.campaignId,
     });
 
-    await ctx.runMutation(api.editors.mutations.setCurrentEditor, { noteId });
     return noteId;
   },
 });

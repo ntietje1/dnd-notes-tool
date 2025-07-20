@@ -9,12 +9,19 @@ export type Campaign = {
   name: string;
   description?: string;
   updatedAt: number;
-  token: string;
   notes?: Note[];
   playerCount: number;
   status: "Active" | "Inactive";
 };
 
+export type CampaignSlug = {
+  campaignId: Id<"campaigns">;
+  slug: string;
+  updatedAt: number;
+  username: string;
+};
+
 export type UserCampaign = Campaign & {
+  campaignSlug: CampaignSlug;
   role: "DM" | "Player";
 };

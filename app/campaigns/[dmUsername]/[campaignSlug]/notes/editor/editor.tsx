@@ -17,7 +17,7 @@ import { Focus, CharacterCount } from "@tiptap/extensions";
 
 // --- Custom Extensions ---
 import { Selection } from "@/components/tiptap-extension/selection-extension";
-import { CursorPlacement } from "@/app/notes/editor/tiptap-extension/cursor-placement-extension";
+import { CursorPlacement } from "@/app/campaigns/[dmUsername]/[campaignSlug]/notes/editor/tiptap-extension/cursor-placement-extension";
 import { LinkCursor } from "@/components/tiptap-extension/link-cursor-extension";
 
 // --- UI Primitives ---
@@ -55,8 +55,8 @@ import {
 import { MarkButton } from "@/components/tiptap-ui/mark-button";
 import { TextAlignButton } from "@/components/tiptap-ui/text-align-button";
 import { UndoRedoButton } from "@/components/tiptap-ui/undo-redo-button";
-import { FontFamilyDropdownMenu } from "@/app/notes/editor/font-dropdown-menu/font-family-dropdown-menu";
-import { FontSizeDropdownMenu } from "@/app/notes/editor/font-dropdown-menu/font-size-dropdown-menu";
+import { FontFamilyDropdownMenu } from "@/app/campaigns/[dmUsername]/[campaignSlug]/notes/editor/font-dropdown-menu/font-family-dropdown-menu";
+import { FontSizeDropdownMenu } from "@/app/campaigns/[dmUsername]/[campaignSlug]/notes/editor/font-dropdown-menu/font-size-dropdown-menu";
 
 // --- Icons ---
 import { ArrowLeftIcon } from "@/components/tiptap-icons/arrow-left-icon";
@@ -74,11 +74,11 @@ import { useCursorVisibility } from "@/hooks/use-cursor-visibility";
 import { handleImageUpload, MAX_FILE_SIZE } from "@/lib/tiptap-utils";
 
 // --- Styles ---
-import "@/app/notes/editor/editor.scss";
-import "@/app/notes/editor/tiptap-extension/shared-content/shared-content.scss";
+import "@/app/campaigns/[dmUsername]/[campaignSlug]/notes/editor/editor.scss";
+import "@/app/campaigns/[dmUsername]/[campaignSlug]/notes/editor/tiptap-extension/shared-content/shared-content.scss";
 
 import { ShareButton } from "./tiptap-extension/shared-content/shareButton";
-import { SharedContentExtension } from "@/app/notes/editor/tiptap-extension/shared-content/shared-content-extension";
+import { SharedContentExtension } from "@/app/campaigns/[dmUsername]/[campaignSlug]/notes/editor/tiptap-extension/shared-content/shared-content-extension";
 import { type Editor } from "@tiptap/react";
 import { Note } from "@/convex/notes/types";
 

@@ -4,6 +4,7 @@ import "./globals.css";
 import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server";
 import ConvexClientProvider from "@/components/ConvexClientProvider";
 import { Header } from "@/components/layout/Header";
+import { OnboardingWrapper } from "@/components/OnboardingWrapper";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,10 +36,12 @@ export default function RootLayout({
           className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
         >
           <ConvexClientProvider>
-            <div className="flex flex-col h-screen">
-              <Header />
-              <main className="flex-1 overflow-hidden">{children}</main>
-            </div>
+            <OnboardingWrapper>
+              <div className="flex flex-col h-screen">
+                <Header />
+                <main className="flex-1 overflow-hidden">{children}</main>
+              </div>
+            </OnboardingWrapper>
           </ConvexClientProvider>
         </body>
       </html>

@@ -4,32 +4,12 @@ import { Note, Folder, FolderNode, AnySidebarItem } from "./types";
 import { Id } from "../_generated/dataModel";
 import { getBaseUserId } from "../auth";
 
-const getCurrentCampaignId = async (ctx: QueryCtx) => {
-  const identity = await ctx.auth.getUserIdentity();
-  if (!identity) {
-    throw new Error("Not authenticated");
-  }
-
-  const baseUserId = getBaseUserId(identity.subject);
-
-  const state = await ctx.db
-    .query("userCampaignState")
-    .withIndex("by_user", (q) => q.eq("userId", baseUserId))
-    .unique();
-
-  if (!state) {
-    throw new Error("No active campaign");
-  }
-
-  return state.activeCampaignId;
-};
-
 export const getNote = query({
   args: {
     noteId: v.optional(v.id("notes")),
   },
   handler: async (ctx, args): Promise<Note | null> => {
-    if (!args.noteId) {
+    if (!args.noteId || !args.noteId.length) {
       return null;
     }
 
@@ -48,23 +28,28 @@ export const getNote = query({
 });
 
 export const getSidebarData = query({
-  handler: async (ctx): Promise<AnySidebarItem[]> => {
+  args: {
+    campaignId: v.optional(v.id("campaigns")),
+  },
+  handler: async (ctx, args): Promise<AnySidebarItem[]> => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new Error("Not authenticated");
     }
 
-    const campaignId = await getCurrentCampaignId(ctx);
+    if (!args.campaignId) {
+      return [];
+    }
 
     // Get all folders and notes for the user
     const [folders, notes] = await Promise.all([
       ctx.db
         .query("folders")
-        .withIndex("by_campaign", (q) => q.eq("campaignId", campaignId))
+        .withIndex("by_campaign", (q) => q.eq("campaignId", args.campaignId!))
         .collect(),
       ctx.db
         .query("notes")
-        .withIndex("by_campaign", (q) => q.eq("campaignId", campaignId))
+        .withIndex("by_campaign", (q) => q.eq("campaignId", args.campaignId!))
         .collect(),
     ]);
 
