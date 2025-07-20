@@ -2,7 +2,7 @@
 
 import { useConvexAuth } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Loader2Icon } from "lucide-react";
@@ -25,7 +25,7 @@ export function Header() {
     <header className="sticky top-0 z-10 bg-background p-4 border-b border-border">
       <div className="mx-auto flex justify-between items-center">
         <Link href="/" className="font-bold text-xl text-primary">
-          D&D Notes
+          D&D Connect
         </Link>
         {isLoading ? (
           <Button className="min-w-24 text-primary" variant="outline" disabled>
@@ -38,8 +38,8 @@ export function Header() {
               className="min-w-24 text-primary"
               variant="outline"
               onClick={async () => {
-                router.push("/signin");
                 await signOut();
+                redirect("/signin");
               }}
             >
               Sign out
@@ -49,7 +49,7 @@ export function Header() {
           <Button
             className="min-w-24 text-primary"
             variant="outline"
-            onClick={() => router.push("/signin")}
+            onClick={() => redirect("/signin")}
           >
             Sign in
           </Button>

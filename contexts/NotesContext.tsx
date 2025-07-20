@@ -13,7 +13,7 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { AnySidebarItem, Note, SidebarItemType } from "@/convex/notes/types";
 import { Editor } from "@tiptap/core";
-import { useRouter } from "next/navigation";
+import { redirect, useRouter } from "next/navigation";
 
 export type SortOrder = "alphabetical" | "dateCreated" | "dateModified";
 export type SortDirection = "asc" | "desc";
@@ -122,26 +122,17 @@ export function NotesProvider({
   noteId,
   children,
 }: NotesProviderProps) {
+
+  
   // Local state
   const [expandedFolders, setExpandedFolders] = useState<Set<Id<"folders">>>(
     new Set(),
   );
-
-  const router = useRouter();
   
-  const currentUserProfile = useQuery(api.users.queries.getUserProfile);
   const currentCampaign = useQuery(api.campaigns.queries.getCampaignBySlug, {
     dmUsername: dmUsername,
     slug: campaignSlug,
   });
-
-  // console.log("noteId: ", noteId);
-
-  const currentNote = useQuery(api.notes.queries.getNote, {
-    noteId: noteId as Id<"notes"> | undefined,
-  });
-
-  // console.log("currentNote: ", currentNote);
 
   // Queries that depend on campaignId
   const currentEditor = useQuery(api.editors.queries.getCurrentEditor, {
@@ -152,6 +143,10 @@ export function NotesProvider({
     campaignId: currentCampaign?._id,
   });
 
+  const currentNote = useQuery(api.notes.queries.getNote, {
+    noteId: noteId,
+  });
+  
   // Get sort options from editor state
   const sortOptions: SortOptions = useMemo(
     () => ({
@@ -177,8 +172,8 @@ export function NotesProvider({
   }
 
   // Loading state - true until all initial data is loaded OR when switching notes and no sidebar fallback
-  const isLoading = currentUserProfile === undefined || currentCampaign === undefined || currentEditor === undefined || sidebarData === undefined || (!!noteId && optimisticCurrentNote === undefined);
-
+  const isLoading = currentCampaign === undefined || currentEditor === undefined || sidebarData === undefined || (!!noteId && optimisticCurrentNote === undefined);
+  
   // All mutations must be called before any conditional returns
   const setCurrentEditor = useMutation(
     api.editors.mutations.setCurrentEditor,
@@ -392,9 +387,10 @@ export function NotesProvider({
       await deleteNoteAction({ noteId });
       if (currentNote?._id === noteId) {
         await setCurrentEditor({ noteId: undefined });
+        redirect(`/campaigns/${dmUsername}/${campaignSlug}/notes`);
       }
     },
-    [deleteNoteAction],
+    [deleteNoteAction, currentNote?._id, setCurrentEditor, dmUsername, campaignSlug],
   );
 
   const deleteFolder = useCallback(
@@ -435,8 +431,7 @@ export function NotesProvider({
     [setCurrentEditor],
   );
 
-  // Now handle loading and error states after all hooks are called
-  if (currentUserProfile === undefined || currentCampaign === undefined) {
+  if (currentCampaign === undefined) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
@@ -444,13 +439,9 @@ export function NotesProvider({
     );
   }
 
-  // Now we can safely check for errors
-  if (!currentUserProfile) {
-    throw new Error("User profile not found");
-  }
-
   if (!currentCampaign) {
-    throw new Error("Campaign not found");
+    //TODO: show a toast
+    redirect("/campaigns");
   }
 
   const value: NotesContextType = {

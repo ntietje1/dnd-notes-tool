@@ -4,16 +4,17 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import React from "react";
 
 interface CampaignPageProps {
-  params: {
+  params: Promise<{
     dmUsername: string;
     campaignSlug: string;
-  };
+  }>;
 }
 
 export default function CampaignPage({ params }: CampaignPageProps) {
-  const { dmUsername, campaignSlug } = params;
+  const { dmUsername, campaignSlug } = React.use(params);
   const router = useRouter();
 
   const campaign = useQuery(api.campaigns.queries.getCampaignBySlug, {

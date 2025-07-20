@@ -1,12 +1,12 @@
-import { query, QueryCtx } from "../_generated/server";
+import { query } from "../_generated/server";
 import { v } from "convex/values";
-import { Note, Folder, FolderNode, AnySidebarItem } from "./types";
+import { Note, FolderNode, AnySidebarItem } from "./types";
 import { Id } from "../_generated/dataModel";
 import { getBaseUserId } from "../auth";
 
 export const getNote = query({
   args: {
-    noteId: v.optional(v.id("notes")),
+    noteId: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<Note | null> => {
     if (!args.noteId || !args.noteId.length) {
@@ -18,12 +18,15 @@ export const getNote = query({
       throw new Error("Not authenticated");
     }
 
-    const note = await ctx.db.get(args.noteId);
-    if (!note || note.userId !== getBaseUserId(identity.subject)) {
+    try {
+      const note = await ctx.db.get(args.noteId as Id<"notes">);
+      if (!note || note.userId !== getBaseUserId(identity.subject)) {
+        return null;
+      }
+      return { ...note, type: "notes" } as Note;
+    } catch (e) {
       return null;
     }
-
-    return { ...note, type: "notes" } as Note;
   },
 });
 

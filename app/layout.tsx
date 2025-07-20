@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "D&D Notes Tool",
+  title: "D&D Connect",
   description: "Your ultimate companion for managing D&D campaigns",
   icons: {
     icon: "/favicon.ico",

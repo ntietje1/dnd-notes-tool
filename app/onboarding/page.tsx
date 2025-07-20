@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { redirect, useRouter } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
@@ -36,9 +36,9 @@ export default function OnboardingPage() {
   // Redirect if user is already onboarded
   useEffect(() => {
     if (userProfile?.isOnboarded) {
-      router.push("/campaigns");
+      redirect("/campaigns");
     }
-  }, [userProfile, router]);
+  }, [userProfile]);
 
   const handleValidationChange =
     (field: string) => (result: ValidationResult) => {
@@ -99,7 +99,7 @@ export default function OnboardingPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <Card className="w-[400px]">
         <CardHeader>
-          <CardTitle>Welcome to D&D Notes!</CardTitle>
+          <CardTitle>Welcome to D&D Connect!</CardTitle>
           <CardDescription>
             Let's set up your profile to get started
           </CardDescription>
