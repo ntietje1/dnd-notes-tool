@@ -1,27 +1,40 @@
 "use client";
 
 import { useNotes } from "@/contexts/NotesContext";
-import { FileTopbar } from "@/app/campaigns/[dmUsername]/[campaignSlug]/notes/editor/file-topbar/topbar";
-import { SimpleEditor } from "@/app/campaigns/[dmUsername]/[campaignSlug]/notes/editor/editor";
 import { Button } from "@/components/ui/button";
+import "@blocknote/core/fonts/inter.css";
+import { BlockNoteView } from "@blocknote/mantine";
+import "@blocknote/mantine/style.css";
+import { BlockNoteEditor, Block } from "@blocknote/core";
+import { api } from "@/convex/_generated/api";
+import { useBlockNoteSync } from "@convex-dev/prosemirror-sync/blocknote";
+import React from "react";
+import { debounce } from "lodash-es";
 
-function ToolbarSkeleton() {
-  return (
-    <div className="tiptap-toolbar border-b" data-variant="fixed">
-      <div className="flex items-center gap-4 px-2 min-h-[2.75rem]">
-        <div className="w-175 h-7 bg-gray-200 rounded animate-pulse" />
-      </div>
-    </div>
-  );
+// Recursively sanitize BlockNote content to remove undefined values
+function sanitizeBlockContent(content: any): any {
+  if (!content || typeof content !== "object") {
+    return content;
+  }
+
+  if (Array.isArray(content)) {
+    return content
+      .map(sanitizeBlockContent)
+      .filter((item) => item !== undefined);
+  }
+
+  const sanitized: any = {};
+  for (const [key, value] of Object.entries(content)) {
+    if (value !== undefined) {
+      sanitized[key] = sanitizeBlockContent(value);
+    }
+  }
+  return sanitized;
 }
 
 function LoadingState() {
   return (
     <div className="flex flex-col h-full">
-      {/* <div className="h-8 border-b flex items-center px-4">
-        <div className="h-5 w-48 bg-gray-200 animate-pulse rounded" />
-      </div> */}
-      <ToolbarSkeleton />
       <div className="flex-1 p-4">
         <div className="space-y-4 animate-pulse">
           <div className="h-6 w-3/4 bg-gray-200 rounded" />
@@ -35,13 +48,26 @@ function LoadingState() {
 }
 
 export function NotesEditor() {
-  const {
-    currentNote,
-    updateNoteContent,
-    updateNoteName,
-    createNote,
-    isLoading,
-  } = useNotes();
+  const { currentNote, updateNoteContent, createNote, isLoading } = useNotes();
+
+  const debouncedUpdateNoteContent = React.useRef(
+    debounce((content: Block[]) => {
+      const sanitizedContent = sanitizeBlockContent(content);
+      updateNoteContent(sanitizedContent);
+    }, 1250),
+  ).current;
+
+  const sync = useBlockNoteSync<BlockNoteEditor>(
+    api.prosemirrorSync,
+    currentNote?._id ?? "",
+  );
+
+  // Automatically create editor if we have a currentNote but no editor
+  React.useEffect(() => {
+    if (currentNote && !sync.editor && !sync.isLoading) {
+      sync.create(currentNote.content);
+    }
+  }, [currentNote, sync]);
 
   if (isLoading) {
     return <LoadingState />;
@@ -59,18 +85,15 @@ export function NotesEditor() {
   }
 
   return (
-    <div className="h-full flex flex-col">
-      {/* <FileTopbar
-        note={currentNote}
-        onTitleChange={(title: string) => updateNoteName(currentNote._id, title)}
-      /> */}
-      <div className="flex-1 overflow-hidden">
-        <SimpleEditor
-          note={currentNote}
-          onUpdate={({ editor }) => updateNoteContent(editor)}
-          className="h-full"
+    <div className="h-full flex flex-col bg-white">
+      {sync.editor && (
+        <BlockNoteView
+          className="h-full overflow-y-auto"
+          editor={sync.editor}
+          onChange={() => debouncedUpdateNoteContent(sync.editor.document)}
+          theme="light"
         />
-      </div>
+      )}
     </div>
   );
 }

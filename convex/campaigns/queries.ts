@@ -3,7 +3,6 @@ import { query } from "../_generated/server";
 import { getBaseUserId } from "../auth";
 import { Campaign, CampaignSlug, UserCampaign } from "./types";
 
-
 export const getUserCampaigns = query({
   args: {},
   handler: async (ctx) => {
@@ -35,10 +34,10 @@ export const getUserCampaigns = query({
           (membership) => membership.campaignId === campaign._id,
         );
 
-        const campaignSlug = await ctx.db
+        const campaignSlug = (await ctx.db
           .query("campaignSlugs")
           .withIndex("by_campaign", (q) => q.eq("campaignId", campaign._id))
-          .unique() as CampaignSlug | null;
+          .unique()) as CampaignSlug | null;
 
         let notes = undefined;
         if (membership?.role === "DM") {
@@ -72,12 +71,19 @@ export const getCampaignBySlug = query({
       throw new Error("Not authenticated");
     }
 
-    const campaignSlug = await ctx.db.query("campaignSlugs").withIndex("by_slug_username", (q) => q.eq("slug", args.slug).eq("username", args.dmUsername)).unique();
+    const campaignSlug = await ctx.db
+      .query("campaignSlugs")
+      .withIndex("by_slug_username", (q) =>
+        q.eq("slug", args.slug).eq("username", args.dmUsername),
+      )
+      .unique();
     if (!campaignSlug) {
       return null;
     }
 
-    const campaign = await ctx.db.get(campaignSlug.campaignId) as Campaign | null;
+    const campaign = (await ctx.db.get(
+      campaignSlug.campaignId,
+    )) as Campaign | null;
 
     if (!campaign) {
       return null;
@@ -111,15 +117,20 @@ export const checkCampaignSlugExists = query({
 
     const baseUserId = getBaseUserId(identity.subject);
 
-    const userProfile = await ctx.db.query("userProfiles").withIndex("by_user", (q) => q.eq("userId", baseUserId)).unique();
+    const userProfile = await ctx.db
+      .query("userProfiles")
+      .withIndex("by_user", (q) => q.eq("userId", baseUserId))
+      .unique();
     if (!userProfile) {
       throw new Error("User profile not found");
     }
 
     const slug = await ctx.db
       .query("campaignSlugs")
-      .withIndex("by_slug_username", (q) => q.eq("slug", args.slug).eq("username", userProfile.username))
-      .unique()
+      .withIndex("by_slug_username", (q) =>
+        q.eq("slug", args.slug).eq("username", userProfile.username),
+      )
+      .unique();
 
     return slug !== null;
   },

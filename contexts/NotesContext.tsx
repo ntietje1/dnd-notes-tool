@@ -12,8 +12,8 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { AnySidebarItem, Note, SidebarItemType } from "@/convex/notes/types";
-import { Editor } from "@tiptap/core";
 import { redirect } from "next/navigation";
+import { Block } from "@blocknote/core";
 
 export type SortOrder = "alphabetical" | "dateCreated" | "dateModified";
 export type SortDirection = "asc" | "desc";
@@ -32,8 +32,8 @@ type NotesContextType = {
   sortOptions: SortOptions;
 
   // Actions
-  selectNote: (noteId: Id<"notes">) => void;
-  updateNoteContent: (editor: Editor) => Promise<void>;
+  selectNote: (noteId: Id<"notes"> | null) => void;
+  updateNoteContent: (content: Block[]) => Promise<void>;
   updateNoteName: (noteId: Id<"notes">, title: string) => Promise<void>;
   toggleFolder: (folderId: Id<"folders">) => void;
   openFolder: (folderId: Id<"folders">) => void;
@@ -307,17 +307,20 @@ export function NotesProvider({
   });
 
   // Actions
-  const selectNote = useCallback((noteId: Id<"notes">) => {
+  const selectNote = useCallback((noteId: Id<"notes"> | null) => {
     // Update the noteId query param in the URL without a full navigation (shallow routing)
     const url = new URL(window.location.href);
-    url.searchParams.set("noteId", noteId);
+    if (noteId) {
+      url.searchParams.set("noteId", noteId);
+    } else {
+      url.searchParams.delete("noteId");
+    }
     window.history.pushState({}, "", url.toString());
   }, []);
 
   const updateNoteContent = useCallback(
-    async (editor: Editor) => {
+    async (content: Block[]) => {
       if (!currentNote || !currentNote._id) return;
-      const content = editor.getJSON();
       await updateNote({ noteId: currentNote._id, content });
     },
     [currentNote?._id, updateNote],

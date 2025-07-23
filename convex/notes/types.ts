@@ -1,5 +1,5 @@
-import { JSONContent } from "@tiptap/react";
 import { Id } from "../_generated/dataModel";
+import { Block } from "@blocknote/core";
 
 // Only include actual database table types
 export type SidebarItemType = "notes" | "folders";
@@ -18,7 +18,7 @@ export type SidebarItem<T extends SidebarItemType> = {
 };
 
 export type Note = SidebarItem<"notes"> & {
-  content: JSONContent;
+  content: Block[];
   hasSharedContent?: boolean;
 };
 

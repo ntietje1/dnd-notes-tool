@@ -22,8 +22,8 @@ export function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-10 bg-background p-4 border-b border-border">
-      <div className="mx-auto flex justify-between items-center">
+    <header className="bg-background h-10 border-b border-border">
+      <div className="mx-auto flex justify-between items-center h-full px-4">
         <Link href="/" className="font-bold text-xl text-primary">
           D&D Connect
         </Link>

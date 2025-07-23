@@ -13,18 +13,9 @@ import {
   DragOverlay,
   DragStartEvent,
 } from "@dnd-kit/core";
-import { FolderPlus, FilePlus } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-
 import { DroppableRoot } from "./sidebar-root/droppable-root";
 import { useNotes } from "@/contexts/NotesContext";
 import { SidebarItem } from "./sidebar-item";
-import { SortMenu } from "./sort-menu";
 
 type DraggableItem =
   | {
@@ -42,7 +33,6 @@ export function FileSidebar() {
     expandedFolders,
     selectNote,
     createNote,
-    createFolder,
     deleteNote,
     deleteFolder,
     moveNote,
@@ -52,7 +42,6 @@ export function FileSidebar() {
     toggleFolder,
     openFolder,
     sidebarData,
-    sortOptions,
   } = useNotes();
 
   const [renamingId, setRenamingId] = useState<
@@ -194,44 +183,13 @@ export function FileSidebar() {
   }
 
   return (
-    //TODO: tooltip doesnt show up for sort menu. Also move the buttons menu to its own component
+    //TODO: add hotkeys
     <DndContext
       sensors={sensors}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="h-full border-r bg-background flex flex-col min-h-0">
-        <div className="pl-4 p-2 h-12 flex justify-between flex-shrink-0 bg-background z-10 border-b">
-          <h2 className="text-lg font-semibold justify-start pr-4">Files</h2>
-          <div className="flex justify-end">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <SortMenu />
-              </TooltipTrigger>
-              <TooltipContent>Sort by</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" onClick={createFolder}>
-                  <FolderPlus className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>New Folder</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => createNote()}
-                >
-                  <FilePlus className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>New Page</TooltipContent>
-            </Tooltip>
-          </div>
-        </div>
+      <div className="h-full bg-background flex flex-col min-h-0">
         <div className="flex-1 min-h-0 relative">
           <DroppableRoot
             className="absolute inset-0 p-1 transition-colors overflow-y-auto"

@@ -45,7 +45,7 @@ export function SortMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="focus-visible:ring-0">
+        <Button variant="ghost" size="icon">
           <Icon className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
