@@ -1,6 +1,6 @@
 "use client";
 
-import { EditableName } from "@/app/campaigns/[dmUsername]/[campaignSlug]/notes/editor/file-sidebar/editable-name";
+import { EditableName } from "@/app/campaigns/[dmUsername]/[campaignSlug]/notes/editor/file-sidebar/sidebar-item/editable-name";
 import { UNTITLED_NOTE_TITLE } from "@/convex/notes/types";
 import { Note } from "@/convex/notes/types";
 

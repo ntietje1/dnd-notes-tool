@@ -1,8 +1,8 @@
-import { DraggableNote } from "./sidebar-note/draggable-note";
+import { DraggableNote } from "../sidebar-note/draggable-note";
 import { FolderNode, Note, AnySidebarItem } from "@/convex/notes/types";
-import { NoteButton } from "./sidebar-note/note-button";
+import { NoteButton } from "../sidebar-note/note-button";
 import { Id } from "@/convex/_generated/dataModel";
-import { RecursiveFolder } from "./sidebar-folder/recursive-folder";
+import { RecursiveFolder } from "../sidebar-folder/recursive-folder";
 
 // Type guard functions
 function isFolderNode(item: AnySidebarItem): item is FolderNode {

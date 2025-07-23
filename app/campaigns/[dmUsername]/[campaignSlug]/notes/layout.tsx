@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/resizable";
 import { FileSidebar } from "./editor/file-sidebar/sidebar";
 import { FileTopbar } from "./editor/file-topbar/topbar";
-import { SidebarHeader } from "./editor/file-sidebar/sidebar-header";
+import { SidebarHeader } from "./editor/file-sidebar/sidebar-header/sidebar-header";
 
 interface NotesSectionLayoutProps {
   children: ReactNode;

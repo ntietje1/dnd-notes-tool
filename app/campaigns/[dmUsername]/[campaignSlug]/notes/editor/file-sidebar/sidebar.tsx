@@ -15,7 +15,7 @@ import {
 } from "@dnd-kit/core";
 import { DroppableRoot } from "./sidebar-root/droppable-root";
 import { useNotes } from "@/contexts/NotesContext";
-import { SidebarItem } from "./sidebar-item";
+import { SidebarItem } from "./sidebar-item/sidebar-item";
 
 type DraggableItem =
   | {

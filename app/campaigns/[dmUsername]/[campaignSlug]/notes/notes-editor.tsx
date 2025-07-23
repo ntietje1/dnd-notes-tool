@@ -11,27 +11,6 @@ import { useBlockNoteSync } from "@convex-dev/prosemirror-sync/blocknote";
 import React from "react";
 import { debounce } from "lodash-es";
 
-// Recursively sanitize BlockNote content to remove undefined values
-function sanitizeBlockContent(content: any): any {
-  if (!content || typeof content !== "object") {
-    return content;
-  }
-
-  if (Array.isArray(content)) {
-    return content
-      .map(sanitizeBlockContent)
-      .filter((item) => item !== undefined);
-  }
-
-  const sanitized: any = {};
-  for (const [key, value] of Object.entries(content)) {
-    if (value !== undefined) {
-      sanitized[key] = sanitizeBlockContent(value);
-    }
-  }
-  return sanitized;
-}
-
 function LoadingState() {
   return (
     <div className="flex flex-col h-full">
@@ -52,8 +31,7 @@ export function NotesEditor() {
 
   const debouncedUpdateNoteContent = React.useRef(
     debounce((content: Block[]) => {
-      const sanitizedContent = sanitizeBlockContent(content);
-      updateNoteContent(sanitizedContent);
+      updateNoteContent(content);
     }, 1250),
   ).current;
 

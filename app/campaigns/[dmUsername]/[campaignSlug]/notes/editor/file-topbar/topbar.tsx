@@ -49,6 +49,12 @@ export function FileTopbar() {
     setIsEditing(false);
   }, []);
 
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.select();
+    }
+  }, [isEditing]);
+
   if (isLoading) {
     return <ToolbarSkeleton />;
   }
@@ -57,7 +63,7 @@ export function FileTopbar() {
     <div className="flex items-center justify-between px-4 h-12 border-b bg-white">
       {currentNote && (
         <div className="flex items-center justify-between w-full">
-          <div className="flex items-center gap-2 flex-1">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
             {isEditing ? (
               <input
                 ref={inputRef}
@@ -71,22 +77,24 @@ export function FileTopbar() {
                     handleTitleSubmit();
                   }
                 }}
-                className="bg-transparent border-b border-transparent outline-none focus:ring-0 px-2 flex w-full"
+                className="bg-transparent border-b border-transparent outline-none focus:ring-0 px-2 w-full"
                 autoFocus
               />
             ) : (
-              <button
-                onClick={() => setIsEditing(true)}
-                className="text-left border-b border-transparent hover:border-gray-300 flex px-2"
-              >
-                {title || (
-                  <span className="opacity-85">{UNTITLED_NOTE_TITLE}</span>
-                )}
-              </button>
+              <div className="truncate">
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="text-left border-b border-transparent hover:border-gray-300 px-2 max-w-full truncate"
+                >
+                  {title || (
+                    <span className="opacity-85">{UNTITLED_NOTE_TITLE}</span>
+                  )}
+                </button>
+              </div>
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             {/* <Button variant="ghost" size="icon" onClick={toggleShared}>
               <Users className="h-4 w-4" />
             </Button> */}
