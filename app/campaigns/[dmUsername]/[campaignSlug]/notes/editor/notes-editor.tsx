@@ -3,8 +3,8 @@
 import { useNotes } from "@/contexts/NotesContext";
 import { Button } from "@/components/ui/button";
 import "@blocknote/core/fonts/inter.css";
-import { BlockNoteView } from "@blocknote/mantine";
-import "@blocknote/mantine/style.css";
+import { BlockNoteView } from "@blocknote/shadcn";
+import "@blocknote/shadcn/style.css";
 import { BlockNoteEditor, Block } from "@blocknote/core";
 import { api } from "@/convex/_generated/api";
 import { useBlockNoteSync } from "@convex-dev/prosemirror-sync/blocknote";
@@ -42,10 +42,10 @@ export function NotesEditor() {
 
   // Automatically create editor if we have a currentNote but no editor
   React.useEffect(() => {
-    if (currentNote && !sync.editor && !sync.isLoading) {
+    if (currentNote && !sync.editor && !sync.isLoading && sync.create) {
       sync.create(currentNote.content);
     }
-  }, [currentNote, sync]);
+  }, [currentNote, sync.editor, sync.isLoading]);
 
   if (isLoading) {
     return <LoadingState />;
