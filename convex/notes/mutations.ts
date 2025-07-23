@@ -28,9 +28,7 @@ export const updateNote = mutation({
     };
 
     if (args.content !== undefined) {
-      const hasSharedContent = checkForSharedContent(args.content);
       updates.content = args.content;
-      updates.hasSharedContent = hasSharedContent;
     }
 
     if (args.name !== undefined) {
@@ -194,7 +192,6 @@ export const createNote = mutation({
       name: args.name || "",
       content: { type: "doc", content: [{ type: "paragraph", content: [] }] },
       parentFolderId: args.parentFolderId,
-      hasSharedContent: false,
       updatedAt: Date.now(),
       campaignId: args.campaignId,
     });

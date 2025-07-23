@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode } from "react";
-import { NotesProvider, useNotes } from "@/contexts/NotesContext";
+import { NotesProvider } from "@/contexts/NotesContext";
 import { useSearchParams } from "next/navigation";
 import * as React from "react";
 import {
@@ -9,9 +9,9 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
-import { FileSidebar } from "./file-sidebar/sidebar";
-import { FileTopbar } from "./file-topbar/topbar";
-import { SidebarHeader } from "./file-sidebar/sidebar-header/sidebar-header";
+import { FileSidebar } from "./editor/file-sidebar/sidebar";
+import { FileTopbar } from "./editor/file-topbar/topbar";
+import { SidebarHeader } from "./editor/file-sidebar/sidebar-header/sidebar-header";
 
 interface NotesSectionLayoutProps {
   children: ReactNode;

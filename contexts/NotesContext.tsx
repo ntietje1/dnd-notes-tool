@@ -318,10 +318,37 @@ export function NotesProvider({
     window.history.pushState({}, "", url.toString());
   }, []);
 
+  // Helper function to recursively sanitize content
+  const sanitizeContent = (node: any): any => {
+    if (!node) return null;
+
+    // Handle arrays
+    if (Array.isArray(node)) {
+      return node.map(sanitizeContent).filter(Boolean);
+    }
+
+    // Handle objects
+    if (typeof node === "object") {
+      const sanitized: any = {};
+      for (const [key, value] of Object.entries(node)) {
+        // Skip undefined values
+        if (value === undefined) continue;
+        // Recursively sanitize nested objects/arrays
+        sanitized[key] = sanitizeContent(value);
+      }
+      return sanitized;
+    }
+
+    return node;
+  };
+
   const updateNoteContent = useCallback(
     async (content: Block[]) => {
       if (!currentNote || !currentNote._id) return;
-      await updateNote({ noteId: currentNote._id, content });
+
+      // Sanitize the content before sending to Convex
+      const sanitizedContent = sanitizeContent(content);
+      await updateNote({ noteId: currentNote._id, content: sanitizedContent });
     },
     [currentNote?._id, updateNote],
   );

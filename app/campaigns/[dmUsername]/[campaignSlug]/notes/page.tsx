@@ -1,5 +1,5 @@
-import { Editor } from "./editor/dynamic-notes-editor";
+import { NotesEditor } from "./editor/notes-editor";
 
 export default function NotesIndexPage() {
-  return <Editor />;
+  return <NotesEditor />;
 }

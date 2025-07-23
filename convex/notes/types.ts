@@ -19,7 +19,6 @@ export type SidebarItem<T extends SidebarItemType> = {
 
 export type Note = SidebarItem<"notes"> & {
   content: Block[];
-  hasSharedContent?: boolean;
 };
 
 export const UNTITLED_NOTE_TITLE = "Untitled Note";

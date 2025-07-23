@@ -8,11 +8,9 @@ export const notesTables = {
     name: v.optional(v.string()),
     content: v.any(), // TipTap JSON content
     parentFolderId: v.optional(v.id("folders")),
-    hasSharedContent: v.optional(v.boolean()),
     updatedAt: v.number(),
   })
     .index("by_folder", ["parentFolderId"])
-    .index("by_shared", ["hasSharedContent", "userId"])
     .index("by_campaign", ["campaignId"]),
 
   folders: defineTable({
