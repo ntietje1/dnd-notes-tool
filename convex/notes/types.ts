@@ -1,5 +1,4 @@
 import { Id } from "../_generated/dataModel";
-import { Block } from "@blocknote/core";
 
 // Only include actual database table types
 export type SidebarItemType = "notes" | "folders";
@@ -18,7 +17,7 @@ export type SidebarItem<T extends SidebarItemType> = {
 };
 
 export type Note = SidebarItem<"notes"> & {
-  content: Block[];
+  content: any[];
 };
 
 export const UNTITLED_NOTE_TITLE = "Untitled Note";

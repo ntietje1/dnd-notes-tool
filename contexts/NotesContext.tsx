@@ -13,7 +13,7 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { AnySidebarItem, Note, SidebarItemType } from "@/convex/notes/types";
 import { redirect } from "next/navigation";
-import { Block } from "@blocknote/core";
+import { CustomBlock } from "@/lib/tags";
 
 export type SortOrder = "alphabetical" | "dateCreated" | "dateModified";
 export type SortDirection = "asc" | "desc";
@@ -33,7 +33,7 @@ type NotesContextType = {
 
   // Actions
   selectNote: (noteId: Id<"notes"> | null) => void;
-  updateNoteContent: (content: Block[]) => Promise<void>;
+  updateNoteContent: (content: CustomBlock[]) => Promise<void>;
   updateNoteName: (noteId: Id<"notes">, title: string) => Promise<void>;
   toggleFolder: (folderId: Id<"folders">) => void;
   openFolder: (folderId: Id<"folders">) => void;
@@ -179,24 +179,6 @@ export function NotesProvider({
     (!!noteId && optimisticCurrentNote === undefined);
 
   const setCurrentEditor = useMutation(api.editors.mutations.setCurrentEditor);
-  // .withOptimisticUpdate((store, { sortOrder, sortDirection }) => {
-  //   // Optimistically update the getCurrentEditor query
-  //   const currentEditor = store.getQuery(api.editors.queries.getCurrentEditor, {
-  //     campaignId: currentCampaign?._id,
-  //   });
-  //   if (currentEditor) {
-  //     store.setQuery(
-  //       api.editors.queries.getCurrentEditor,
-  //       { campaignId: currentCampaign?._id },
-  //       {
-  //         ...currentEditor,
-  //         ...(sortOrder !== undefined && { sortOrder }),
-  //         ...(sortDirection !== undefined && { sortDirection }),
-  //       },
-  //     );
-  //   }
-  // }
-  // );
 
   const updateNote = useMutation(
     api.notes.mutations.updateNote,
@@ -343,7 +325,7 @@ export function NotesProvider({
   };
 
   const updateNoteContent = useCallback(
-    async (content: Block[]) => {
+    async (content: CustomBlock[]) => {
       if (!currentNote || !currentNote._id) return;
 
       // Sanitize the content before sending to Convex

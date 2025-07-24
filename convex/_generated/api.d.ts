@@ -12,6 +12,7 @@ import type * as auth from "../auth.js";
 import type * as campaigns_mutations from "../campaigns/mutations.js";
 import type * as campaigns_queries from "../campaigns/queries.js";
 import type * as campaigns_types from "../campaigns/types.js";
+import type * as characters_types from "../characters/types.js";
 import type * as editors_mutations from "../editors/mutations.js";
 import type * as editors_queries from "../editors/queries.js";
 import type * as editors_types from "../editors/types.js";
@@ -21,6 +22,9 @@ import type * as notes_queries from "../notes/queries.js";
 import type * as notes_types from "../notes/types.js";
 import type * as prosemirrorSync from "../prosemirrorSync.js";
 import type * as slugify from "../slugify.js";
+import type * as tags_mutations from "../tags/mutations.js";
+import type * as tags_queries from "../tags/queries.js";
+import type * as tags_types from "../tags/types.js";
 import type * as users_mutations from "../users/mutations.js";
 import type * as users_queries from "../users/queries.js";
 
@@ -43,6 +47,7 @@ declare const fullApi: ApiFromModules<{
   "campaigns/mutations": typeof campaigns_mutations;
   "campaigns/queries": typeof campaigns_queries;
   "campaigns/types": typeof campaigns_types;
+  "characters/types": typeof characters_types;
   "editors/mutations": typeof editors_mutations;
   "editors/queries": typeof editors_queries;
   "editors/types": typeof editors_types;
@@ -52,6 +57,9 @@ declare const fullApi: ApiFromModules<{
   "notes/types": typeof notes_types;
   prosemirrorSync: typeof prosemirrorSync;
   slugify: typeof slugify;
+  "tags/mutations": typeof tags_mutations;
+  "tags/queries": typeof tags_queries;
+  "tags/types": typeof tags_types;
   "users/mutations": typeof users_mutations;
   "users/queries": typeof users_queries;
 }>;

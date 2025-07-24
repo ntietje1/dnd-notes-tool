@@ -5,11 +5,22 @@ import { Button } from "@/components/ui/button";
 import "@blocknote/core/fonts/inter.css";
 import { BlockNoteView } from "@blocknote/shadcn";
 import "@blocknote/shadcn/style.css";
-import { BlockNoteEditor, Block } from "@blocknote/core";
+import { BlockNoteSchema, filterSuggestionItems } from "@blocknote/core";
 import { api } from "@/convex/_generated/api";
 import { useBlockNoteSync } from "@convex-dev/prosemirror-sync/blocknote";
 import React from "react";
 import { debounce } from "lodash-es";
+import {
+  DefaultReactSuggestionItem,
+  SuggestionMenuController,
+} from "@blocknote/react";
+import {
+  CustomBlock,
+  CustomBlockNoteEditor,
+  customInlineContentSpecs,
+} from "@/lib/tags";
+import { Tag } from "@/convex/tags/types";
+import { useTags } from "./extensions/tags/use-tags";
 
 function LoadingState() {
   return (
@@ -30,15 +41,52 @@ export function NotesEditor() {
   const { currentNote, updateNoteContent, createNote, isLoading } = useNotes();
 
   const debouncedUpdateNoteContent = React.useRef(
-    debounce((content: Block[]) => {
+    debounce((content: CustomBlock[]) => {
       updateNoteContent(content);
     }, 1250),
   ).current;
 
-  const sync = useBlockNoteSync<BlockNoteEditor>(
+  const schema = React.useMemo(
+    () =>
+      BlockNoteSchema.create({
+        inlineContentSpecs: customInlineContentSpecs,
+      }),
+    [],
+  );
+
+  const sync = useBlockNoteSync<CustomBlockNoteEditor>(
     api.prosemirrorSync,
     currentNote?._id ?? "",
+    {
+      editorOptions: {
+        schema,
+      },
+    },
   );
+
+  const { tags } = useTags(currentNote?.campaignId);
+
+  // Function which gets all users for the mentions menu.
+  const getMentionMenuItems = (): DefaultReactSuggestionItem[] => {
+    if (!tags) return [];
+
+    return tags.map((tag: Tag) => ({
+      title: tag.name,
+      onItemClick: () => {
+        sync.editor?.insertInlineContent([
+          {
+            type: "tag",
+            props: {
+              name: tag.name,
+              type: tag.type,
+              color: tag.color,
+            },
+          },
+          " ", // add a space after the mention
+        ]);
+      },
+    }));
+  };
 
   // Automatically create editor if we have a currentNote but no editor
   React.useEffect(() => {
@@ -70,7 +118,15 @@ export function NotesEditor() {
           editor={sync.editor}
           onChange={() => debouncedUpdateNoteContent(sync.editor.document)}
           theme="light"
-        />
+        >
+          <SuggestionMenuController
+            triggerCharacter={"@"}
+            getItems={async (query) =>
+              // Gets the mentions menu items
+              filterSuggestionItems(getMentionMenuItems(), query)
+            }
+          />
+        </BlockNoteView>
       )}
     </div>
   );
