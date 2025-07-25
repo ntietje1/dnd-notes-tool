@@ -2,6 +2,6 @@
 
 import dynamic from "next/dynamic";
 
-export const NotesEditor = dynamic(() => import("./notes-editor"), {
+export const NotesViewer = dynamic(() => import("./notes-viewer"), {
   ssr: false,
 });

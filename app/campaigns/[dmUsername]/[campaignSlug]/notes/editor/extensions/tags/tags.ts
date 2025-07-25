@@ -16,14 +16,12 @@ export const customInlineContentSpecs = {
   tag: TagInlineContent,
 } as const;
 
-// Create type for custom blocks
 export type CustomBlock = Block<
   BlockSchemaFromSpecs<typeof defaultBlockSpecs>,
   InlineContentSchemaFromSpecs<typeof customInlineContentSpecs>,
   StyleSchemaFromSpecs<typeof defaultStyleSpecs>
 >;
 
-// Create type for the custom editor
 export type CustomBlockNoteEditor = BlockNoteEditor<
   BlockSchemaFromSpecs<typeof defaultBlockSpecs>,
   InlineContentSchemaFromSpecs<typeof customInlineContentSpecs>,

@@ -2,9 +2,7 @@
 
 import { useNotes } from "@/contexts/NotesContext";
 import { Button } from "@/components/ui/button";
-import "@blocknote/core/fonts/inter.css";
 import { BlockNoteView } from "@blocknote/shadcn";
-import "@blocknote/shadcn/style.css";
 import { BlockNoteSchema } from "@blocknote/core";
 import { api } from "@/convex/_generated/api";
 import { useBlockNoteSync } from "@convex-dev/prosemirror-sync/blocknote";
@@ -32,7 +30,7 @@ function LoadingState() {
   );
 }
 
-export function NotesEditor() {
+export default function NotesEditor() {
   const { currentNote, updateNoteContent, createNote, isLoading } = useNotes();
 
   const debouncedUpdateNoteContent = React.useRef(

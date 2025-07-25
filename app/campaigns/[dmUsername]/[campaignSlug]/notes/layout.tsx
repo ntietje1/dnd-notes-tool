@@ -12,6 +12,7 @@ import {
 import { FileSidebar } from "./editor/file-sidebar/sidebar";
 import { FileTopbar } from "./editor/file-topbar/topbar";
 import { SidebarHeader } from "./editor/file-sidebar/sidebar-header/sidebar-header";
+import { NotesViewer } from "./viewer/dynamic-notes-viewer";
 
 interface NotesSectionLayoutProps {
   children: ReactNode;
@@ -27,14 +28,16 @@ function NotesLayout({ children }: { children: ReactNode }) {
       <ResizablePanelGroup direction="horizontal" className="flex-1">
         <ResizablePanel defaultSize={20} minSize={10} className="flex flex-col">
           <SidebarHeader />
-          <div className="flex-1 overflow-y-auto">
-            <FileSidebar />
-          </div>
+          <FileSidebar />
         </ResizablePanel>
         <ResizableHandle />
-        <ResizablePanel defaultSize={80} minSize={25} className="flex flex-col">
+        <ResizablePanel defaultSize={40} minSize={25} className="flex flex-col">
           <FileTopbar />
           <div className="flex-1 overflow-hidden">{children}</div>
+        </ResizablePanel>
+        <ResizableHandle />
+        <ResizablePanel defaultSize={40} minSize={25} className="flex flex-col">
+          <NotesViewer />
         </ResizablePanel>
       </ResizablePanelGroup>
     </div>

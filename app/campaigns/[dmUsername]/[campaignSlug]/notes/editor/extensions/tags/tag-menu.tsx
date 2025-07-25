@@ -21,6 +21,8 @@ const getTagMenuItems = (
           type: "tag",
           props: {
             tagId: tag._id,
+            tagName: tag.name,
+            tagColor: tag.color,
           },
         },
         " ", // add a space after the mention
