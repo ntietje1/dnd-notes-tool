@@ -3,13 +3,68 @@ import { v } from "convex/values";
 import { Doc } from "../_generated/dataModel";
 import { Id } from "../_generated/dataModel";
 import { getBaseUserId } from "../auth";
-import { uniqueSlugify } from "../slugify";
+
+// Helper function to extract tag IDs from block content
+function extractTagIdsFromBlock(block: any): Id<"tags">[] {
+  if (!block) return [];
+
+  const tagIds: Id<"tags">[] = [];
+
+  function traverseContent(content: any) {
+    if (!content) return;
+
+    if (Array.isArray(content)) {
+      content.forEach(traverseContent);
+    } else if (typeof content === "object") {
+      // Check if this is a tag inline content
+      if (content.type === "tag" && content.props?.tagId) {
+        tagIds.push(content.props.tagId);
+      }
+
+      // Recursively check content and attrs
+      if (content.content) traverseContent(content.content);
+      if (content.attrs) traverseContent(content.attrs);
+    }
+  }
+
+  traverseContent(block);
+  return [...new Set(tagIds)]; // Remove duplicates
+}
+
+// Helper function to extract all tag IDs from note content
+function extractAllTagIdsFromContent(
+  content: any[],
+): Map<string, Id<"tags">[]> {
+  const blockTagMap = new Map<string, Id<"tags">[]>();
+
+  function traverseBlocks(blocks: any[]) {
+    if (!Array.isArray(blocks)) return;
+
+    blocks.forEach((block) => {
+      if (block.id) {
+        const tagIds = extractTagIdsFromBlock(block);
+        if (tagIds.length > 0) {
+          blockTagMap.set(block.id, tagIds);
+        }
+      }
+
+      // Recursively check nested content
+      if (block.content) {
+        traverseBlocks(block.content);
+      }
+    });
+  }
+
+  traverseBlocks(content);
+  return blockTagMap;
+}
 
 export const updateNote = mutation({
   args: {
     noteId: v.id("notes"),
     content: v.optional(v.any()),
     name: v.optional(v.string()),
+    tagIds: v.optional(v.array(v.id("tags"))), // Note-level tags
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -29,10 +84,37 @@ export const updateNote = mutation({
 
     if (args.content !== undefined) {
       updates.content = args.content;
+
+      // Extract and update block-tag relationships
+      const blockTagMap = extractAllTagIdsFromContent(args.content);
+
+      // Remove existing tagged blocks for this note
+      const existingTaggedBlocks = await ctx.db
+        .query("taggedBlocks")
+        .withIndex("by_note", (q) => q.eq("noteId", args.noteId))
+        .collect();
+
+      for (const taggedBlock of existingTaggedBlocks) {
+        await ctx.db.delete(taggedBlock._id);
+      }
+
+      for (const [blockId, tagIds] of blockTagMap.entries()) {
+        await ctx.db.insert("taggedBlocks", {
+          noteId: args.noteId,
+          blockId,
+          campaignId: note.campaignId,
+          tagIds,
+          updatedAt: now,
+        });
+      }
     }
 
     if (args.name !== undefined) {
       updates.name = args.name;
+    }
+
+    if (args.tagIds !== undefined) {
+      updates.tagIds = args.tagIds;
     }
 
     await ctx.db.patch(args.noteId, updates);

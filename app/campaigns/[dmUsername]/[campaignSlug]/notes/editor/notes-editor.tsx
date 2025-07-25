@@ -14,7 +14,7 @@ import {
   CustomBlock,
   CustomBlockNoteEditor,
   customInlineContentSpecs,
-} from "@/lib/tags";
+} from "@/app/campaigns/[dmUsername]/[campaignSlug]/notes/editor/extensions/tags/tags";
 import TagMenu from "./extensions/tags/tag-menu";
 
 function LoadingState() {
@@ -59,14 +59,13 @@ export function NotesEditor() {
     },
   );
 
-  // Automatically create editor if we have a currentNote but no editor
   React.useEffect(() => {
     if (currentNote && !sync.editor && !sync.isLoading && sync.create) {
       sync.create(currentNote.content);
     }
   }, [currentNote, sync.editor, sync.isLoading]);
 
-  if (isLoading) {
+  if (isLoading || sync.isLoading) {
     return <LoadingState />;
   }
 

@@ -1,5 +1,5 @@
 import { Id } from "../_generated/dataModel";
-import { CustomBlock } from "../../lib/tags";
+import { CustomBlock } from "../../app/campaigns/[dmUsername]/[campaignSlug]/notes/editor/extensions/tags/tags";
 
 // Only include actual database table types
 export type SidebarItemType = "notes" | "folders";
@@ -19,6 +19,7 @@ export type SidebarItem<T extends SidebarItemType> = {
 
 export type Note = SidebarItem<"notes"> & {
   content: CustomBlock[];
+  tagIds?: Id<"tags">[];
 };
 
 export const UNTITLED_NOTE_TITLE = "Untitled Note";
@@ -38,4 +39,23 @@ export type AnySidebarItem = Note | FolderNode;
 export type RawSidebarData = {
   folders: Folder[];
   notes: Note[];
+};
+
+export type TaggedBlock = {
+  _id: Id<"taggedBlocks">;
+  _creationTime: number;
+  noteId: Id<"notes">;
+  blockId: string;
+  campaignId: Id<"campaigns">;
+  tagIds: Id<"tags">[];
+  updatedAt: number;
+};
+
+export type BlockWithTags = {
+  noteId: Id<"notes">;
+  noteName?: string;
+  blockId: string;
+  blockContent: any;
+  tagIds: Id<"tags">[];
+  updatedAt: number;
 };

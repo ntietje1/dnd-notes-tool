@@ -5,7 +5,7 @@ import {
   SuggestionMenuController,
 } from "@blocknote/react";
 import { useTags } from "./use-tags";
-import { CustomBlockNoteEditor } from "@/lib/tags";
+import { CustomBlockNoteEditor } from "@/app/campaigns/[dmUsername]/[campaignSlug]/notes/editor/extensions/tags/tags";
 
 const getTagMenuItems = (
   editor?: CustomBlockNoteEditor,

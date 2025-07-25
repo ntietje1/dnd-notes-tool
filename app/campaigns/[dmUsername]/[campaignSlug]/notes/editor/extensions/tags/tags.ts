@@ -1,4 +1,3 @@
-import { TagInlineContent } from "@/app/campaigns/[dmUsername]/[campaignSlug]/notes/editor/extensions/tags/tag";
 import {
   Block,
   BlockNoteEditor,
@@ -9,6 +8,7 @@ import {
   type InlineContentSchemaFromSpecs,
   type StyleSchemaFromSpecs,
 } from "@blocknote/core";
+import { TagInlineContent } from "./tag-inline-content";
 
 // Define custom inline content specs
 export const customInlineContentSpecs = {

@@ -13,7 +13,7 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { AnySidebarItem, Note, SidebarItemType } from "@/convex/notes/types";
 import { redirect } from "next/navigation";
-import { CustomBlock } from "@/lib/tags";
+import { CustomBlock } from "@/app/campaigns/[dmUsername]/[campaignSlug]/notes/editor/extensions/tags/tags";
 import { Campaign } from "@/convex/campaigns/types";
 
 export type SortOrder = "alphabetical" | "dateCreated" | "dateModified";
@@ -37,6 +37,7 @@ type NotesContextType = {
   selectNote: (noteId: Id<"notes"> | null) => void;
   updateNoteContent: (content: CustomBlock[]) => Promise<void>;
   updateNoteName: (noteId: Id<"notes">, title: string) => Promise<void>;
+  updateNoteTags: (noteId: Id<"notes">, tagIds: Id<"tags">[]) => Promise<void>;
   toggleFolder: (folderId: Id<"folders">) => void;
   openFolder: (folderId: Id<"folders">) => void;
   createNote: (folderId?: Id<"folders">) => Promise<void>;
@@ -184,7 +185,7 @@ export function NotesProvider({
 
   const updateNote = useMutation(
     api.notes.mutations.updateNote,
-  ).withOptimisticUpdate((store, { noteId, content, name }) => {
+  ).withOptimisticUpdate((store, { noteId, content, name, tagIds }) => {
     // Optimistically update the getNote query
     const note = store.getQuery(api.notes.queries.getNote, { noteId });
     if (note) {
@@ -195,6 +196,7 @@ export function NotesProvider({
           ...note,
           ...(content !== undefined && { content }),
           ...(name !== undefined && { name }),
+          ...(tagIds !== undefined && { tagIds }),
         },
       );
     }
@@ -211,6 +213,7 @@ export function NotesProvider({
             ...item,
             ...(content !== undefined && { content }),
             ...(name !== undefined && { name }),
+            ...(tagIds !== undefined && { tagIds }),
           }
         : item,
     );
@@ -328,18 +331,35 @@ export function NotesProvider({
 
   const updateNoteContent = useCallback(
     async (content: CustomBlock[]) => {
-      if (!currentNote || !currentNote._id) return;
+      // console.log("Updating note content:", content);
+      // console.log("Current campaign:", currentCampaign);
+      // console.log("current note id:", noteId);
+      // console.log("Current note:", currentNote);
+      // console.log("current optimistic note:", optimisticCurrentNote);
+      // if (!currentNote || !currentNote._id) return;
+
+      if (!noteId) return;
 
       // Sanitize the content before sending to Convex
       const sanitizedContent = sanitizeContent(content);
-      await updateNote({ noteId: currentNote._id, content: sanitizedContent });
+      await updateNote({
+        noteId: noteId as Id<"notes">,
+        content: sanitizedContent,
+      });
     },
-    [currentNote?._id, updateNote],
+    [noteId, updateNote],
   );
 
   const updateNoteName = useCallback(
     async (noteId: Id<"notes">, name: string) => {
       await updateNote({ noteId, name });
+    },
+    [updateNote],
+  );
+
+  const updateNoteTags = useCallback(
+    async (noteId: Id<"notes">, tagIds: Id<"tags">[]) => {
+      await updateNote({ noteId, tagIds });
     },
     [updateNote],
   );
@@ -465,6 +485,7 @@ export function NotesProvider({
     selectNote,
     updateNoteContent,
     updateNoteName,
+    updateNoteTags,
     toggleFolder,
     openFolder,
     createNote,

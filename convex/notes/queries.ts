@@ -1,6 +1,6 @@
 import { query } from "../_generated/server";
 import { v } from "convex/values";
-import { Note, FolderNode, AnySidebarItem } from "./types";
+import { Note, FolderNode, AnySidebarItem, BlockWithTags } from "./types";
 import { Id } from "../_generated/dataModel";
 import { getBaseUserId } from "../auth";
 
@@ -18,15 +18,14 @@ export const getNote = query({
       throw new Error("Not authenticated");
     }
 
-    try {
-      const note = await ctx.db.get(args.noteId as Id<"notes">);
-      if (!note || note.userId !== getBaseUserId(identity.subject)) {
-        return null;
-      }
-      return { ...note, type: "notes" } as Note;
-    } catch (e) {
+    const note = await ctx.db.get(args.noteId as Id<"notes">).catch((e) => {
+      console.error("Error getting note:", e);
+      return null;
+    });
+    if (!note || note.userId !== getBaseUserId(identity.subject)) {
       return null;
     }
+    return { ...note, type: "notes" } as Note;
   },
 });
 
@@ -107,3 +106,187 @@ export const getSidebarData = query({
     return [...rootFolders, ...rootNotes] as AnySidebarItem[];
   },
 });
+
+export const getBlocksByTags = query({
+  args: {
+    campaignId: v.optional(v.id("campaigns")),
+    tagIds: v.array(v.id("tags")),
+    includeNoteLevel: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args): Promise<BlockWithTags[]> => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+
+    if (!args.campaignId || args.tagIds.length === 0) {
+      return [];
+    }
+
+    // Get all tagged blocks in the campaign
+    const taggedBlocks = await ctx.db
+      .query("taggedBlocks")
+      .withIndex("by_campaign", (q) => q.eq("campaignId", args.campaignId!))
+      .collect();
+
+    // Filter blocks that contain ALL required tags
+    const matchingBlocks = taggedBlocks.filter((block) =>
+      args.tagIds.every((tagId) => block.tagIds.includes(tagId)),
+    );
+
+    // Get note information and block content
+    const results: BlockWithTags[] = [];
+    const noteIds = [...new Set(matchingBlocks.map((b) => b.noteId))];
+    const notes = await Promise.all(noteIds.map((id) => ctx.db.get(id)));
+    const notesMap = new Map(
+      notes.filter(Boolean).map((note) => [note!._id, note!]),
+    );
+
+    for (const block of matchingBlocks) {
+      const note = notesMap.get(block.noteId);
+      if (!note) continue;
+
+      // Find the actual block content
+      const blockContent = findBlockInContent(note.content, block.blockId);
+      if (!blockContent) continue;
+
+      results.push({
+        noteId: block.noteId,
+        noteName: note.name,
+        blockId: block.blockId,
+        blockContent,
+        tagIds: block.tagIds,
+        updatedAt: block.updatedAt,
+      });
+    }
+
+    // If includeNoteLevel is true, also get notes with matching note-level tags
+    if (args.includeNoteLevel) {
+      const notesWithTags = await ctx.db
+        .query("notes")
+        .withIndex("by_campaign", (q) => q.eq("campaignId", args.campaignId!))
+        .collect();
+
+      const matchingNotes = notesWithTags.filter(
+        (note) =>
+          note.tagIds &&
+          args.tagIds.every((tagId) => note.tagIds!.includes(tagId)),
+      );
+
+      // Add all blocks from matching notes
+      for (const note of matchingNotes) {
+        const blocks = extractAllBlocksFromContent(note.content);
+        for (const [blockId, blockContent] of blocks.entries()) {
+          // Avoid duplicates
+          if (
+            !results.some((r) => r.noteId === note._id && r.blockId === blockId)
+          ) {
+            results.push({
+              noteId: note._id,
+              noteName: note.name,
+              blockId,
+              blockContent,
+              tagIds: note.tagIds || [],
+              updatedAt: note.updatedAt,
+            });
+          }
+        }
+      }
+    }
+
+    return results.sort((a, b) => b.updatedAt - a.updatedAt);
+  },
+});
+
+export const getBlocksByTag = query({
+  args: {
+    campaignId: v.optional(v.id("campaigns")),
+    tagId: v.optional(v.id("tags")),
+  },
+  handler: async (ctx, args): Promise<BlockWithTags[]> => {
+    // Call getBlocksByTags directly with a single tag
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+
+    if (!args.campaignId || !args.tagId) {
+      return [];
+    }
+
+    // Get all tagged blocks in the campaign that contain this tag
+    const taggedBlocks = await ctx.db
+      .query("taggedBlocks")
+      .withIndex("by_campaign", (q) => q.eq("campaignId", args.campaignId!))
+      .collect();
+
+    // Filter blocks that contain the specified tag
+    const matchingBlocks = taggedBlocks.filter((block) =>
+      block.tagIds.includes(args.tagId!),
+    );
+
+    // Get note information and block content
+    const results: BlockWithTags[] = [];
+    const noteIds = [...new Set(matchingBlocks.map((b) => b.noteId))];
+    const notes = await Promise.all(noteIds.map((id) => ctx.db.get(id)));
+    const notesMap = new Map(
+      notes.filter(Boolean).map((note) => [note!._id, note!]),
+    );
+
+    for (const block of matchingBlocks) {
+      const note = notesMap.get(block.noteId);
+      if (!note) continue;
+
+      // Find the actual block content
+      const blockContent = findBlockInContent(note.content, block.blockId);
+      if (!blockContent) continue;
+
+      results.push({
+        noteId: block.noteId,
+        noteName: note.name,
+        blockId: block.blockId,
+        blockContent,
+        tagIds: block.tagIds,
+        updatedAt: block.updatedAt,
+      });
+    }
+
+    return results.sort((a, b) => b.updatedAt - a.updatedAt);
+  },
+});
+
+// Helper functions
+function findBlockInContent(content: any[], blockId: string): any | null {
+  if (!Array.isArray(content)) return null;
+
+  for (const block of content) {
+    if (block.id === blockId) {
+      return block;
+    }
+    if (block.content) {
+      const found = findBlockInContent(block.content, blockId);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function extractAllBlocksFromContent(content: any[]): Map<string, any> {
+  const blocks = new Map<string, any>();
+
+  function traverse(items: any[]) {
+    if (!Array.isArray(items)) return;
+
+    items.forEach((item) => {
+      if (item.id) {
+        blocks.set(item.id, item);
+      }
+      if (item.content) {
+        traverse(item.content);
+      }
+    });
+  }
+
+  traverse(content);
+  return blocks;
+}
