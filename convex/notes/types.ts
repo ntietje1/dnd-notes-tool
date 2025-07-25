@@ -1,4 +1,5 @@
 import { Id } from "../_generated/dataModel";
+import { CustomBlock } from "../../lib/tags";
 
 // Only include actual database table types
 export type SidebarItemType = "notes" | "folders";
@@ -17,7 +18,7 @@ export type SidebarItem<T extends SidebarItemType> = {
 };
 
 export type Note = SidebarItem<"notes"> & {
-  content: any[];
+  content: CustomBlock[];
 };
 
 export const UNTITLED_NOTE_TITLE = "Untitled Note";

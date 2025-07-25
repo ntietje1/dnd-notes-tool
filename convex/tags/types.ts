@@ -12,13 +12,3 @@ export type Tag = {
   type: TagType;
   updatedAt: number;
 };
-
-export type NoteTag = {
-  _id: Id<"noteTags">;
-  _creationTime: number;
-
-  noteId: Id<"notes">;
-  tagId: Id<"tags">;
-  blockId?: string;
-  position?: number;
-};

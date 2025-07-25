@@ -14,13 +14,4 @@ export const tagTables = {
     ),
     updatedAt: v.number(),
   }).index("by_campaign", ["campaignId"]),
-
-  noteTags: defineTable({
-    noteId: v.id("notes"),
-    tagId: v.id("tags"),
-    blockId: v.optional(v.string()), // BlockNote block ID if tag is attached to specific block
-    position: v.optional(v.number()), // For inline mentions
-  })
-    .index("by_note", ["noteId"])
-    .index("by_tag", ["tagId"]),
 };

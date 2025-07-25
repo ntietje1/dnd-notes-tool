@@ -14,6 +14,7 @@ import { Id } from "@/convex/_generated/dataModel";
 import { AnySidebarItem, Note, SidebarItemType } from "@/convex/notes/types";
 import { redirect } from "next/navigation";
 import { CustomBlock } from "@/lib/tags";
+import { Campaign } from "@/convex/campaigns/types";
 
 export type SortOrder = "alphabetical" | "dateCreated" | "dateModified";
 export type SortDirection = "asc" | "desc";
@@ -25,6 +26,7 @@ export interface SortOptions {
 
 type NotesContextType = {
   // State
+  currentCampaign: Campaign | null | undefined;
   currentNote: Note | null | undefined;
   expandedFolders: Set<Id<"folders">>;
   sidebarData: AnySidebarItem[] | undefined;
@@ -452,6 +454,7 @@ export function NotesProvider({
 
   const value: NotesContextType = {
     // State
+    currentCampaign: currentCampaign,
     currentNote: optimisticCurrentNote,
     expandedFolders,
     sidebarData,

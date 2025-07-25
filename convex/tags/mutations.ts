@@ -46,36 +46,3 @@ export const deleteTag = mutation({
     return args.tagId;
   },
 });
-
-export const addTagToNote = mutation({
-  args: {
-    noteId: v.id("notes"),
-    tagId: v.id("tags"),
-  },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
-
-    await ctx.db.insert("noteTags", {
-      noteId: args.noteId,
-      tagId: args.tagId,
-    });
-  },
-});
-
-export const removeTagFromNote = mutation({
-  args: {
-    noteId: v.id("notes"),
-    tagId: v.id("tags"),
-  },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
-
-    await ctx.db.delete(args.tagId);
-  },
-});
