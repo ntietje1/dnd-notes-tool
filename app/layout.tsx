@@ -5,15 +5,18 @@ import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server";
 import ConvexClientProvider from "@/components/ConvexClientProvider";
 import { Header } from "@/components/layout/Header";
 import { OnboardingWrapper } from "@/components/OnboardingWrapper";
+import { ErrorBoundary } from "@/components/error/error-boundary";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  display: "swap",
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -21,6 +24,18 @@ export const metadata: Metadata = {
   description: "Your ultimate companion for managing D&D campaigns",
   icons: {
     icon: "/favicon.ico",
+  },
+  viewport: "width=device-width, initial-scale=1",
+  themeColor: "#f59e0b",
+  openGraph: {
+    title: "D&D Connect",
+    description: "Your ultimate companion for managing D&D campaigns",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "D&D Connect",
+    description: "Your ultimate companion for managing D&D campaigns",
   },
 };
 
@@ -32,16 +47,26 @@ export default function RootLayout({
   return (
     <ConvexAuthNextjsServerProvider>
       <html lang="en">
+        <head>
+          <link rel="preconnect" href="https://fonts.googleapis.com" />
+          <link
+            rel="preconnect"
+            href="https://fonts.gstatic.com"
+            crossOrigin="anonymous"
+          />
+        </head>
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
         >
           <ConvexClientProvider>
-            <OnboardingWrapper>
-              <div className="flex flex-col h-screen">
-                <Header />
-                <main className="flex-1 overflow-hidden">{children}</main>
-              </div>
-            </OnboardingWrapper>
+            <ErrorBoundary>
+              <OnboardingWrapper>
+                <div className="flex flex-col h-screen">
+                  <Header />
+                  <main className="flex-1 overflow-hidden">{children}</main>
+                </div>
+              </OnboardingWrapper>
+            </ErrorBoundary>
           </ConvexClientProvider>
         </body>
       </html>

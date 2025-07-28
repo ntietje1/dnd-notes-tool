@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import React from "react";
+import { CampaignValidation } from "@/components/campaign-validation";
 
 interface CampaignLayoutProps {
   children: React.ReactNode;
@@ -62,10 +63,7 @@ const navigationItems = [
   },
 ];
 
-export default function CampaignLayout({
-  children,
-  params,
-}: CampaignLayoutProps) {
+function CampaignLayoutContent({ children, params }: CampaignLayoutProps) {
   const pathname = usePathname();
   const { dmUsername, campaignSlug } = React.use(params);
 
@@ -119,5 +117,18 @@ export default function CampaignLayout({
         <div className="h-full">{children}</div>
       </div>
     </div>
+  );
+}
+
+export default function CampaignLayout({
+  children,
+  params,
+}: CampaignLayoutProps) {
+  const { dmUsername, campaignSlug } = React.use(params);
+
+  return (
+    <CampaignValidation dmUsername={dmUsername} campaignSlug={campaignSlug}>
+      <CampaignLayoutContent params={params}>{children}</CampaignLayoutContent>
+    </CampaignValidation>
   );
 }

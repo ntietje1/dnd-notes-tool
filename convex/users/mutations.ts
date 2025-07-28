@@ -95,4 +95,4 @@ export const updateUserProfile = mutation({
 
     return profile._id;
   },
-}); 
+});

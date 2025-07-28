@@ -17,7 +17,10 @@ export const createCampaign = mutation({
     const now = Date.now();
     const baseUserId = getBaseUserId(identity.subject);
 
-    const userProfile = await ctx.db.query("userProfiles").withIndex("by_user", (q) => q.eq("userId", baseUserId)).unique();
+    const userProfile = await ctx.db
+      .query("userProfiles")
+      .withIndex("by_user", (q) => q.eq("userId", baseUserId))
+      .unique();
     if (!userProfile) {
       throw new Error("User profile not found");
     }
@@ -32,7 +35,9 @@ export const createCampaign = mutation({
 
     const existingSlug = await ctx.db
       .query("campaignSlugs")
-      .withIndex("by_slug_username", (q) => q.eq("slug", args.slug).eq("username", userProfile.username))
+      .withIndex("by_slug_username", (q) =>
+        q.eq("slug", args.slug).eq("username", userProfile.username),
+      )
       .unique();
 
     if (existingSlug) {
@@ -70,7 +75,12 @@ export const joinCampaign = mutation({
 
     const baseUserId = getBaseUserId(identity.subject);
 
-    const campaignSlug = await ctx.db.query("campaignSlugs").withIndex("by_slug_username", (q) => q.eq("slug", args.slug).eq("username", args.dmUsername)).unique();
+    const campaignSlug = await ctx.db
+      .query("campaignSlugs")
+      .withIndex("by_slug_username", (q) =>
+        q.eq("slug", args.slug).eq("username", args.dmUsername),
+      )
+      .unique();
     if (!campaignSlug) {
       throw new Error("Campaign slug not found");
     }
