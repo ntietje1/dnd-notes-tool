@@ -11,19 +11,19 @@ import { UNTITLED_NOTE_TITLE } from "@/convex/notes/types";
 import { useCallback, useState, useEffect, useRef } from "react";
 import { useNotes } from "@/contexts/NotesContext";
 
-function ToolbarSkeleton() {
-  return (
-    <div className="flex items-center justify-between px-4 h-12 border-b">
-      <div className="flex items-center gap-2 flex-1 pr-4">
-        <div className="h-6 w-64 bg-gray-200 rounded animate-pulse" />
-      </div>
-      <div className="flex items-center gap-2">
-        <div className="h-8 w-8 bg-gray-200 rounded animate-pulse" />
-        <div className="h-8 w-8 bg-gray-200 rounded animate-pulse" />
-      </div>
-    </div>
-  );
-}
+// function ToolbarSkeleton() {
+//   return (
+//     <div className="flex items-center justify-between px-4 h-12 border-b bg-red-500">
+//       <div className="flex items-center gap-2 flex-1 pr-4">
+//         <div className="h-6 w-64 bg-gray-200 rounded animate-pulse" />
+//       </div>
+//       <div className="flex items-center gap-2">
+//         <div className="h-8 w-8 bg-gray-200 rounded animate-pulse" />
+//         <div className="h-8 w-8 bg-gray-200 rounded animate-pulse" />
+//       </div>
+//     </div>
+//   );
+// }
 
 export function FileTopbar() {
   const { currentNote, updateNoteName, selectNote, isLoading } = useNotes();
@@ -55,9 +55,9 @@ export function FileTopbar() {
     }
   }, [isEditing]);
 
-  if (isLoading) {
-    return <ToolbarSkeleton />;
-  }
+  // if (isLoading) {
+  //   return <ToolbarSkeleton />;
+  // }
 
   return (
     <div className="flex items-center justify-between px-4 h-12 border-b bg-white">

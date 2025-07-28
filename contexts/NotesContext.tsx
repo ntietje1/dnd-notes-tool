@@ -7,14 +7,15 @@ import {
   ReactNode,
   useState,
   useMemo,
+  useEffect,
 } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { AnySidebarItem, Note, SidebarItemType } from "@/convex/notes/types";
-import { redirect } from "next/navigation";
 import { CustomBlock } from "@/app/campaigns/[dmUsername]/[campaignSlug]/notes/editor/extensions/tags/tags";
 import { Campaign } from "@/convex/campaigns/types";
+import { debounce } from "lodash-es";
 
 export type SortOrder = "alphabetical" | "dateCreated" | "dateModified";
 export type SortDirection = "asc" | "desc";
@@ -31,11 +32,13 @@ type NotesContextType = {
   expandedFolders: Set<Id<"folders">>;
   sidebarData: AnySidebarItem[] | undefined;
   isLoading: boolean;
+  isInitialLoading: boolean;
   sortOptions: SortOptions;
 
   // Actions
   selectNote: (noteId: Id<"notes"> | null) => void;
   updateNoteContent: (content: CustomBlock[]) => Promise<void>;
+  debouncedUpdateNoteContent: (content: CustomBlock[]) => void;
   updateNoteName: (noteId: Id<"notes">, title: string) => Promise<void>;
   updateNoteTags: (noteId: Id<"notes">, tagIds: Id<"tags">[]) => Promise<void>;
   toggleFolder: (folderId: Id<"folders">) => void;
@@ -102,7 +105,7 @@ function recursiveSortItemsByOptions(
       }
     })
     .map((item) => {
-      if (item.type === "folders") {
+      if (item.type === "folders" && item.children.length > 0) {
         return {
           ...item,
           children: recursiveSortItemsByOptions(item.children, options),
@@ -125,28 +128,38 @@ export function NotesProvider({
   noteId,
   children,
 }: NotesProviderProps) {
+  console.log(
+    "got params in context:",
+    dmUsername + " / " + campaignSlug + " / " + noteId,
+  );
   // Local state
   const [expandedFolders, setExpandedFolders] = useState<Set<Id<"folders">>>(
     new Set(),
   );
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
+  // Preload campaign data with priority
   const currentCampaign = useQuery(api.campaigns.queries.getCampaignBySlug, {
     dmUsername: dmUsername,
     slug: campaignSlug,
   });
 
-  // Queries that depend on campaignId
-  const currentEditor = useQuery(api.editors.queries.getCurrentEditor, {
-    campaignId: currentCampaign?._id,
-  });
+  // Queries that depend on campaignId - use conditional queries to avoid unnecessary calls
+  const currentEditor = useQuery(
+    api.editors.queries.getCurrentEditor,
+    currentCampaign?._id ? { campaignId: currentCampaign._id } : "skip",
+  );
 
-  const sidebarItems = useQuery(api.notes.queries.getSidebarData, {
-    campaignId: currentCampaign?._id,
-  });
+  const sidebarItems = useQuery(
+    api.notes.queries.getSidebarData,
+    currentCampaign?._id ? { campaignId: currentCampaign._id } : "skip",
+  );
 
-  const currentNote = useQuery(api.notes.queries.getNote, {
-    noteId: noteId,
-  });
+  // Preload current note if specified
+  const currentNote = useQuery(
+    api.notes.queries.getNote,
+    noteId ? { noteId: noteId } : "skip",
+  );
 
   // Get sort options from editor state
   const sortOptions: SortOptions = useMemo(
@@ -175,17 +188,30 @@ export function NotesProvider({
     }
   }
 
+  // Track initial loading state
+  useEffect(() => {
+    if (currentCampaign !== undefined && sidebarData !== undefined) {
+      setIsInitialLoad(false);
+    }
+  }, [currentCampaign, sidebarData]);
+
+  // More granular loading states
+  const isCampaignLoading = currentCampaign === undefined;
+  const isEditorLoading = currentCampaign?._id && currentEditor === undefined;
+  const isSidebarLoading = currentCampaign?._id && sidebarData === undefined;
+  const isNoteLoading = !!noteId && optimisticCurrentNote === undefined;
+
   const isLoading =
-    currentCampaign === undefined ||
-    currentEditor === undefined ||
-    sidebarData === undefined ||
-    (!!noteId && optimisticCurrentNote === undefined);
+    isCampaignLoading || isEditorLoading || isSidebarLoading || isNoteLoading;
+
+  const isInitialLoading = isInitialLoad && isLoading;
 
   const setCurrentEditor = useMutation(api.editors.mutations.setCurrentEditor);
 
   const updateNote = useMutation(
     api.notes.mutations.updateNote,
   ).withOptimisticUpdate((store, { noteId, content, name, tagIds }) => {
+    console.log("optimistic update note:", noteId);
     // Optimistically update the getNote query
     const note = store.getQuery(api.notes.queries.getNote, { noteId });
     if (note) {
@@ -229,248 +255,201 @@ export function NotesProvider({
   const createFolderAction = useMutation(api.notes.mutations.createFolder);
   const deleteNoteAction = useMutation(api.notes.mutations.deleteNote);
   const deleteFolderAction = useMutation(api.notes.mutations.deleteFolder);
+  const moveNoteAction = useMutation(api.notes.mutations.moveNote);
+  const moveFolderAction = useMutation(api.notes.mutations.moveFolder);
+  const updateFolderAction = useMutation(api.notes.mutations.updateFolder);
 
-  const moveFolderAction = useMutation(
-    api.notes.mutations.moveFolder,
-  ).withOptimisticUpdate((store, { folderId, parentId }) => {
-    const sidebarData = store.getQuery(api.notes.queries.getSidebarData, {
-      campaignId: currentCampaign?._id,
-    });
-    if (!sidebarData) return;
-
-    const updatedItems = sidebarData.map((item: AnySidebarItem) =>
-      item._id === folderId && item.type === "folders"
-        ? { ...item, parentFolderId: parentId }
-        : item,
-    );
-
-    store.setQuery(
-      api.notes.queries.getSidebarData,
-      { campaignId: currentCampaign?._id },
-      updatedItems,
-    );
-  });
-
-  const moveNoteAction = useMutation(
-    api.notes.mutations.moveNote,
-  ).withOptimisticUpdate((store, { noteId, parentFolderId }) => {
-    const sidebarData = store.getQuery(api.notes.queries.getSidebarData, {
-      campaignId: currentCampaign?._id,
-    });
-    if (!sidebarData) return;
-
-    const updatedItems = sidebarData.map((item: AnySidebarItem) =>
-      item._id === noteId && item.type === "notes"
-        ? { ...item, parentFolderId }
-        : item,
-    );
-
-    store.setQuery(
-      api.notes.queries.getSidebarData,
-      { campaignId: currentCampaign?._id },
-      updatedItems,
-    );
-  });
-
-  const updateFolder = useMutation(
-    api.notes.mutations.updateFolder,
-  ).withOptimisticUpdate((store, { folderId, name }) => {
-    const sidebarData = store.getQuery(api.notes.queries.getSidebarData, {
-      campaignId: currentCampaign?._id,
-    });
-    if (!sidebarData) return;
-
-    const updatedItems = sidebarData.map((item: AnySidebarItem) =>
-      item._id === folderId && item.type === "folders"
-        ? { ...item, name: name || "" }
-        : item,
-    );
-
-    store.setQuery(
-      api.notes.queries.getSidebarData,
-      { campaignId: currentCampaign?._id },
-      updatedItems,
-    );
-  });
-
-  // Actions
   const selectNote = useCallback((noteId: Id<"notes"> | null) => {
-    // Update the noteId query param in the URL without a full navigation (shallow routing)
+    if (!noteId) {
+      // Clear the note selection
+      window.history.replaceState({}, "", window.location.pathname);
+      return;
+    }
+
+    // Update the URL to include the note ID
     const url = new URL(window.location.href);
-    if (noteId) {
-      url.searchParams.set("noteId", noteId);
-    } else {
-      url.searchParams.delete("noteId");
-    }
-    window.history.pushState({}, "", url.toString());
+    url.searchParams.set("noteId", noteId);
+    window.history.replaceState({}, "", url.toString());
   }, []);
-
-  // Helper function to recursively sanitize content
-  const sanitizeContent = (node: any): any => {
-    if (!node) return null;
-
-    // Handle arrays
-    if (Array.isArray(node)) {
-      return node.map(sanitizeContent).filter(Boolean);
-    }
-
-    // Handle objects
-    if (typeof node === "object") {
-      const sanitized: any = {};
-      for (const [key, value] of Object.entries(node)) {
-        // Skip undefined values
-        if (value === undefined) continue;
-        // Recursively sanitize nested objects/arrays
-        sanitized[key] = sanitizeContent(value);
-      }
-      return sanitized;
-    }
-
-    return node;
-  };
 
   const updateNoteContent = useCallback(
     async (content: CustomBlock[]) => {
-      // console.log("Updating note content:", content);
-      // console.log("Current campaign:", currentCampaign);
-      // console.log("current note id:", noteId);
-      // console.log("Current note:", currentNote);
-      // console.log("current optimistic note:", optimisticCurrentNote);
-      // if (!currentNote || !currentNote._id) return;
+      if (!optimisticCurrentNote?._id) return;
 
-      if (!noteId) return;
-
-      // Sanitize the content before sending to Convex
       const sanitizedContent = sanitizeContent(content);
       await updateNote({
-        noteId: noteId as Id<"notes">,
+        noteId: optimisticCurrentNote._id,
         content: sanitizedContent,
       });
     },
-    [noteId, updateNote],
+    [optimisticCurrentNote?._id, updateNote],
   );
 
   const updateNoteName = useCallback(
-    async (noteId: Id<"notes">, name: string) => {
-      await updateNote({ noteId, name });
+    async (noteId: Id<"notes">, title: string) => {
+      await updateNote({
+        noteId,
+        name: title,
+      });
     },
     [updateNote],
   );
 
   const updateNoteTags = useCallback(
     async (noteId: Id<"notes">, tagIds: Id<"tags">[]) => {
-      await updateNote({ noteId, tagIds });
+      await updateNote({
+        noteId,
+        tagIds,
+      });
     },
     [updateNote],
   );
 
   const toggleFolder = useCallback((folderId: Id<"folders">) => {
     setExpandedFolders((prev) => {
-      const next = new Set(prev);
-      if (next.has(folderId)) {
-        next.delete(folderId);
+      const newSet = new Set(prev);
+      if (newSet.has(folderId)) {
+        newSet.delete(folderId);
       } else {
-        next.add(folderId);
+        newSet.add(folderId);
       }
-      return next;
+      return newSet;
     });
   }, []);
 
   const openFolder = useCallback((folderId: Id<"folders">) => {
     setExpandedFolders((prev) => {
-      const next = new Set(prev);
-      next.add(folderId);
-      return next;
+      const newSet = new Set(prev);
+      newSet.add(folderId);
+      return newSet;
     });
   }, []);
 
   const createNote = useCallback(
     async (folderId?: Id<"folders">) => {
-      if (!currentCampaign?._id) {
-        throw new Error("Campaign ID is required");
-      }
+      if (!currentCampaign?._id) return;
+
       const noteId = await createNoteAction({
+        campaignId: currentCampaign._id,
         parentFolderId: folderId,
-        campaignId: currentCampaign?._id,
       });
-      selectNote(noteId);
+
+      if (noteId) {
+        selectNote(noteId);
+        if (folderId) {
+          openFolder(folderId);
+        }
+      }
     },
-    [createNoteAction, currentCampaign],
+    [currentCampaign?._id, createNoteAction, selectNote, openFolder],
   );
 
   const createFolder = useCallback(async () => {
-    if (!currentCampaign?._id) {
-      throw new Error("Campaign ID is required");
-    }
-    await createFolderAction({
-      campaignId: currentCampaign?._id,
+    if (!currentCampaign?._id) return;
+
+    const folderId = await createFolderAction({
+      campaignId: currentCampaign._id,
     });
-  }, [createFolderAction, currentCampaign]);
+
+    if (folderId) {
+      openFolder(folderId);
+    }
+  }, [currentCampaign?._id, createFolderAction, openFolder]);
 
   const deleteNote = useCallback(
     async (noteId: Id<"notes">) => {
       await deleteNoteAction({ noteId });
-      if (currentNote?._id === noteId) {
-        redirect(`/campaigns/${dmUsername}/${campaignSlug}/notes`);
+      if (optimisticCurrentNote?._id === noteId) {
+        selectNote(null);
       }
     },
-    [deleteNoteAction, currentNote?._id, dmUsername, campaignSlug],
+    [deleteNoteAction, optimisticCurrentNote?._id, selectNote],
   );
 
   const deleteFolder = useCallback(
     async (folderId: Id<"folders">) => {
       await deleteFolderAction({ folderId });
+      setExpandedFolders((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(folderId);
+        return newSet;
+      });
     },
     [deleteFolderAction],
   );
 
-  const updateFolderName = useCallback(
-    async (folderId: Id<"folders">, name: string) => {
-      await updateFolder({ folderId, name });
-    },
-    [updateFolder],
-  );
-
   const moveNote = useCallback(
     async (noteId: Id<"notes">, parentFolderId?: Id<"folders">) => {
-      await moveNoteAction({ noteId, parentFolderId });
+      await moveNoteAction({
+        noteId,
+        parentFolderId,
+      });
     },
     [moveNoteAction],
   );
 
   const moveFolder = useCallback(
     async (folderId: Id<"folders">, parentId?: Id<"folders">) => {
-      await moveFolderAction({ folderId, parentId });
+      await moveFolderAction({
+        folderId,
+        parentId,
+      });
     },
     [moveFolderAction],
   );
 
+  const updateFolderName = useCallback(
+    async (folderId: Id<"folders">, name: string) => {
+      await updateFolderAction({
+        folderId,
+        name,
+      });
+    },
+    [updateFolderAction],
+  );
+
   const setSortOptions = useCallback(
-    (options: SortOptions) => {
-      if (!currentCampaign?._id) {
-        throw new Error("Campaign ID is required");
-      }
-      setCurrentEditor({
-        campaignId: currentCampaign?._id,
+    async (options: SortOptions) => {
+      if (!currentCampaign?._id) return;
+
+      await setCurrentEditor({
+        campaignId: currentCampaign._id,
         sortOrder: options.order,
         sortDirection: options.direction,
       });
     },
-    [setCurrentEditor],
+    [currentCampaign?._id, setCurrentEditor],
   );
 
-  if (currentCampaign === undefined) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-      </div>
-    );
-  }
+  const sanitizeContent = (node: any): any => {
+    if (typeof node === "string") {
+      return node;
+    }
+    if (Array.isArray(node)) {
+      return node.map(sanitizeContent);
+    }
+    if (node && typeof node === "object") {
+      const sanitized: any = {};
+      for (const [key, value] of Object.entries(node)) {
+        if (key !== "_id" && key !== "__typename") {
+          sanitized[key] = sanitizeContent(value);
+        }
+      }
+      return sanitized;
+    }
+    return node;
+  };
 
-  if (!currentCampaign) {
-    //TODO: show a toast
-    redirect("/campaigns");
-  }
+  const debouncedUpdateNoteContent = useMemo(
+    () => debounce(updateNoteContent, 1250),
+    [updateNoteContent],
+  );
+
+  useEffect(() => {
+    return () => {
+      debouncedUpdateNoteContent.cancel();
+    };
+  }, [debouncedUpdateNoteContent]);
 
   const value: NotesContextType = {
     // State
@@ -479,11 +458,13 @@ export function NotesProvider({
     expandedFolders,
     sidebarData,
     isLoading,
+    isInitialLoading,
     sortOptions,
 
     // Actions
     selectNote,
     updateNoteContent,
+    debouncedUpdateNoteContent,
     updateNoteName,
     updateNoteTags,
     toggleFolder,

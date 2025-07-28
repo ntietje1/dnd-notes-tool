@@ -1,7 +1,0 @@
-"use client";
-
-import dynamic from "next/dynamic";
-
-export const NotesEditor = dynamic(() => import("./notes-editor"), {
-  ssr: false,
-});

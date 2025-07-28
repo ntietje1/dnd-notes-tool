@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import { createReactInlineContentSpec } from "@blocknote/react";
 import { api } from "@/convex/_generated/api";
 import { useQuery } from "convex/react";

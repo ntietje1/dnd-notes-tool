@@ -1,6 +1,6 @@
-import { LandingPageButton } from "./button";
+import { LandingPageButton } from "./landing-button";
 
-export default function Page() {
+export default function LandingPage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
       <div className="text-center space-y-8">

@@ -169,19 +169,6 @@ export function FileSidebar() {
     [sidebarData, moveNote, moveFolder, openFolder],
   );
 
-  if (!sidebarData) {
-    return (
-      <div className="h-full border-r p-4">
-        <div className="animate-pulse h-4 bg-gray-200 rounded w-3/4 mb-4" />
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="animate-pulse h-6 bg-gray-200 rounded" />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
   return (
     //TODO: add hotkeys
     <DndContext
@@ -195,7 +182,7 @@ export function FileSidebar() {
             className="absolute inset-0 p-1 transition-colors overflow-y-auto"
             onNewPage={createNote}
           >
-            {sidebarData.map((item) => {
+            {sidebarData?.map((item) => {
               return (
                 <SidebarItem
                   key={item._id}
