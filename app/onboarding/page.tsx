@@ -1,5 +1,5 @@
-import { OnboardingWrapper } from "./onboarding-wrapper";
+import { OnboardingForm } from "./onboarding-form";
 
 export default function OnboardingPage() {
-  return <OnboardingWrapper />;
+  return <OnboardingForm />;
 }

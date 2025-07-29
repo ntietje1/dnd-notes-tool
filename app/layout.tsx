@@ -4,7 +4,7 @@ import "./globals.css";
 import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server";
 import ConvexClientProvider from "@/components/ConvexClientProvider";
 import { Header } from "@/components/layout/Header";
-import { OnboardingWrapper } from "@/components/OnboardingWrapper";
+import { OnboardingHandler } from "@/app/onboarding/onboarding-handler";
 import { ErrorBoundary } from "@/components/error/error-boundary";
 
 const geistSans = Geist({
@@ -25,8 +25,6 @@ export const metadata: Metadata = {
   icons: {
     icon: "/favicon.ico",
   },
-  viewport: "width=device-width, initial-scale=1",
-  themeColor: "#f59e0b",
   openGraph: {
     title: "D&D Connect",
     description: "Your ultimate companion for managing D&D campaigns",
@@ -60,12 +58,11 @@ export default function RootLayout({
         >
           <ConvexClientProvider>
             <ErrorBoundary>
-              <OnboardingWrapper>
-                <div className="flex flex-col h-screen">
-                  <Header />
-                  <main className="flex-1 overflow-hidden">{children}</main>
-                </div>
-              </OnboardingWrapper>
+              <OnboardingHandler />
+              <div className="flex flex-col h-screen">
+                <Header />
+                <main className="flex-1 overflow-hidden">{children}</main>
+              </div>
             </ErrorBoundary>
           </ConvexClientProvider>
         </body>

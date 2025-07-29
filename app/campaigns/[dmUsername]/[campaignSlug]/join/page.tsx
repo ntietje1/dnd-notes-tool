@@ -58,7 +58,9 @@ export default function JoinCampaignPage({ params }: JoinCampaignPageProps) {
   };
 
   const handleSignIn = () => {
-    signIn("github", { redirectTo: `/join/${dmUsername}/${campaignSlug}` });
+    signIn("github", {
+      redirectTo: `/campaigns/${dmUsername}/${campaignSlug}/join`,
+    });
   };
 
   if (!campaign) {

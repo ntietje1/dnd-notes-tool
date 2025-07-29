@@ -188,7 +188,7 @@ export function ValidatedInput({
       {helperText &&
         !validationState.message &&
         !validationState.successMessage && (
-          <p className="text-sm text-slate-500">{helperText}</p>
+          <p className="text-sm text-slate-500 text-left">{helperText}</p>
         )}
     </div>
   );

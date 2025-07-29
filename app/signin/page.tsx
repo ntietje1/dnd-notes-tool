@@ -1,9 +1,13 @@
-import { SignInWrapper } from "./SignInWrapper";
+import { SignInCard } from "./SignInCard";
+import { SignInRedirectHandler } from "./SignInRedirectHandler";
 
 export default function SignInPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <SignInWrapper />
-    </div>
+    <>
+      <SignInRedirectHandler />
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <SignInCard />
+      </div>
+    </>
   );
 }

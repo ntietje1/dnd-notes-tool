@@ -122,7 +122,7 @@ export const checkCampaignSlugExists = query({
       .withIndex("by_user", (q) => q.eq("userId", baseUserId))
       .unique();
     if (!userProfile) {
-      throw new Error("User profile not found");
+      return undefined;
     }
 
     const slug = await ctx.db
