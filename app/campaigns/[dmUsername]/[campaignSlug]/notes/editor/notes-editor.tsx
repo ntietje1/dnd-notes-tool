@@ -12,6 +12,12 @@ import {
   customInlineContentSpecs,
 } from "@/app/campaigns/[dmUsername]/[campaignSlug]/notes/editor/extensions/tags/tags";
 import TagMenu from "./extensions/tags/tag-menu";
+import TagSideMenuButton from "./extensions/tags/tag-side-menu-button";
+import {
+  SideMenu,
+  SideMenuController,
+  DragHandleButton,
+} from "@blocknote/react";
 
 const schema = BlockNoteSchema.create({
   inlineContentSpecs: customInlineContentSpecs,
@@ -61,8 +67,17 @@ export default function NotesEditor() {
           editor={sync.editor}
           onChange={() => debouncedUpdateNoteContent(sync.editor.document)}
           theme="light"
+          sideMenu={false}
         >
           <TagMenu editor={sync.editor} />
+          <SideMenuController
+            sideMenu={(props) => (
+              <SideMenu {...props}>
+                <TagSideMenuButton editor={sync.editor} block={props.block} />
+                <DragHandleButton {...props} />
+              </SideMenu>
+            )}
+          />
         </BlockNoteView>
       )}
     </div>

@@ -12,6 +12,10 @@ export function useTags() {
   });
   const createTag = useMutation(api.tags.mutations.createTag);
   const deleteTag = useMutation(api.tags.mutations.deleteTag);
+  const addTagToBlock = useMutation(api.notes.mutations.addTagToBlock);
+  const removeTagFromBlock = useMutation(
+    api.notes.mutations.removeTagFromBlock,
+  );
 
   const handleCreateTag = useCallback(
     async (name: string, type: TagType, color: string) => {
@@ -32,9 +36,33 @@ export function useTags() {
     [deleteTag],
   );
 
+  const handleAddTagToBlock = useCallback(
+    async (noteId: Id<"notes">, blockId: string, tagId: Id<"tags">) => {
+      return await addTagToBlock({
+        noteId,
+        blockId,
+        tagId,
+      });
+    },
+    [addTagToBlock],
+  );
+
+  const handleRemoveTagFromBlock = useCallback(
+    async (noteId: Id<"notes">, blockId: string, tagId: Id<"tags">) => {
+      return await removeTagFromBlock({
+        noteId,
+        blockId,
+        tagId,
+      });
+    },
+    [removeTagFromBlock],
+  );
+
   return {
     tags,
     createTag: handleCreateTag,
     deleteTag: handleDeleteTag,
+    addTagToBlock: handleAddTagToBlock,
+    removeTagFromBlock: handleRemoveTagFromBlock,
   };
 }

@@ -160,40 +160,6 @@ export const getBlocksByTags = query({
       });
     }
 
-    // If includeNoteLevel is true, also get notes with matching note-level tags
-    if (args.includeNoteLevel) {
-      const notesWithTags = await ctx.db
-        .query("notes")
-        .withIndex("by_campaign", (q) => q.eq("campaignId", args.campaignId!))
-        .collect();
-
-      const matchingNotes = notesWithTags.filter(
-        (note) =>
-          note.tagIds &&
-          args.tagIds.every((tagId) => note.tagIds!.includes(tagId)),
-      );
-
-      // Add all blocks from matching notes
-      for (const note of matchingNotes) {
-        const blocks = extractAllBlocksFromContent(note.content);
-        for (const [blockId, blockContent] of blocks.entries()) {
-          // Avoid duplicates
-          if (
-            !results.some((r) => r.noteId === note._id && r.blockId === blockId)
-          ) {
-            results.push({
-              noteId: note._id,
-              noteName: note.name,
-              blockId,
-              blockContent,
-              tagIds: note.tagIds || [],
-              updatedAt: note.updatedAt,
-            });
-          }
-        }
-      }
-    }
-
     return results.sort((a, b) => b.updatedAt - a.updatedAt);
   },
 });
@@ -252,6 +218,28 @@ export const getBlocksByTag = query({
     }
 
     return results.sort((a, b) => b.updatedAt - a.updatedAt);
+  },
+});
+
+export const getBlockTags = query({
+  args: {
+    noteId: v.id("notes"),
+    blockId: v.string(),
+  },
+  handler: async (ctx, args): Promise<Id<"tags">[]> => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+
+    const taggedBlock = await ctx.db
+      .query("taggedBlocks")
+      .withIndex("by_block_unique", (q) =>
+        q.eq("noteId", args.noteId).eq("blockId", args.blockId),
+      )
+      .first();
+
+    return taggedBlock?.tagIds || [];
   },
 });
 

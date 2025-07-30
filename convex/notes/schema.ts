@@ -6,11 +6,9 @@ export const notesTables = {
     userId: v.string(),
     campaignId: v.id("campaigns"),
     name: v.optional(v.string()),
-    content: v.any(), // TipTap JSON content
+    content: v.any(), // BlockNote JSON content
     parentFolderId: v.optional(v.id("folders")),
     updatedAt: v.number(),
-    // Add note-level tags
-    tagIds: v.optional(v.array(v.id("tags"))),
   })
     .index("by_folder", ["parentFolderId"])
     .index("by_campaign", ["campaignId"]),

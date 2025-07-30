@@ -31,6 +31,25 @@ function extractTagIdsFromBlock(block: any): Id<"tags">[] {
   return [...new Set(tagIds)]; // Remove duplicates
 }
 
+// Helper function to find a block by ID in note content
+function findBlockById(content: any[], blockId: string): any {
+  if (!Array.isArray(content)) return null;
+
+  for (const block of content) {
+    if (block.id === blockId) {
+      return block;
+    }
+
+    // Recursively search nested content
+    if (block.content && Array.isArray(block.content)) {
+      const found = findBlockById(block.content, blockId);
+      if (found) return found;
+    }
+  }
+
+  return null;
+}
+
 // Helper function to extract all tag IDs from note content
 function extractAllTagIdsFromContent(
   content: any[],
@@ -85,20 +104,46 @@ export const updateNote = mutation({
     if (args.content !== undefined) {
       updates.content = args.content;
 
-      // Extract and update block-tag relationships
+      // Extract inline tags from block content
       const blockTagMap = extractAllTagIdsFromContent(args.content);
 
-      // Remove existing tagged blocks for this note
+      // Get existing tagged blocks for this note
       const existingTaggedBlocks = await ctx.db
         .query("taggedBlocks")
         .withIndex("by_note", (q) => q.eq("noteId", args.noteId))
         .collect();
 
+      // Create a map of existing block-level tags (not from inline content)
+      const existingBlockLevelTags = new Map<string, Id<"tags">[]>();
+
+      for (const taggedBlock of existingTaggedBlocks) {
+        // Check if this block has inline tags in the new content
+        const inlineTagIds = blockTagMap.get(taggedBlock.blockId) || [];
+
+        // If there are no inline tags for this block, preserve the block-level tags
+        if (inlineTagIds.length === 0) {
+          existingBlockLevelTags.set(taggedBlock.blockId, taggedBlock.tagIds);
+        }
+      }
+
+      // Remove all existing tagged blocks for this note
       for (const taggedBlock of existingTaggedBlocks) {
         await ctx.db.delete(taggedBlock._id);
       }
 
+      // Recreate tagged blocks from inline content
       for (const [blockId, tagIds] of blockTagMap.entries()) {
+        await ctx.db.insert("taggedBlocks", {
+          noteId: args.noteId,
+          blockId,
+          campaignId: note.campaignId,
+          tagIds,
+          updatedAt: now,
+        });
+      }
+
+      // Restore block-level tags for blocks that don't have inline tags
+      for (const [blockId, tagIds] of existingBlockLevelTags.entries()) {
         await ctx.db.insert("taggedBlocks", {
           noteId: args.noteId,
           blockId,
@@ -298,3 +343,114 @@ function checkForSharedContent(content: any): boolean {
 
   return false;
 }
+
+export const addTagToBlock = mutation({
+  args: {
+    noteId: v.id("notes"),
+    blockId: v.string(),
+    tagId: v.id("tags"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+
+    const note = await ctx.db.get(args.noteId);
+    if (!note || note.userId !== getBaseUserId(identity.subject)) {
+      throw new Error("Note not found or unauthorized");
+    }
+
+    // Check if the tag exists and belongs to the same campaign
+    const tag = await ctx.db.get(args.tagId);
+    if (!tag || tag.campaignId !== note.campaignId) {
+      throw new Error("Tag not found or unauthorized");
+    }
+
+    // Check if there's already a tagged block entry for this block
+    const existingTaggedBlock = await ctx.db
+      .query("taggedBlocks")
+      .withIndex("by_block_unique", (q) =>
+        q.eq("noteId", args.noteId).eq("blockId", args.blockId),
+      )
+      .first();
+
+    if (existingTaggedBlock) {
+      // Add the tag to existing entry if it's not already there
+      if (!existingTaggedBlock.tagIds.includes(args.tagId)) {
+        await ctx.db.patch(existingTaggedBlock._id, {
+          tagIds: [...existingTaggedBlock.tagIds, args.tagId],
+          updatedAt: Date.now(),
+        });
+      }
+    } else {
+      // Create new tagged block entry
+      await ctx.db.insert("taggedBlocks", {
+        noteId: args.noteId,
+        blockId: args.blockId,
+        campaignId: note.campaignId,
+        tagIds: [args.tagId],
+        updatedAt: Date.now(),
+      });
+    }
+
+    return args.blockId;
+  },
+});
+
+export const removeTagFromBlock = mutation({
+  args: {
+    noteId: v.id("notes"),
+    blockId: v.string(),
+    tagId: v.id("tags"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+
+    const note = await ctx.db.get(args.noteId);
+    if (!note || note.userId !== getBaseUserId(identity.subject)) {
+      throw new Error("Note not found or unauthorized");
+    }
+
+    // Find the tagged block entry
+    const taggedBlock = await ctx.db
+      .query("taggedBlocks")
+      .withIndex("by_block_unique", (q) =>
+        q.eq("noteId", args.noteId).eq("blockId", args.blockId),
+      )
+      .first();
+
+    if (taggedBlock) {
+      // Check if the tag still exists as an inline tag in the block content
+      const blockContent = note.content;
+      const inlineTagIds = extractTagIdsFromBlock(
+        findBlockById(blockContent, args.blockId),
+      );
+
+      // If the tag exists as an inline tag, don't remove it from taggedBlocks
+      if (inlineTagIds.includes(args.tagId)) {
+        return args.blockId;
+      }
+
+      const updatedTagIds = taggedBlock.tagIds.filter(
+        (id) => id !== args.tagId,
+      );
+
+      if (updatedTagIds.length === 0) {
+        // Remove the entire entry if no tags remain
+        await ctx.db.delete(taggedBlock._id);
+      } else {
+        // Update with remaining tags
+        await ctx.db.patch(taggedBlock._id, {
+          tagIds: updatedTagIds,
+          updatedAt: Date.now(),
+        });
+      }
+    }
+
+    return args.blockId;
+  },
+});
