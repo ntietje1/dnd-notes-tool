@@ -24,6 +24,7 @@ export const createTag = mutation({
       type: args.type,
       color: args.color,
       campaignId: args.campaignId,
+      mutable: true,
       updatedAt: Date.now(),
     });
 

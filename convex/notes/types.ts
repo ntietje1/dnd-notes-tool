@@ -55,7 +55,7 @@ export type BlockWithTags = {
   noteId: Id<"notes">;
   noteName?: string;
   blockId: string;
-  blockContent: any;
+  blockContent: CustomBlock;
   tagIds: Id<"tags">[];
   updatedAt: number;
 };

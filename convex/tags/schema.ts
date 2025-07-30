@@ -12,6 +12,7 @@ export const tagTables = {
       v.literal("session"),
       v.literal("custom"),
     ),
+    mutable: v.boolean(),
     updatedAt: v.number(),
   }).index("by_campaign", ["campaignId"]),
 };

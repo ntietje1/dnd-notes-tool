@@ -10,5 +10,6 @@ export type Tag = {
   color: string;
   campaignId: Id<"campaigns">;
   type: TagType;
+  mutable: boolean;
   updatedAt: number;
 };
