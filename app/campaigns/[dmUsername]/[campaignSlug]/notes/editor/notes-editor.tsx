@@ -71,6 +71,13 @@ export default function NotesEditor() {
         >
           <TagMenu editor={sync.editor} />
           <SideMenuController
+            floatingOptions={{
+              onOpenChange: (open) => {
+                if (!open) {
+                  sync.editor?.sideMenu?.unfreezeMenu();
+                }
+              },
+            }}
             sideMenu={(props) => (
               <SideMenu {...props}>
                 <TagSideMenuButton editor={sync.editor} block={props.block} />

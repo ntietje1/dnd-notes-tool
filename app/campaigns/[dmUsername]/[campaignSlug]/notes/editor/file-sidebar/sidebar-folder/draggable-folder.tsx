@@ -1,11 +1,11 @@
 "use client";
 
 import { useDraggable } from "@dnd-kit/core";
-import { Folder } from "@/convex/notes/types";
 import { cn } from "@/lib/utils";
+import { FolderNode } from "@/convex/notes/types";
 
 interface DraggableFolderProps {
-  folder: Folder;
+  folder: FolderNode;
   children: React.ReactNode;
 }
 
