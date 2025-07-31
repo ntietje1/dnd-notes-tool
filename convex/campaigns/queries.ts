@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { query } from "../_generated/server";
 import { Campaign, CampaignSlug, UserCampaign } from "./types";
-import { getBaseUserId, verifyUserIdentity } from "../auth/helpers";
+import { getBaseUserId, verifyUserIdentity } from "../model/helpers";
 
 export const getUserCampaigns = query({
   args: {},

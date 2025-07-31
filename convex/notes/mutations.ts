@@ -11,7 +11,7 @@ import {
   extractTagIdsFromBlock,
   extractAllTagIdsFromContent,
 } from "../tags/helpers";
-import { getBaseUserId, verifyUserIdentity } from "../auth/helpers";
+import { getBaseUserId, verifyUserIdentity } from "../model/helpers";
 
 export const updateNote = mutation({
   args: {

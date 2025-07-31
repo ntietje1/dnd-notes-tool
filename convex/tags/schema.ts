@@ -10,6 +10,7 @@ export const tagTables = {
       v.literal("character"),
       v.literal("location"),
       v.literal("session"),
+      v.literal("shared"),
       v.literal("custom"),
     ),
     mutable: v.boolean(),

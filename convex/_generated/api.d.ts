@@ -8,8 +8,7 @@
  * @module
  */
 
-import type * as auth_auth from "../auth/auth.js";
-import type * as auth_helpers from "../auth/helpers.js";
+import type * as auth from "../auth.js";
 import type * as campaigns_mutations from "../campaigns/mutations.js";
 import type * as campaigns_queries from "../campaigns/queries.js";
 import type * as campaigns_types from "../campaigns/types.js";
@@ -18,6 +17,7 @@ import type * as editors_mutations from "../editors/mutations.js";
 import type * as editors_queries from "../editors/queries.js";
 import type * as editors_types from "../editors/types.js";
 import type * as http from "../http.js";
+import type * as model_helpers from "../model/helpers.js";
 import type * as notes_mutations from "../notes/mutations.js";
 import type * as notes_queries from "../notes/queries.js";
 import type * as notes_types from "../notes/types.js";
@@ -44,8 +44,7 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
-  "auth/auth": typeof auth_auth;
-  "auth/helpers": typeof auth_helpers;
+  auth: typeof auth;
   "campaigns/mutations": typeof campaigns_mutations;
   "campaigns/queries": typeof campaigns_queries;
   "campaigns/types": typeof campaigns_types;
@@ -54,6 +53,7 @@ declare const fullApi: ApiFromModules<{
   "editors/queries": typeof editors_queries;
   "editors/types": typeof editors_types;
   http: typeof http;
+  "model/helpers": typeof model_helpers;
   "notes/mutations": typeof notes_mutations;
   "notes/queries": typeof notes_queries;
   "notes/types": typeof notes_types;

@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { Tag } from "./types";
 import { query } from "../_generated/server";
 import { Id } from "../_generated/dataModel";
-import { verifyUserIdentity } from "../auth/helpers";
+import { verifyUserIdentity } from "../model/helpers";
 
 export const getTag = query({
   args: {

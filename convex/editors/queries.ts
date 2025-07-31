@@ -1,6 +1,6 @@
 import { query } from "../_generated/server";
 import { v } from "convex/values";
-import { getBaseUserId, verifyUserIdentity } from "../auth/helpers";
+import { getBaseUserId, verifyUserIdentity } from "../model/helpers";
 
 export const getCurrentEditor = query({
   args: { campaignId: v.optional(v.id("campaigns")) },

@@ -3,7 +3,8 @@ import { v } from "convex/values";
 import { Note, FolderNode, AnySidebarItem, BlockWithTags } from "./types";
 import { Id } from "../_generated/dataModel";
 import { findTaggedBlock, findBlockById } from "../tags/helpers";
-import { getBaseUserId, verifyUserIdentity } from "../auth/helpers";
+import { getBaseUserId, verifyUserIdentity } from "../model/helpers";
+import { CustomBlock } from "../../app/campaigns/[dmUsername]/[campaignSlug]/notes/editor/extensions/tags/tags";
 
 export const getNote = query({
   args: {

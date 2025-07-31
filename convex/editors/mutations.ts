@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation } from "../_generated/server";
-import { getBaseUserId, verifyUserIdentity } from "../auth/helpers";
+import { getBaseUserId, verifyUserIdentity } from "../model/helpers";
 
 export const setCurrentEditor = mutation({
   args: {
