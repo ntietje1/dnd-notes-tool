@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { useRouter } from "next/navigation";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/card";
 import { usernameValidators, displayNameValidators } from "./validators";
 import type { ValidationResult } from "@/lib/validation";
+import { LoadingPage } from "@/components/loading/loading-page";
 
 export function OnboardingForm() {
   const [username, setUsername] = useState("");
@@ -24,6 +25,12 @@ export function OnboardingForm() {
   >({});
 
   const router = useRouter();
+  const { isAuthenticated } = useConvexAuth();
+
+  const userProfile = useQuery(
+    api.users.queries.getUserProfile,
+    isAuthenticated ? {} : "skip",
+  );
   const createProfile = useMutation(api.users.mutations.createUserProfile);
 
   // Only check username availability if username is at least 3 characters
@@ -82,6 +89,10 @@ export function OnboardingForm() {
       }
     }
   };
+
+  if (!isAuthenticated || userProfile === undefined) {
+    return <LoadingPage />;
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
