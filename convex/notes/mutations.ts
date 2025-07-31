@@ -83,7 +83,6 @@ export const updateNote = mutation({
     noteId: v.id("notes"),
     content: v.optional(v.any()),
     name: v.optional(v.string()),
-    tagIds: v.optional(v.array(v.id("tags"))), // Note-level tags
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -156,10 +155,6 @@ export const updateNote = mutation({
 
     if (args.name !== undefined) {
       updates.name = args.name;
-    }
-
-    if (args.tagIds !== undefined) {
-      updates.tagIds = args.tagIds;
     }
 
     await ctx.db.patch(args.noteId, updates);

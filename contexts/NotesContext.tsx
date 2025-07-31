@@ -40,7 +40,6 @@ type NotesContextType = {
   updateNoteContent: (content: CustomBlock[]) => Promise<void>;
   debouncedUpdateNoteContent: (content: CustomBlock[]) => void;
   updateNoteName: (noteId: Id<"notes">, title: string) => Promise<void>;
-  updateNoteTags: (noteId: Id<"notes">, tagIds: Id<"tags">[]) => Promise<void>;
   toggleFolder: (folderId: Id<"folders">) => void;
   openFolder: (folderId: Id<"folders">) => void;
   createNote: (folderId?: Id<"folders">) => Promise<void>;
@@ -210,8 +209,7 @@ export function NotesProvider({
 
   const updateNote = useMutation(
     api.notes.mutations.updateNote,
-  ).withOptimisticUpdate((store, { noteId, content, name, tagIds }) => {
-    console.log("optimistic update note:", noteId);
+  ).withOptimisticUpdate((store, { noteId, content, name }) => {
     // Optimistically update the getNote query
     const note = store.getQuery(api.notes.queries.getNote, { noteId });
     if (note) {
@@ -222,7 +220,6 @@ export function NotesProvider({
           ...note,
           ...(content !== undefined && { content }),
           ...(name !== undefined && { name }),
-          ...(tagIds !== undefined && { tagIds }),
         },
       );
     }
@@ -239,7 +236,6 @@ export function NotesProvider({
             ...item,
             ...(content !== undefined && { content }),
             ...(name !== undefined && { name }),
-            ...(tagIds !== undefined && { tagIds }),
           }
         : item,
     );
@@ -290,16 +286,6 @@ export function NotesProvider({
       await updateNote({
         noteId,
         name: title,
-      });
-    },
-    [updateNote],
-  );
-
-  const updateNoteTags = useCallback(
-    async (noteId: Id<"notes">, tagIds: Id<"tags">[]) => {
-      await updateNote({
-        noteId,
-        tagIds,
       });
     },
     [updateNote],
@@ -466,7 +452,6 @@ export function NotesProvider({
     updateNoteContent,
     debouncedUpdateNoteContent,
     updateNoteName,
-    updateNoteTags,
     toggleFolder,
     openFolder,
     createNote,
