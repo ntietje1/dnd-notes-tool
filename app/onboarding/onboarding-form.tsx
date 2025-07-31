@@ -25,7 +25,7 @@ export function OnboardingForm() {
   >({});
 
   const router = useRouter();
-  const { isAuthenticated } = useConvexAuth();
+  const { isLoading, isAuthenticated } = useConvexAuth();
 
   const userProfile = useQuery(
     api.users.queries.getUserProfile,
@@ -90,8 +90,12 @@ export function OnboardingForm() {
     }
   };
 
-  if (!isAuthenticated || userProfile === undefined) {
+  if (isLoading || !isAuthenticated || userProfile === undefined) {
     return <LoadingPage />;
+  }
+
+  if (userProfile?.isOnboarded) {
+    return <LoadingPage message="Redirecting..." />;
   }
 
   return (
