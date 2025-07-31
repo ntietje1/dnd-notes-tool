@@ -1,14 +1,11 @@
 import { query } from "../_generated/server";
-import { getBaseUserId } from "../auth";
 import { v } from "convex/values";
+import { getBaseUserId, verifyUserIdentity } from "../auth/helpers";
 
-export const getCurrentEditor = query(
-  { args: { campaignId: v.optional(v.id("campaigns")) },
+export const getCurrentEditor = query({
+  args: { campaignId: v.optional(v.id("campaigns")) },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
+    const identity = await verifyUserIdentity(ctx);
 
     if (!args.campaignId) {
       return null;

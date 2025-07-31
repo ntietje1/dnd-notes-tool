@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { Tag } from "./types";
 import { query } from "../_generated/server";
 import { Id } from "../_generated/dataModel";
+import { verifyUserIdentity } from "../auth/helpers";
 
 export const getTag = query({
   args: {
@@ -9,10 +10,7 @@ export const getTag = query({
     tagId: v.string(),
   },
   handler: async (ctx, args): Promise<Tag | null> => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
+    await verifyUserIdentity(ctx);
 
     if (!args.campaignId) {
       return null;
@@ -20,10 +18,11 @@ export const getTag = query({
 
     const tagId = args.tagId as Id<"tags">;
 
-    const tag = await ctx.db
-      .query("tags")
-      .withIndex("by_id", (q) => q.eq("_id", tagId))
-      .first();
+    const tag = await ctx.db.get(tagId);
+    if (!tag || tag.campaignId !== args.campaignId) {
+      return null;
+    }
+
     return tag;
   },
 });
@@ -33,10 +32,7 @@ export const getTags = query({
     campaignId: v.optional(v.id("campaigns")),
   },
   handler: async (ctx, args): Promise<Tag[]> => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
+    await verifyUserIdentity(ctx);
 
     if (!args.campaignId) {
       return [];

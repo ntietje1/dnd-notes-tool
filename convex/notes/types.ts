@@ -27,7 +27,6 @@ export const UNTITLED_FOLDER_NAME = "Untitled Folder";
 
 export type Folder = SidebarItem<"folders">;
 
-// FolderNode extends Folder but adds tree structure properties
 export interface FolderNode extends Folder {
   type: "folders";
   children: AnySidebarItem[];
@@ -39,16 +38,6 @@ export type AnySidebarItem = Note | FolderNode;
 export type RawSidebarData = {
   folders: Folder[];
   notes: Note[];
-};
-
-export type TaggedBlock = {
-  _id: Id<"taggedBlocks">;
-  _creationTime: number;
-  noteId: Id<"notes">;
-  blockId: string;
-  campaignId: Id<"campaigns">;
-  tagIds: Id<"tags">[];
-  updatedAt: number;
 };
 
 export type BlockWithTags = {

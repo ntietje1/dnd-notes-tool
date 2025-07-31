@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { query } from "../_generated/server";
-import { getBaseUserId } from "../auth";
+import { getBaseUserId } from "../auth/helpers";
 
 export const getUserProfile = query({
   args: {},
@@ -24,12 +24,10 @@ export const getUserProfile = query({
 export const checkUsernameExists = query({
   args: { username: v.string() },
   handler: async (ctx, args) => {
-    // Handle empty username case
     if (!args.username) {
       return false;
     }
 
-    // Convert username to lowercase since usernames are case-insensitive
     const normalizedUsername = args.username.toLowerCase();
 
     const existingUser = await ctx.db

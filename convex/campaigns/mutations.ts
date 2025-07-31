@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation } from "../_generated/server";
-import { getBaseUserId } from "../auth";
+import { getBaseUserId, verifyUserIdentity } from "../auth/helpers";
 
 export const createCampaign = mutation({
   args: {
@@ -9,10 +9,7 @@ export const createCampaign = mutation({
     slug: v.string(),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
+    const identity = await verifyUserIdentity(ctx);
 
     const now = Date.now();
     const baseUserId = getBaseUserId(identity.subject);
@@ -68,10 +65,7 @@ export const joinCampaign = mutation({
     slug: v.string(),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
+    const identity = await verifyUserIdentity(ctx);
 
     const baseUserId = getBaseUserId(identity.subject);
 

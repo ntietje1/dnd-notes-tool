@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation } from "../_generated/server";
+import { verifyUserIdentity } from "../auth/helpers";
 
 export const createTag = mutation({
   args: {
@@ -14,10 +15,7 @@ export const createTag = mutation({
     campaignId: v.id("campaigns"),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
+    await verifyUserIdentity(ctx);
 
     const tag = await ctx.db.insert("tags", {
       name: args.name,
@@ -37,10 +35,7 @@ export const deleteTag = mutation({
     tagId: v.id("tags"),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
+    await verifyUserIdentity(ctx);
 
     await ctx.db.delete(args.tagId);
 

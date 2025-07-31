@@ -27,7 +27,7 @@ export const notesTables = {
     noteId: v.id("notes"),
     blockId: v.string(),
     campaignId: v.id("campaigns"),
-    tagIds: v.array(v.id("tags")), // All tags on this block
+    tagIds: v.array(v.id("tags")),
     updatedAt: v.number(),
   })
     .index("by_campaign", ["campaignId"])

@@ -2,7 +2,8 @@ import { query } from "../_generated/server";
 import { v } from "convex/values";
 import { Note, FolderNode, AnySidebarItem, BlockWithTags } from "./types";
 import { Id } from "../_generated/dataModel";
-import { getBaseUserId } from "../auth";
+import { findTaggedBlock, findBlockById } from "../tags/helpers";
+import { getBaseUserId, verifyUserIdentity } from "../auth/helpers";
 
 export const getNote = query({
   args: {
@@ -13,10 +14,7 @@ export const getNote = query({
       return null;
     }
 
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
+    const identity = await verifyUserIdentity(ctx);
 
     const note = await ctx.db.get(args.noteId as Id<"notes">).catch((e) => {
       console.error("Error getting note:", e);
@@ -34,16 +32,12 @@ export const getSidebarData = query({
     campaignId: v.optional(v.id("campaigns")),
   },
   handler: async (ctx, args): Promise<AnySidebarItem[]> => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
+    await verifyUserIdentity(ctx);
 
     if (!args.campaignId) {
       return [];
     }
 
-    // Get all folders and notes for the user
     const [folders, notes] = await Promise.all([
       ctx.db
         .query("folders")
@@ -55,10 +49,8 @@ export const getSidebarData = query({
         .collect(),
     ]);
 
-    // Create a map of folder ID to its FolderNode
     const folderMap = new Map<Id<"folders">, FolderNode>();
 
-    // Initialize the map with empty children arrays
     folders.forEach((folder) => {
       folderMap.set(folder._id, {
         ...folder,
@@ -67,7 +59,6 @@ export const getSidebarData = query({
       });
     });
 
-    // Build the folder tree
     folders.forEach((folder) => {
       if (folder.parentFolderId) {
         const parentNode = folderMap.get(folder.parentFolderId);
@@ -78,13 +69,11 @@ export const getSidebarData = query({
       }
     });
 
-    // Transform notes and add them to their parent folders or root list
     const typedNotes = notes.map((note) => ({
       ...note,
       type: "notes" as const,
     })) as Note[];
 
-    // Add notes to their parent folders
     typedNotes.forEach((note) => {
       if (note.parentFolderId) {
         const parentNode = folderMap.get(note.parentFolderId);
@@ -94,15 +83,12 @@ export const getSidebarData = query({
       }
     });
 
-    // Get root folders (those without a parent)
     const rootFolders = Array.from(folderMap.values()).filter(
       (folder) => !folder.parentFolderId,
     );
 
-    // Get root notes (those without a parent folder)
     const rootNotes = typedNotes.filter((note) => !note.parentFolderId);
 
-    // Combine root folders and notes
     return [...rootFolders, ...rootNotes] as AnySidebarItem[];
   },
 });
@@ -114,27 +100,21 @@ export const getBlocksByTags = query({
     includeNoteLevel: v.optional(v.boolean()),
   },
   handler: async (ctx, args): Promise<BlockWithTags[]> => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
+    await verifyUserIdentity(ctx);
 
     if (!args.campaignId || args.tagIds.length === 0) {
       return [];
     }
 
-    // Get all tagged blocks in the campaign
     const taggedBlocks = await ctx.db
       .query("taggedBlocks")
       .withIndex("by_campaign", (q) => q.eq("campaignId", args.campaignId!))
       .collect();
 
-    // Filter blocks that contain ALL required tags
     const matchingBlocks = taggedBlocks.filter((block) =>
       args.tagIds.every((tagId) => block.tagIds.includes(tagId)),
     );
 
-    // Get note information and block content
     const results: BlockWithTags[] = [];
     const noteIds = [...new Set(matchingBlocks.map((b) => b.noteId))];
     const notes = await Promise.all(noteIds.map((id) => ctx.db.get(id)));
@@ -146,8 +126,7 @@ export const getBlocksByTags = query({
       const note = notesMap.get(block.noteId);
       if (!note) continue;
 
-      // Find the actual block content
-      const blockContent = findBlockInContent(note.content, block.blockId);
+      const blockContent = findBlockById(note.content, block.blockId);
       if (!blockContent) continue;
 
       results.push({
@@ -170,28 +149,21 @@ export const getBlocksByTag = query({
     tagId: v.optional(v.id("tags")),
   },
   handler: async (ctx, args): Promise<BlockWithTags[]> => {
-    // Call getBlocksByTags directly with a single tag
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
+    await verifyUserIdentity(ctx);
 
     if (!args.campaignId || !args.tagId) {
       return [];
     }
 
-    // Get all tagged blocks in the campaign that contain this tag
     const taggedBlocks = await ctx.db
       .query("taggedBlocks")
       .withIndex("by_campaign", (q) => q.eq("campaignId", args.campaignId!))
       .collect();
 
-    // Filter blocks that contain the specified tag
     const matchingBlocks = taggedBlocks.filter((block) =>
       block.tagIds.includes(args.tagId!),
     );
 
-    // Get note information and block content
     const results: BlockWithTags[] = [];
     const noteIds = [...new Set(matchingBlocks.map((b) => b.noteId))];
     const notes = await Promise.all(noteIds.map((id) => ctx.db.get(id)));
@@ -203,8 +175,7 @@ export const getBlocksByTag = query({
       const note = notesMap.get(block.noteId);
       if (!note) continue;
 
-      // Find the actual block content
-      const blockContent = findBlockInContent(note.content, block.blockId);
+      const blockContent = findBlockById(note.content, block.blockId);
       if (!blockContent) continue;
 
       results.push({
@@ -227,54 +198,9 @@ export const getBlockTags = query({
     blockId: v.string(),
   },
   handler: async (ctx, args): Promise<Id<"tags">[]> => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
+    await verifyUserIdentity(ctx);
 
-    const taggedBlock = await ctx.db
-      .query("taggedBlocks")
-      .withIndex("by_block_unique", (q) =>
-        q.eq("noteId", args.noteId).eq("blockId", args.blockId),
-      )
-      .first();
-
+    const taggedBlock = await findTaggedBlock(ctx, args.noteId, args.blockId);
     return taggedBlock?.tagIds || [];
   },
 });
-
-// Helper functions
-function findBlockInContent(content: any[], blockId: string): any | null {
-  if (!Array.isArray(content)) return null;
-
-  for (const block of content) {
-    if (block.id === blockId) {
-      return block;
-    }
-    if (block.content) {
-      const found = findBlockInContent(block.content, blockId);
-      if (found) return found;
-    }
-  }
-  return null;
-}
-
-function extractAllBlocksFromContent(content: any[]): Map<string, any> {
-  const blocks = new Map<string, any>();
-
-  function traverse(items: any[]) {
-    if (!Array.isArray(items)) return;
-
-    items.forEach((item) => {
-      if (item.id) {
-        blocks.set(item.id, item);
-      }
-      if (item.content) {
-        traverse(item.content);
-      }
-    });
-  }
-
-  traverse(content);
-  return blocks;
-}

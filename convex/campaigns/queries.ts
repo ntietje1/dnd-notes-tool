@@ -1,15 +1,12 @@
 import { v } from "convex/values";
 import { query } from "../_generated/server";
-import { getBaseUserId } from "../auth";
 import { Campaign, CampaignSlug, UserCampaign } from "./types";
+import { getBaseUserId, verifyUserIdentity } from "../auth/helpers";
 
 export const getUserCampaigns = query({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
+    const identity = await verifyUserIdentity(ctx);
 
     const baseUserId = getBaseUserId(identity.subject);
 
@@ -66,10 +63,7 @@ export const getCampaignBySlug = query({
     slug: v.string(),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
+    const identity = await verifyUserIdentity(ctx);
 
     const campaignSlug = await ctx.db
       .query("campaignSlugs")
@@ -89,7 +83,6 @@ export const getCampaignBySlug = query({
       return null;
     }
 
-    // Check if the current user has access to this campaign
     const baseUserId = getBaseUserId(identity.subject);
     const membership = await ctx.db
       .query("campaignMembers")
@@ -110,10 +103,7 @@ export const checkCampaignSlugExists = query({
     slug: v.string(),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
+    const identity = await verifyUserIdentity(ctx);
 
     const baseUserId = getBaseUserId(identity.subject);
 

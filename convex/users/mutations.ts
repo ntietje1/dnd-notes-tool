@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation } from "../_generated/server";
-import { getBaseUserId } from "../auth";
+import { getBaseUserId, verifyUserIdentity } from "../auth/helpers";
 
 export const createUserProfile = mutation({
   args: {
@@ -10,15 +10,11 @@ export const createUserProfile = mutation({
     avatarUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
+    const identity = await verifyUserIdentity(ctx);
 
     const baseUserId = getBaseUserId(identity.subject);
     const now = Date.now();
 
-    // Check if username is already taken
     const existingUser = await ctx.db
       .query("userProfiles")
       .withIndex("by_username", (q) => q.eq("username", args.username))
@@ -28,7 +24,6 @@ export const createUserProfile = mutation({
       throw new Error("Username already taken");
     }
 
-    // Check if user profile already exists
     const existingProfile = await ctx.db
       .query("userProfiles")
       .withIndex("by_user", (q) => q.eq("userId", baseUserId))
@@ -60,10 +55,7 @@ export const updateUserProfile = mutation({
     avatarUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
+    const identity = await verifyUserIdentity(ctx);
 
     const baseUserId = getBaseUserId(identity.subject);
 
@@ -76,7 +68,6 @@ export const updateUserProfile = mutation({
       throw new Error("User profile not found");
     }
 
-    // If username is being updated, check if it's available
     if (args.username && args.username !== profile.username) {
       const existingUser = await ctx.db
         .query("userProfiles")
