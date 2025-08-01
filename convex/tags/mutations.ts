@@ -9,8 +9,8 @@ export const createTag = mutation({
       v.literal("character"),
       v.literal("location"),
       v.literal("session"),
-      v.literal("shared"),
-      v.literal("custom"),
+      v.literal("system"),
+      v.literal("other"),
     ),
     color: v.string(),
     campaignId: v.id("campaigns"),
@@ -18,16 +18,112 @@ export const createTag = mutation({
   handler: async (ctx, args) => {
     await verifyUserIdentity(ctx);
 
+    if (args.type === "system") {
+      throw new Error("System tags cannot be created");
+    }
+
     const tag = await ctx.db.insert("tags", {
       name: args.name,
       type: args.type,
       color: args.color,
       campaignId: args.campaignId,
-      mutable: true,
       updatedAt: Date.now(),
     });
 
     return tag;
+  },
+});
+
+export const updateTag = mutation({
+  args: {
+    tagId: v.id("tags"),
+    name: v.optional(v.string()),
+    color: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await verifyUserIdentity(ctx);
+
+    const tag = await ctx.db.get(args.tagId);
+    if (!tag) {
+      throw new Error("Tag not found");
+    }
+
+    if (tag.type === "system") {
+      throw new Error("System tags cannot be updated");
+    }
+
+    const updates: { name?: string; color?: string; updatedAt: number } = {
+      updatedAt: Date.now(),
+    };
+
+    if (args.name !== undefined) {
+      updates.name = args.name;
+    }
+
+    if (args.color !== undefined) {
+      updates.color = args.color;
+    }
+
+    // Update the tag first
+    await ctx.db.patch(args.tagId, updates);
+
+    // If name or color changed, update all blocks that reference this tag in their content
+    if (args.name !== undefined || args.color !== undefined) {
+      const newName = args.name ?? tag.name;
+      const newColor = args.color ?? tag.color;
+
+      // Get all blocks in the campaign that could potentially have this tag
+      const allBlocks = await ctx.db
+        .query("blocks")
+        .withIndex("by_campaign", (q) => q.eq("campaignId", tag.campaignId))
+        .collect();
+
+      // Function to recursively update tag instances in content
+      const updateTagsInContent = (content: any): any => {
+        if (Array.isArray(content)) {
+          return content.map(updateTagsInContent);
+        } else if (content && typeof content === "object") {
+          // Check if this is a tag inline content with matching tagId
+          if (content.type === "tag" && content.props?.tagId === args.tagId) {
+            return {
+              ...content,
+              props: {
+                ...content.props,
+                tagName: newName,
+                tagColor: newColor,
+              },
+            };
+          }
+
+          // Recursively update nested content
+          const updatedContent = { ...content };
+          if (content.content) {
+            updatedContent.content = updateTagsInContent(content.content);
+          }
+          if (content.children) {
+            updatedContent.children = updateTagsInContent(content.children);
+          }
+
+          return updatedContent;
+        }
+        return content;
+      };
+
+      // Update all blocks that contain references to this tag
+      for (const block of allBlocks) {
+        const updatedContent = updateTagsInContent(block.content);
+
+        // Only update if the content actually changed
+        if (JSON.stringify(updatedContent) !== JSON.stringify(block.content)) {
+          await ctx.db.patch(block._id, {
+            content: updatedContent,
+            updatedAt: Date.now(),
+          });
+        }
+      }
+    }
+
+    return args.tagId;
   },
 });
 
@@ -37,6 +133,15 @@ export const deleteTag = mutation({
   },
   handler: async (ctx, args) => {
     await verifyUserIdentity(ctx);
+
+    const tag = await ctx.db.get(args.tagId);
+    if (!tag) {
+      throw new Error("Tag not found");
+    }
+
+    if (tag.type === "system") {
+      throw new Error("System tags cannot be deleted");
+    }
 
     await ctx.db.delete(args.tagId);
 

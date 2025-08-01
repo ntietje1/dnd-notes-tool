@@ -6,34 +6,27 @@ import { FolderButton } from "./folder-button";
 import { FolderNode } from "@/convex/notes/types";
 import { Id } from "@/convex/_generated/dataModel";
 import { SidebarItem } from "../sidebar-item/sidebar-item";
+import { useNotes } from "@/contexts/NotesContext";
 
 interface RecursiveFolderProps {
   folder: FolderNode;
-  expandedFolders: Set<Id<"folders">>;
   renamingId: Id<"folders"> | Id<"notes"> | null;
-  selectedNoteId: Id<"notes"> | null;
-  toggleFolder: (folderId: Id<"folders">) => void;
   setRenamingId: (id: Id<"folders"> | Id<"notes"> | null) => void;
-  handleFinishFolderRename: (id: Id<"folders">, name: string) => void;
-  handleFinishNoteRename: (id: Id<"notes">, name: string) => void;
-  deleteFolder: (id: Id<"folders">) => void;
-  deleteNote: (id: Id<"notes">) => void;
-  selectNote: (id: Id<"notes">) => void;
-  createNote: (id: Id<"folders">) => void;
+  expandedFolders: Set<Id<"folders">>;
+  toggleFolder: (folderId: Id<"folders">) => void;
+  updateFolderName: (folderId: Id<"folders">, name: string) => void;
+  deleteFolder: (folderId: Id<"folders">) => void;
+  createNote: (folderId: Id<"folders">) => void;
 }
 
 export function RecursiveFolder({
   folder,
-  expandedFolders,
   renamingId,
-  selectedNoteId,
-  toggleFolder,
   setRenamingId,
-  handleFinishFolderRename,
-  handleFinishNoteRename,
+  expandedFolders,
+  toggleFolder,
+  updateFolderName,
   deleteFolder,
-  deleteNote,
-  selectNote,
   createNote,
 }: RecursiveFolderProps) {
   const isExpanded = expandedFolders.has(folder._id);
@@ -53,7 +46,10 @@ export function RecursiveFolder({
           hasItems={hasItems}
           onToggle={() => toggleFolder(folder._id)}
           onStartRename={() => setRenamingId(folder._id)}
-          onFinishRename={(name) => handleFinishFolderRename(folder._id, name)}
+          onFinishRename={(name) => {
+            updateFolderName(folder._id, name);
+            setRenamingId(null);
+          }}
           onDelete={() => deleteFolder(folder._id)}
           onNewPage={() => {
             if (!isExpanded) {
@@ -72,17 +68,8 @@ export function RecursiveFolder({
               <SidebarItem
                 key={item._id}
                 item={item}
-                expandedFolders={expandedFolders}
                 renamingId={renamingId}
-                selectedNoteId={selectedNoteId}
-                toggleFolder={toggleFolder}
                 setRenamingId={setRenamingId}
-                handleFinishFolderRename={handleFinishFolderRename}
-                handleFinishNoteRename={handleFinishNoteRename}
-                deleteFolder={deleteFolder}
-                deleteNote={deleteNote}
-                selectNote={selectNote}
-                createNote={createNote}
               />
             ))}
           </div>

@@ -46,3 +46,22 @@ export const getTags = query({
     return tags;
   },
 });
+
+export const getSystemTagByName = query({
+  args: {
+    campaignId: v.id("campaigns"),
+    name: v.string(),
+  },
+  handler: async (ctx, args): Promise<Tag | null> => {
+    await verifyUserIdentity(ctx);
+
+    const tag = await ctx.db
+      .query("tags")
+      .withIndex("by_name", (q) =>
+        q.eq("campaignId", args.campaignId).eq("name", args.name),
+      )
+      .unique();
+
+    return tag;
+  },
+});

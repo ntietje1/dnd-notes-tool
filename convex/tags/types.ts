@@ -1,11 +1,6 @@
 import { Id } from "../_generated/dataModel";
 
-export type TagType =
-  | "character"
-  | "location"
-  | "session"
-  | "shared"
-  | "custom";
+export type TagType = "character" | "location" | "session" | "system" | "other";
 
 export type Tag = {
   _id: Id<"tags">;
@@ -15,6 +10,9 @@ export type Tag = {
   color: string;
   campaignId: Id<"campaigns">;
   type: TagType;
-  mutable: boolean;
   updatedAt: number;
+};
+
+export const SYSTEM_TAGS = {
+  shared: "Shared",
 };

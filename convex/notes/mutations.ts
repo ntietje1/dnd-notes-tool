@@ -10,6 +10,7 @@ import {
   saveTopLevelBlocks,
   findBlockById,
   extractTagIdsFromBlockContent,
+  getBlockTags,
 } from "../tags/helpers";
 import { getBaseUserId, verifyUserIdentity } from "../model/helpers";
 
@@ -77,13 +78,24 @@ export const deleteNote = mutation({
   handler: async (ctx, args) => {
     await verifyUserIdentity(ctx);
 
-    // Delete all blocks associated with this note
+    // Delete all blocks associated with this note and their tag relationships
     const blocks = await ctx.db
       .query("blocks")
       .withIndex("by_note", (q) => q.eq("noteId", args.noteId))
       .collect();
 
     for (const block of blocks) {
+      // Delete all tag relationships for this block
+      const blockTags = await ctx.db
+        .query("blockTags")
+        .withIndex("by_block", (q) => q.eq("blockId", block._id))
+        .collect();
+
+      for (const blockTag of blockTags) {
+        await ctx.db.delete(blockTag._id);
+      }
+
+      // Delete the block itself
       await ctx.db.delete(block._id);
     }
 
@@ -120,13 +132,24 @@ export const deleteFolder = mutation({
 
       for (const note of notesInFolder) {
         if (note.userId === userId) {
-          // Delete all blocks associated with this note
+          // Delete all blocks associated with this note and their tag relationships
           const blocks = await ctx.db
             .query("blocks")
             .withIndex("by_note", (q) => q.eq("noteId", note._id))
             .collect();
 
           for (const block of blocks) {
+            // Delete all tag relationships for this block
+            const blockTags = await ctx.db
+              .query("blockTags")
+              .withIndex("by_block", (q) => q.eq("blockId", block._id))
+              .collect();
+
+            for (const blockTag of blockTags) {
+              await ctx.db.delete(blockTag._id);
+            }
+
+            // Delete the block itself
             await ctx.db.delete(block._id);
           }
 
@@ -204,7 +227,6 @@ export const createNote = mutation({
         id: initialBlockId,
         content: [],
       },
-      tagIds: [],
       isTopLevel: true,
       campaignId: args.campaignId,
       updatedAt: Date.now(),
@@ -241,43 +263,13 @@ export const addTagToBlockMutation = mutation({
         );
       }
 
-      await addTagToBlock(
-        ctx,
-        existingBlock._id,
-        existingBlock.tagIds,
-        args.tagId,
-      );
+      await addTagToBlock(ctx, existingBlock._id, args.tagId);
     } else {
       // Get ALL blocks for this note (not just top-level)
       const allBlocks = await ctx.db
         .query("blocks")
         .withIndex("by_note", (q) => q.eq("noteId", args.noteId))
         .collect();
-
-      if (allBlocks.length === 0) {
-        // Content hasn't been saved yet, create a minimal block entry
-        // This will be updated with proper content when the note is next saved
-        await ctx.db.insert("blocks", {
-          noteId: args.noteId,
-          blockId: args.blockId,
-          position: undefined,
-          content: {
-            id: args.blockId,
-            type: "paragraph",
-            content: [
-              {
-                type: "text",
-                text: "[Tagged block - content will be updated on next save]",
-              },
-            ],
-          },
-          tagIds: [args.tagId],
-          isTopLevel: false,
-          campaignId: note.campaignId,
-          updatedAt: Date.now(),
-        });
-        return args.blockId;
-      }
 
       // Try to find the block in existing content
       const topLevelBlocks = allBlocks
@@ -299,18 +291,24 @@ export const addTagToBlockMutation = mutation({
         }
 
         // Create a new block entry with the actual content
-        await ctx.db.insert("blocks", {
+        const newBlockDbId = await ctx.db.insert("blocks", {
           noteId: args.noteId,
           blockId: args.blockId,
           position: undefined, // Not a top-level block
           content: targetBlock,
-          tagIds: [args.tagId],
           isTopLevel: false,
           campaignId: note.campaignId,
           updatedAt: Date.now(),
         });
+
+        // Add the tag relationship
+        await ctx.db.insert("blockTags", {
+          blockId: newBlockDbId,
+          tagId: args.tagId,
+          createdAt: Date.now(),
+        });
       } else {
-        throw new Error(`Block ${args.blockId} not found in note content`);
+        console.log(`Block ${args.blockId} not found in note content`);
       }
     }
 
@@ -343,13 +341,7 @@ export const removeTagFromBlockMutation = mutation({
         );
       }
 
-      await removeTagFromBlock(
-        ctx,
-        block._id,
-        block.tagIds,
-        args.tagId,
-        block.isTopLevel,
-      );
+      await removeTagFromBlock(ctx, block._id, args.tagId, block.isTopLevel);
     }
 
     return args.blockId;

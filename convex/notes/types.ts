@@ -44,10 +44,17 @@ export type Block = {
   blockId: string;
   position?: number;
   content: CustomBlock;
-  tagIds: Id<"tags">[];
   isTopLevel: boolean;
   campaignId: Id<"campaigns">;
   updatedAt: number;
+};
+
+export type BlockTag = {
+  _id: Id<"blockTags">;
+  _creationTime: number;
+  blockId: Id<"blocks">;
+  tagId: Id<"tags">;
+  createdAt: number;
 };
 
 export type NoteWithContent = Note & { content: CustomBlock[] };

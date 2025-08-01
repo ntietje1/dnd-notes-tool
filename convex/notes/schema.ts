@@ -27,7 +27,6 @@ export const notesTables = {
     blockId: v.string(),
     position: v.optional(v.number()),
     content: v.any(), // BlockNote block content
-    tagIds: v.array(v.id("tags")),
     isTopLevel: v.boolean(),
     campaignId: v.id("campaigns"),
     updatedAt: v.number(),
@@ -36,4 +35,13 @@ export const notesTables = {
     .index("by_campaign", ["campaignId"])
     .index("by_note_position", ["noteId", "position"])
     .index("by_block_unique", ["noteId", "blockId"]),
+
+  blockTags: defineTable({
+    blockId: v.id("blocks"),
+    tagId: v.id("tags"),
+    createdAt: v.number(),
+  })
+    .index("by_block", ["blockId"])
+    .index("by_tag", ["tagId"])
+    .index("by_block_tag", ["blockId", "tagId"]),
 };

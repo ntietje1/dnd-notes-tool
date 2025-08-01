@@ -10,10 +10,11 @@ export const tagTables = {
       v.literal("character"),
       v.literal("location"),
       v.literal("session"),
-      v.literal("shared"),
-      v.literal("custom"),
+      v.literal("system"),
+      v.literal("other"),
     ),
-    mutable: v.boolean(),
     updatedAt: v.number(),
-  }).index("by_campaign", ["campaignId"]),
+  })
+    .index("by_campaign", ["campaignId"])
+    .index("by_name", ["campaignId", "name"]),
 };

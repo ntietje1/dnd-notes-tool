@@ -2,10 +2,10 @@
 
 import { useDroppable } from "@dnd-kit/core";
 import { cn } from "@/lib/utils";
-import { Folder } from "@/convex/notes/types";
+import { FolderNode } from "@/convex/notes/types";
 
 interface DroppableFolderProps {
-  folder: Folder;
+  folder: FolderNode;
   children: React.ReactNode;
 }
 

@@ -12,9 +12,11 @@ import {
   findBlock,
   filterOutChildBlocks,
   extractTagIdsFromBlockContent,
+  getBlockTags,
 } from "../tags/helpers";
 import { getBaseUserId, verifyUserIdentity } from "../model/helpers";
 import { CustomBlock } from "../../app/campaigns/[dmUsername]/[campaignSlug]/notes/editor/extensions/tags/tags";
+import { SYSTEM_TAGS } from "../tags/types";
 
 export const getNote = query({
   args: {
@@ -175,14 +177,42 @@ export const getBlocksByTags = query({
       return [];
     }
 
-    const blocks = await ctx.db
+    // Get the shared tag
+    const sharedTag = await ctx.db
+      .query("tags")
+      .withIndex("by_name", (q) =>
+        q.eq("campaignId", args.campaignId!).eq("name", SYSTEM_TAGS.shared),
+      )
+      .unique();
+
+    if (!sharedTag) {
+      throw new Error("Shared tag not found, this should be impossible");
+    }
+
+    // Get all blocks in the campaign
+    const allBlocks = await ctx.db
       .query("blocks")
       .withIndex("by_campaign", (q) => q.eq("campaignId", args.campaignId!))
       .collect();
 
-    const matchingBlocks = blocks.filter((block) =>
-      args.tagIds.every((tagId) => block.tagIds.includes(tagId)),
-    );
+    // Get all blockTags relationships for these blocks
+    const allBlockTags = await ctx.db.query("blockTags").collect();
+
+    // Create a map of block ID to tag IDs
+    const blockTagsMap = new Map<Id<"blocks">, Id<"tags">[]>();
+    allBlockTags.forEach((bt) => {
+      if (!blockTagsMap.has(bt.blockId)) {
+        blockTagsMap.set(bt.blockId, []);
+      }
+      blockTagsMap.get(bt.blockId)!.push(bt.tagId);
+    });
+
+    // Filter blocks that have all required tags (including shared tag)
+    const requiredTagIds = [sharedTag._id, ...args.tagIds];
+    const matchingBlocks = allBlocks.filter((block) => {
+      const blockTagIds = blockTagsMap.get(block._id) || [];
+      return requiredTagIds.every((tagId) => blockTagIds.includes(tagId));
+    });
 
     // Group blocks by noteId to reconstruct content for filtering
     const noteIds = [...new Set(matchingBlocks.map((b) => b.noteId))];
@@ -241,13 +271,26 @@ export const getBlocksByTag = query({
       return [];
     }
 
-    const blocks = await ctx.db
-      .query("blocks")
-      .withIndex("by_campaign", (q) => q.eq("campaignId", args.campaignId!))
+    // Get all blockTags for this tag
+    const blockTags = await ctx.db
+      .query("blockTags")
+      .withIndex("by_tag", (q) => q.eq("tagId", args.tagId!))
       .collect();
 
-    const matchingBlocks = blocks.filter((block) =>
-      block.tagIds.includes(args.tagId!),
+    if (blockTags.length === 0) {
+      return [];
+    }
+
+    // Get all blocks that have this tag
+    const blockIds = blockTags.map((bt) => bt.blockId);
+    const blocks = await Promise.all(
+      blockIds.map((blockId) => ctx.db.get(blockId)),
+    );
+
+    // Filter out null blocks and blocks not in the campaign
+    const matchingBlocks = blocks.filter(
+      (block): block is Block =>
+        block !== null && block.campaignId === args.campaignId,
     );
 
     // Group blocks by noteId to reconstruct content for filtering
@@ -295,7 +338,7 @@ export const getBlocksByTag = query({
   },
 });
 
-export const getBlockTags = query({
+export const getBlockTagIds = query({
   args: {
     noteId: v.id("notes"),
     blockId: v.string(),
@@ -304,7 +347,11 @@ export const getBlockTags = query({
     await verifyUserIdentity(ctx);
 
     const block = await findBlock(ctx, args.noteId, args.blockId);
-    return block?.tagIds || [];
+    if (!block) {
+      return [];
+    }
+
+    return await getBlockTags(ctx, block._id);
   },
 });
 
@@ -333,16 +380,19 @@ export const getBlockTagState = query({
       };
     }
 
+    // Get all tags for this block from junction table
+    const allTagIds = await getBlockTags(ctx, block._id);
+
     // Get inline tags from block content
     const inlineTagIds = extractTagIdsFromBlockContent(block.content);
 
     // Manual tags are those in the database that aren't inline
-    const manualTagIds = block.tagIds.filter(
+    const manualTagIds = allTagIds.filter(
       (tagId) => !inlineTagIds.includes(tagId),
     );
 
     return {
-      allTagIds: block.tagIds,
+      allTagIds,
       inlineTagIds,
       manualTagIds,
     };

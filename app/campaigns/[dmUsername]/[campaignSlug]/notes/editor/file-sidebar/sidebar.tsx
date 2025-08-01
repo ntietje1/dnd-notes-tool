@@ -28,21 +28,8 @@ type DraggableItem =
     };
 
 export function FileSidebar() {
-  const {
-    currentNote,
-    expandedFolders,
-    selectNote,
-    createNote,
-    deleteNote,
-    deleteFolder,
-    moveNote,
-    moveFolder,
-    updateFolderName,
-    updateNoteName,
-    toggleFolder,
-    openFolder,
-    sidebarData,
-  } = useNotes();
+  const { openFolder, moveNote, moveFolder, createNote, sidebarData } =
+    useNotes();
 
   const [renamingId, setRenamingId] = useState<
     Id<"folders"> | Id<"notes"> | null
@@ -63,22 +50,6 @@ export function FileSidebar() {
         tolerance: 5,
       },
     }),
-  );
-
-  const handleFinishFolderRename = useCallback(
-    (id: Id<"folders">, name: string) => {
-      updateFolderName(id, name);
-      setRenamingId(null);
-    },
-    [updateFolderName],
-  );
-
-  const handleFinishNoteRename = useCallback(
-    (id: Id<"notes">, name: string) => {
-      updateNoteName(id, name);
-      setRenamingId(null);
-    },
-    [updateNoteName],
   );
 
   const handleDragStart = useCallback(
@@ -187,17 +158,8 @@ export function FileSidebar() {
                 <SidebarItem
                   key={item._id}
                   item={item}
-                  expandedFolders={expandedFolders}
                   renamingId={renamingId}
-                  selectedNoteId={currentNote?._id ?? null}
-                  toggleFolder={toggleFolder}
                   setRenamingId={setRenamingId}
-                  handleFinishFolderRename={handleFinishFolderRename}
-                  handleFinishNoteRename={handleFinishNoteRename}
-                  deleteFolder={deleteFolder}
-                  deleteNote={deleteNote}
-                  selectNote={selectNote}
-                  createNote={createNote}
                 />
               );
             })}
@@ -208,17 +170,8 @@ export function FileSidebar() {
         {activeDragItem && (
           <SidebarItem
             item={activeDragItem}
-            expandedFolders={new Set()}
             renamingId={null}
-            selectedNoteId={null}
-            toggleFolder={() => {}}
             setRenamingId={() => {}}
-            handleFinishFolderRename={() => {}}
-            handleFinishNoteRename={() => {}}
-            deleteFolder={() => {}}
-            deleteNote={() => {}}
-            selectNote={() => {}}
-            createNote={() => {}}
           />
         )}
       </DragOverlay>

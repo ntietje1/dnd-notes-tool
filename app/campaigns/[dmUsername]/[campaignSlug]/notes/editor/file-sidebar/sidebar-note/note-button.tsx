@@ -6,13 +6,12 @@ import { Note } from "@/convex/notes/types";
 import { NoteName } from "./note-name";
 import { NoteContextMenu } from "./note-context-menu";
 import { cn } from "@/lib/utils";
-import { Id } from "@/convex/_generated/dataModel";
 
 interface NoteButtonProps {
   note: Note;
   isRenaming: boolean;
   isSelected: boolean;
-  onNoteSelected: (noteId: Id<"notes">) => void;
+  onNoteSelected: () => void;
   onStartRename: () => void;
   onFinishRename: (name: string) => void;
   onDelete: () => void;
@@ -37,7 +36,7 @@ export function NoteButton({
         )}
         onClick={(e) => {
           e.stopPropagation();
-          onNoteSelected(note._id);
+          onNoteSelected();
         }}
       >
         <div className="flex items-center gap-1 min-w-0 w-full pl-2">

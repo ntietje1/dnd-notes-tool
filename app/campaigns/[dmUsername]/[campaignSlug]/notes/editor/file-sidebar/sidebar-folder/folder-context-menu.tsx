@@ -8,14 +8,14 @@ import {
 
 interface FolderContextMenuProps {
   children: React.ReactNode;
-  onEdit: () => void;
+  onRename: () => void;
   onDelete: () => void;
   onNewPage: () => void;
 }
 
 export function FolderContextMenu({
   children,
-  onEdit,
+  onRename,
   onDelete,
   onNewPage,
 }: FolderContextMenuProps) {
@@ -23,7 +23,7 @@ export function FolderContextMenu({
     {
       label: "Rename",
       icon: <Pencil className="h-4 w-4" />,
-      onClick: onEdit,
+      onClick: onRename,
     },
     {
       label: "New Page",

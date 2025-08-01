@@ -20,6 +20,7 @@ import {
 } from "@blocknote/react";
 import SelectionToolbar from "./extensions/selection-toolbar/selection-toolbar";
 import { CustomDragHandleMenu } from "./extensions/drag-handle/drag-handle";
+import ShareSideMenuButton from "./extensions/tags/share-side-menu-button";
 
 const schema = BlockNoteSchema.create({
   inlineContentSpecs: customInlineContentSpecs,
@@ -86,6 +87,7 @@ export default function NotesEditor() {
             }}
             sideMenu={(props) => (
               <SideMenu {...props}>
+                <ShareSideMenuButton editor={sync.editor} block={props.block} />
                 <TagSideMenuButton editor={sync.editor} block={props.block} />
                 <DragHandleButton
                   {...props}

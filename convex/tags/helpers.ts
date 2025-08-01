@@ -34,15 +34,40 @@ export async function findBlock(
     .first();
 }
 
+export async function getBlockTags(
+  ctx: { db: DatabaseReader },
+  blockDbId: Id<"blocks">,
+): Promise<Id<"tags">[]> {
+  const blockTags = await ctx.db
+    .query("blockTags")
+    .withIndex("by_block", (q) => q.eq("blockId", blockDbId))
+    .collect();
+
+  return blockTags.map((bt) => bt.tagId);
+}
+
 export async function addTagToBlock(
   ctx: { db: DatabaseWriter },
   blockDbId: Id<"blocks">,
-  existingTagIds: Id<"tags">[],
-  newTagId: Id<"tags">,
+  tagId: Id<"tags">,
 ) {
-  if (!existingTagIds.includes(newTagId)) {
+  // Check if the relationship already exists
+  const existing = await ctx.db
+    .query("blockTags")
+    .withIndex("by_block_tag", (q) =>
+      q.eq("blockId", blockDbId).eq("tagId", tagId),
+    )
+    .first();
+
+  if (!existing) {
+    await ctx.db.insert("blockTags", {
+      blockId: blockDbId,
+      tagId: tagId,
+      createdAt: Date.now(),
+    });
+
+    // Update block timestamp
     await ctx.db.patch(blockDbId, {
-      tagIds: [...existingTagIds, newTagId],
       updatedAt: Date.now(),
     });
   }
@@ -52,19 +77,31 @@ export async function addTagToBlock(
 export async function removeTagFromBlock(
   ctx: { db: DatabaseWriter },
   blockDbId: Id<"blocks">,
-  existingTagIds: Id<"tags">[],
   tagIdToRemove: Id<"tags">,
   isTopLevel: boolean,
 ) {
-  const updatedTagIds = existingTagIds.filter((id) => id !== tagIdToRemove);
+  // Remove the tag relationship
+  const blockTag = await ctx.db
+    .query("blockTags")
+    .withIndex("by_block_tag", (q) =>
+      q.eq("blockId", blockDbId).eq("tagId", tagIdToRemove),
+    )
+    .first();
+
+  if (blockTag) {
+    await ctx.db.delete(blockTag._id);
+  }
+
+  // Check if block has any remaining tags
+  const remainingTags = await getBlockTags(ctx, blockDbId);
 
   // If no more tags and it's not a top-level block, delete it
-  if (updatedTagIds.length === 0 && !isTopLevel) {
+  if (remainingTags.length === 0 && !isTopLevel) {
     await ctx.db.delete(blockDbId);
     return null;
   } else {
+    // Update block timestamp
     await ctx.db.patch(blockDbId, {
-      tagIds: updatedTagIds,
       updatedAt: Date.now(),
     });
     return blockDbId;
@@ -211,25 +248,10 @@ export async function saveTopLevelBlocks(
     processedBlockIds.add(blockId);
     const existingBlock = existingBlocksMap.get(blockId);
 
-    // Determine final tag IDs
-    let finalTagIds = inlineTagIds;
-    if (existingBlock) {
-      // For existing blocks, preserve manual tags that aren't inline
-      const oldInlineTagIds = existingBlock.content
-        ? extractTagIdsFromBlockContent(existingBlock.content)
-        : [];
-
-      // Find manual tags (tags that were added via side menu, not inline)
-      const manualTags = existingBlock.tagIds.filter(
-        (tagId) => !oldInlineTagIds.includes(tagId),
-      );
-
-      // Combine current inline tags with preserved manual tags
-      finalTagIds = [...new Set([...inlineTagIds, ...manualTags])];
-    }
+    let finalBlockDbId: Id<"blocks">;
 
     if (existingBlock) {
-      // Update existing block (this will replace placeholder content with real content)
+      // Update existing block
       await ctx.db.patch(existingBlock._id, {
         position: isTopLevel
           ? Array.from(allBlocksWithTags.entries())
@@ -237,13 +259,13 @@ export async function saveTopLevelBlocks(
               .findIndex(([id]) => id === blockId)
           : undefined,
         content: block,
-        tagIds: finalTagIds,
         isTopLevel: isTopLevel,
         updatedAt: now,
       });
+      finalBlockDbId = existingBlock._id;
     } else {
       // Create new block
-      await ctx.db.insert("blocks", {
+      finalBlockDbId = await ctx.db.insert("blocks", {
         noteId,
         blockId: blockId,
         position: isTopLevel
@@ -252,11 +274,68 @@ export async function saveTopLevelBlocks(
               .findIndex(([id]) => id === blockId)
           : undefined,
         content: block,
-        tagIds: finalTagIds,
         isTopLevel: isTopLevel,
         campaignId,
         updatedAt: now,
       });
+    }
+
+    // Handle tags for this block
+    if (existingBlock) {
+      // Get current tags from junction table
+      const currentTagIds = await getBlockTags(ctx, finalBlockDbId);
+
+      // Get old inline tags from previous content
+      const oldInlineTagIds = existingBlock.content
+        ? extractTagIdsFromBlockContent(existingBlock.content)
+        : [];
+
+      // Find manual tags (tags that were added via side menu, not inline)
+      const manualTags = currentTagIds.filter(
+        (tagId) => !oldInlineTagIds.includes(tagId),
+      );
+
+      // Determine final tag IDs (current inline tags + preserved manual tags)
+      const finalTagIds = [...new Set([...inlineTagIds, ...manualTags])];
+
+      // Update tags: remove old ones and add new ones
+      const tagsToRemove = currentTagIds.filter(
+        (tagId) => !finalTagIds.includes(tagId),
+      );
+      const tagsToAdd = finalTagIds.filter(
+        (tagId) => !currentTagIds.includes(tagId),
+      );
+
+      // Remove old tags
+      for (const tagId of tagsToRemove) {
+        const blockTag = await ctx.db
+          .query("blockTags")
+          .withIndex("by_block_tag", (q) =>
+            q.eq("blockId", finalBlockDbId).eq("tagId", tagId),
+          )
+          .first();
+        if (blockTag) {
+          await ctx.db.delete(blockTag._id);
+        }
+      }
+
+      // Add new tags
+      for (const tagId of tagsToAdd) {
+        await ctx.db.insert("blockTags", {
+          blockId: finalBlockDbId,
+          tagId: tagId,
+          createdAt: now,
+        });
+      }
+    } else {
+      // For new blocks, just add all inline tags
+      for (const tagId of inlineTagIds) {
+        await ctx.db.insert("blockTags", {
+          blockId: finalBlockDbId,
+          tagId: tagId,
+          createdAt: now,
+        });
+      }
     }
   }
 
@@ -264,12 +343,13 @@ export async function saveTopLevelBlocks(
   for (const existingBlock of existingBlocks) {
     if (!processedBlockIds.has(existingBlock.blockId)) {
       // Block was removed from content
-      if (existingBlock.tagIds.length === 0) {
+      const currentTagIds = await getBlockTags(ctx, existingBlock._id);
+
+      if (currentTagIds.length === 0) {
         // No tags, safe to delete
         await ctx.db.delete(existingBlock._id);
       } else {
         // This block has tags but is no longer in the content
-        // This could be a placeholder block or a block that was deleted from content but still has tags
         // Keep it but mark as non-top-level
         await ctx.db.patch(existingBlock._id, {
           isTopLevel: false,

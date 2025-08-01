@@ -12,11 +12,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { FolderName } from "./folder-name";
 import { FolderContextMenu } from "./folder-context-menu";
-import { Folder } from "@/convex/notes/types";
+import { FolderNode } from "@/convex/notes/types";
 import { DraggableFolder } from "./draggable-folder";
 
 interface FolderButtonProps {
-  folder: Folder;
+  folder: FolderNode;
   isExpanded: boolean;
   isRenaming: boolean;
   hasItems: boolean;
@@ -41,7 +41,7 @@ export function FolderButton({
   return (
     <DraggableFolder folder={folder}>
       <FolderContextMenu
-        onEdit={onStartRename}
+        onRename={onStartRename}
         onDelete={onDelete}
         onNewPage={onNewPage}
       >

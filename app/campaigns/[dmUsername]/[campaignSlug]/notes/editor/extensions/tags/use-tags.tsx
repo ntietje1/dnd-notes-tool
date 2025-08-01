@@ -59,7 +59,7 @@ export function useTags() {
   );
 
   return {
-    tags,
+    tags: tags?.filter((tag) => tag.type !== "system"),
     createTag: handleCreateTag,
     deleteTag: handleDeleteTag,
     addTagToBlock: handleAddTagToBlock,

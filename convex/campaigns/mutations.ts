@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, QueryCtx } from "../_generated/server";
 import { getBaseUserId, verifyUserIdentity } from "../model/helpers";
 import { Id } from "../_generated/dataModel";
+import { SYSTEM_TAGS } from "../tags/types";
 
 export const createCampaign = mutation({
   args: {
@@ -57,11 +58,10 @@ export const createCampaign = mutation({
     });
 
     await ctx.db.insert("tags", {
-      name: "Shared",
+      name: SYSTEM_TAGS.shared,
       color: "#FFFF00",
       campaignId,
-      type: "shared",
-      mutable: false,
+      type: "system",
       updatedAt: now,
     });
 
