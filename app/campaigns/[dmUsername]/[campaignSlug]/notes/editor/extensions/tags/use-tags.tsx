@@ -12,9 +12,9 @@ export function useTags() {
   });
   const createTag = useMutation(api.tags.mutations.createTag);
   const deleteTag = useMutation(api.tags.mutations.deleteTag);
-  const addTagToBlock = useMutation(api.notes.mutations.addTagToBlock);
+  const addTagToBlock = useMutation(api.notes.mutations.addTagToBlockMutation);
   const removeTagFromBlock = useMutation(
-    api.notes.mutations.removeTagFromBlock,
+    api.notes.mutations.removeTagFromBlockMutation,
   );
 
   const handleCreateTag = useCallback(

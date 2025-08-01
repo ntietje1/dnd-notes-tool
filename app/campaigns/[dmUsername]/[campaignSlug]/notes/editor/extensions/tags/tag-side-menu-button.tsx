@@ -6,7 +6,7 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { CustomBlockNoteEditor } from "./tags";
 import { Badge } from "@/components/ui/badge";
-import { TagIcon, PlusIcon, CheckIcon } from "lucide-react";
+import { TagIcon, PlusIcon, CheckIcon, LockIcon } from "lucide-react";
 import { useComponentsContext } from "@blocknote/react";
 
 interface TagSideMenuButtonProps {
@@ -20,16 +20,16 @@ export default function TagSideMenuButton({
 }: TagSideMenuButtonProps) {
   const { tags } = useTags();
   const { currentNote } = useNotes();
-  const addTagToBlock = useMutation(api.notes.mutations.addTagToBlock);
+  const addTagToBlock = useMutation(api.notes.mutations.addTagToBlockMutation);
   const removeTagFromBlock = useMutation(
-    api.notes.mutations.removeTagFromBlock,
+    api.notes.mutations.removeTagFromBlockMutation,
   );
   const [isOpen, setIsOpen] = useState(false);
   const buttonRef = useRef<HTMLDivElement>(null);
 
   const Components = useComponentsContext()!;
 
-  const blockTags = useQuery(api.notes.queries.getBlockTags, {
+  const blockTagState = useQuery(api.notes.queries.getBlockTagState, {
     noteId: currentNote?._id!,
     blockId: block.id,
   });
@@ -66,28 +66,45 @@ export default function TagSideMenuButton({
   }, [isOpen]);
 
   const handleAddTag = async (tagId: Id<"tags">) => {
-    if (!currentNote?._id) return;
+    if (!currentNote) return;
 
-    await addTagToBlock({
-      noteId: currentNote._id,
-      blockId: block.id,
-      tagId,
-    });
+    try {
+      await addTagToBlock({
+        noteId: currentNote._id,
+        blockId: block.id,
+        tagId,
+      });
+    } catch (error) {
+      console.error("Failed to add tag:", error);
+      // Show user-friendly error message
+      alert(error instanceof Error ? error.message : "Failed to add tag");
+    }
   };
 
   const handleRemoveTag = async (tagId: Id<"tags">) => {
-    if (!currentNote?._id) return;
+    if (!currentNote) return;
 
-    await removeTagFromBlock({
-      noteId: currentNote._id,
-      blockId: block.id,
-      tagId,
-    });
+    try {
+      await removeTagFromBlock({
+        noteId: currentNote._id,
+        blockId: block.id,
+        tagId,
+      });
+    } catch (error) {
+      console.error("Failed to remove tag:", error);
+      // Show user-friendly error message
+      alert(error instanceof Error ? error.message : "Failed to remove tag");
+    }
   };
 
-  const currentBlockTags = blockTags || [];
+  // Get tag state
+  const inlineTagIds = blockTagState?.inlineTagIds || [];
+  const manualTagIds = blockTagState?.manualTagIds || [];
+  const allBlockTagIds = blockTagState?.allTagIds || [];
+
+  // Tags available for addition (not already on the block)
   const availableTags =
-    tags?.filter((tag) => !currentBlockTags.includes(tag._id)) || [];
+    tags?.filter((tag) => !allBlockTagIds.includes(tag._id)) || [];
 
   return (
     <div ref={buttonRef} className="relative flex items-center">
@@ -112,18 +129,45 @@ export default function TagSideMenuButton({
             <div className="border-t border-gray-200 my-2"></div>
 
             {/* Current tags */}
-            {currentBlockTags.length > 0 && (
+            {allBlockTagIds.length > 0 && (
               <>
                 <div className="px-2 py-1.5 text-xs text-muted-foreground">
                   Current tags:
                 </div>
-                {currentBlockTags.map((tagId) => {
+
+                {/* Inline tags (locked) */}
+                {inlineTagIds.map((tagId) => {
                   const tag = tags?.find((t) => t._id === tagId);
                   if (!tag) return null;
 
                   return (
                     <div
-                      key={tagId}
+                      key={`inline-${tagId}`}
+                      className="flex items-center justify-between px-2 py-1.5 rounded opacity-75"
+                    >
+                      <Badge
+                        variant="secondary"
+                        style={{
+                          backgroundColor: `${tag.color}20`,
+                          color: tag.color,
+                        }}
+                      >
+                        {tag.name}
+                      </Badge>
+
+                      <LockIcon className="h-3 w-3" />
+                    </div>
+                  );
+                })}
+
+                {/* Manual tags (removable) */}
+                {manualTagIds.map((tagId) => {
+                  const tag = tags?.find((t) => t._id === tagId);
+                  if (!tag) return null;
+
+                  return (
+                    <div
+                      key={`manual-${tagId}`}
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();

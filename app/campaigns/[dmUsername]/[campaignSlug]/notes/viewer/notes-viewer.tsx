@@ -37,9 +37,7 @@ export default function NotesViewer() {
     return BlockNoteEditor.create({
       schema,
       initialContent:
-        blocks.length > 0
-          ? blocks.map((block) => block.blockContent)
-          : undefined,
+        blocks.length > 0 ? blocks.map((block) => block.content) : undefined,
     });
   }, [blocks, schema]);
 

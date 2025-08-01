@@ -4,12 +4,12 @@ import { Doc } from "../_generated/dataModel";
 import { Id } from "../_generated/dataModel";
 import {
   validateTagBelongsToCampaign,
-  findTaggedBlock,
-  addTagToTaggedBlock,
-  removeTagFromTaggedBlock,
+  findBlock,
+  addTagToBlock,
+  removeTagFromBlock,
+  saveTopLevelBlocks,
   findBlockById,
-  extractTagIdsFromBlock,
-  extractAllTagIdsFromContent,
+  extractTagIdsFromBlockContent,
 } from "../tags/helpers";
 import { getBaseUserId, verifyUserIdentity } from "../model/helpers";
 
@@ -33,48 +33,8 @@ export const updateNote = mutation({
     };
 
     if (args.content !== undefined) {
-      updates.content = args.content;
-
-      const blockTagMap = extractAllTagIdsFromContent(args.content);
-
-      const existingTaggedBlocks = await ctx.db
-        .query("taggedBlocks")
-        .withIndex("by_note", (q) => q.eq("noteId", args.noteId))
-        .collect();
-
-      const existingBlockLevelTags = new Map<string, Id<"tags">[]>();
-
-      for (const taggedBlock of existingTaggedBlocks) {
-        const inlineTagIds = blockTagMap.get(taggedBlock.blockId) || [];
-
-        if (inlineTagIds.length === 0) {
-          existingBlockLevelTags.set(taggedBlock.blockId, taggedBlock.tagIds);
-        }
-      }
-
-      for (const taggedBlock of existingTaggedBlocks) {
-        await ctx.db.delete(taggedBlock._id);
-      }
-
-      for (const [blockId, tagIds] of blockTagMap.entries()) {
-        await ctx.db.insert("taggedBlocks", {
-          noteId: args.noteId,
-          blockId,
-          campaignId: note.campaignId,
-          tagIds,
-          updatedAt: now,
-        });
-      }
-
-      for (const [blockId, tagIds] of existingBlockLevelTags.entries()) {
-        await ctx.db.insert("taggedBlocks", {
-          noteId: args.noteId,
-          blockId,
-          campaignId: note.campaignId,
-          tagIds,
-          updatedAt: now,
-        });
-      }
+      // Save top-level blocks to the blocks table
+      await saveTopLevelBlocks(ctx, args.noteId, note.campaignId, args.content);
     }
 
     if (args.name !== undefined) {
@@ -116,6 +76,17 @@ export const deleteNote = mutation({
   },
   handler: async (ctx, args) => {
     await verifyUserIdentity(ctx);
+
+    // Delete all blocks associated with this note
+    const blocks = await ctx.db
+      .query("blocks")
+      .withIndex("by_note", (q) => q.eq("noteId", args.noteId))
+      .collect();
+
+    for (const block of blocks) {
+      await ctx.db.delete(block._id);
+    }
+
     await ctx.db.delete(args.noteId);
     return args.noteId;
   },
@@ -149,6 +120,16 @@ export const deleteFolder = mutation({
 
       for (const note of notesInFolder) {
         if (note.userId === userId) {
+          // Delete all blocks associated with this note
+          const blocks = await ctx.db
+            .query("blocks")
+            .withIndex("by_note", (q) => q.eq("noteId", note._id))
+            .collect();
+
+          for (const block of blocks) {
+            await ctx.db.delete(block._id);
+          }
+
           await ctx.db.delete(note._id);
         }
       }
@@ -207,17 +188,33 @@ export const createNote = mutation({
     const noteId = await ctx.db.insert("notes", {
       userId: getBaseUserId(identity.subject),
       name: args.name || "",
-      content: { type: "doc", content: [{ type: "paragraph", content: [] }] },
       parentFolderId: args.parentFolderId,
       updatedAt: Date.now(),
       campaignId: args.campaignId,
+    });
+
+    // Create initial empty paragraph block
+    const initialBlockId = crypto.randomUUID();
+    await ctx.db.insert("blocks", {
+      noteId,
+      blockId: initialBlockId,
+      position: 0,
+      content: {
+        type: "paragraph",
+        id: initialBlockId,
+        content: [],
+      },
+      tagIds: [],
+      isTopLevel: true,
+      campaignId: args.campaignId,
+      updatedAt: Date.now(),
     });
 
     return noteId;
   },
 });
 
-export const addTagToBlock = mutation({
+export const addTagToBlockMutation = mutation({
   args: {
     noteId: v.id("notes"),
     blockId: v.string(),
@@ -233,34 +230,95 @@ export const addTagToBlock = mutation({
 
     await validateTagBelongsToCampaign(ctx, args.tagId, note.campaignId);
 
-    const existingTaggedBlock = await findTaggedBlock(
-      ctx,
-      args.noteId,
-      args.blockId,
-    );
+    const existingBlock = await findBlock(ctx, args.noteId, args.blockId);
 
-    if (existingTaggedBlock) {
-      await addTagToTaggedBlock(
+    if (existingBlock) {
+      // Check if this tag already exists as an inline tag in the block content
+      const inlineTagIds = extractTagIdsFromBlockContent(existingBlock.content);
+      if (inlineTagIds.includes(args.tagId)) {
+        throw new Error(
+          "Cannot manually add tag that already exists as inline tag in block content",
+        );
+      }
+
+      await addTagToBlock(
         ctx,
-        existingTaggedBlock._id,
-        existingTaggedBlock.tagIds,
+        existingBlock._id,
+        existingBlock.tagIds,
         args.tagId,
       );
     } else {
-      await ctx.db.insert("taggedBlocks", {
-        campaignId: note.campaignId,
-        noteId: args.noteId,
-        blockId: args.blockId,
-        tagIds: [args.tagId],
-        updatedAt: Date.now(),
-      });
+      // Get ALL blocks for this note (not just top-level)
+      const allBlocks = await ctx.db
+        .query("blocks")
+        .withIndex("by_note", (q) => q.eq("noteId", args.noteId))
+        .collect();
+
+      if (allBlocks.length === 0) {
+        // Content hasn't been saved yet, create a minimal block entry
+        // This will be updated with proper content when the note is next saved
+        await ctx.db.insert("blocks", {
+          noteId: args.noteId,
+          blockId: args.blockId,
+          position: undefined,
+          content: {
+            id: args.blockId,
+            type: "paragraph",
+            content: [
+              {
+                type: "text",
+                text: "[Tagged block - content will be updated on next save]",
+              },
+            ],
+          },
+          tagIds: [args.tagId],
+          isTopLevel: false,
+          campaignId: note.campaignId,
+          updatedAt: Date.now(),
+        });
+        return args.blockId;
+      }
+
+      // Try to find the block in existing content
+      const topLevelBlocks = allBlocks
+        .filter((block) => block.isTopLevel)
+        .sort((a, b) => (a.position || 0) - (b.position || 0));
+
+      const currentContent = topLevelBlocks.map((block) => block.content);
+
+      // Find the specific block in the content structure
+      const targetBlock = findBlockById(currentContent, args.blockId);
+
+      if (targetBlock) {
+        // Check if this tag already exists as an inline tag in the target block
+        const inlineTagIds = extractTagIdsFromBlockContent(targetBlock);
+        if (inlineTagIds.includes(args.tagId)) {
+          throw new Error(
+            "Cannot manually add tag that already exists as inline tag in block content",
+          );
+        }
+
+        // Create a new block entry with the actual content
+        await ctx.db.insert("blocks", {
+          noteId: args.noteId,
+          blockId: args.blockId,
+          position: undefined, // Not a top-level block
+          content: targetBlock,
+          tagIds: [args.tagId],
+          isTopLevel: false,
+          campaignId: note.campaignId,
+          updatedAt: Date.now(),
+        });
+      } else {
+        throw new Error(`Block ${args.blockId} not found in note content`);
+      }
     }
 
     return args.blockId;
   },
 });
 
-export const removeTagFromBlock = mutation({
+export const removeTagFromBlockMutation = mutation({
   args: {
     noteId: v.id("notes"),
     blockId: v.string(),
@@ -274,23 +332,23 @@ export const removeTagFromBlock = mutation({
       throw new Error("Note not found or unauthorized");
     }
 
-    const taggedBlock = await findTaggedBlock(ctx, args.noteId, args.blockId);
+    const block = await findBlock(ctx, args.noteId, args.blockId);
 
-    if (taggedBlock) {
-      const blockContent = note.content;
-      const inlineTagIds = extractTagIdsFromBlock(
-        findBlockById(blockContent, args.blockId),
-      );
-
+    if (block) {
+      // Check if this tag exists as an inline tag in the block content
+      const inlineTagIds = extractTagIdsFromBlockContent(block.content);
       if (inlineTagIds.includes(args.tagId)) {
-        return args.blockId;
+        throw new Error(
+          "Cannot manually remove tag that exists as inline tag in block content",
+        );
       }
 
-      await removeTagFromTaggedBlock(
+      await removeTagFromBlock(
         ctx,
-        taggedBlock._id,
-        taggedBlock.tagIds,
+        block._id,
+        block.tagIds,
         args.tagId,
+        block.isTopLevel,
       );
     }
 

@@ -12,7 +12,11 @@ import {
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { AnySidebarItem, Note, SidebarItemType } from "@/convex/notes/types";
+import {
+  AnySidebarItem,
+  NoteWithContent,
+  SidebarItemType,
+} from "@/convex/notes/types";
 import { CustomBlock } from "@/app/campaigns/[dmUsername]/[campaignSlug]/notes/editor/extensions/tags/tags";
 import { Campaign } from "@/convex/campaigns/types";
 import { debounce } from "lodash-es";
@@ -28,7 +32,7 @@ export interface SortOptions {
 type NotesContextType = {
   // State
   currentCampaign: Campaign | null | undefined;
-  currentNote: Note | null | undefined;
+  currentNote: NoteWithContent | null | undefined;
   expandedFolders: Set<Id<"folders">>;
   sidebarData: AnySidebarItem[] | undefined;
   isLoading: boolean;
@@ -127,10 +131,6 @@ export function NotesProvider({
   noteId,
   children,
 }: NotesProviderProps) {
-  console.log(
-    "got params in context:",
-    dmUsername + " / " + campaignSlug + " / " + noteId,
-  );
   // Local state
   const [expandedFolders, setExpandedFolders] = useState<Set<Id<"folders">>>(
     new Set(),
@@ -175,18 +175,6 @@ export function NotesProvider({
     return recursiveSortItemsByOptions(sidebarItems, sortOptions);
   }, [sidebarItems, sortOptions]);
 
-  // Compute optimistic current note: use sidebarData if currentNote is undefined
-  let optimisticCurrentNote = currentNote;
-  if (optimisticCurrentNote === undefined && noteId && sidebarData) {
-    const found =
-      sidebarData && sidebarData.length > 0
-        ? findItemInSidebar(noteId as Id<"notes">, sidebarData)
-        : undefined;
-    if (found && found.type === "notes") {
-      optimisticCurrentNote = found as Note;
-    }
-  }
-
   // Track initial loading state
   useEffect(() => {
     if (currentCampaign !== undefined && sidebarData !== undefined) {
@@ -198,7 +186,7 @@ export function NotesProvider({
   const isCampaignLoading = currentCampaign === undefined;
   const isEditorLoading = currentCampaign?._id && currentEditor === undefined;
   const isSidebarLoading = currentCampaign?._id && sidebarData === undefined;
-  const isNoteLoading = !!noteId && optimisticCurrentNote === undefined;
+  const isNoteLoading = !!noteId && currentNote === undefined;
 
   const isLoading =
     isCampaignLoading || isEditorLoading || isSidebarLoading || isNoteLoading;
@@ -270,15 +258,15 @@ export function NotesProvider({
 
   const updateNoteContent = useCallback(
     async (content: CustomBlock[]) => {
-      if (!optimisticCurrentNote?._id) return;
+      if (!currentNote?._id) return;
 
       const sanitizedContent = sanitizeContent(content);
       await updateNote({
-        noteId: optimisticCurrentNote._id,
+        noteId: currentNote._id,
         content: sanitizedContent,
       });
     },
-    [optimisticCurrentNote?._id, updateNote],
+    [currentNote?._id, updateNote],
   );
 
   const updateNoteName = useCallback(
@@ -345,11 +333,11 @@ export function NotesProvider({
   const deleteNote = useCallback(
     async (noteId: Id<"notes">) => {
       await deleteNoteAction({ noteId });
-      if (optimisticCurrentNote?._id === noteId) {
+      if (currentNote?._id === noteId) {
         selectNote(null);
       }
     },
-    [deleteNoteAction, optimisticCurrentNote?._id, selectNote],
+    [deleteNoteAction, currentNote?._id, selectNote],
   );
 
   const deleteFolder = useCallback(
@@ -427,7 +415,7 @@ export function NotesProvider({
   };
 
   const debouncedUpdateNoteContent = useMemo(
-    () => debounce(updateNoteContent, 1250),
+    () => debounce(updateNoteContent, 2000),
     [updateNoteContent],
   );
 
@@ -439,8 +427,8 @@ export function NotesProvider({
 
   const value: NotesContextType = {
     // State
-    currentCampaign: currentCampaign,
-    currentNote: optimisticCurrentNote,
+    currentCampaign,
+    currentNote,
     expandedFolders,
     sidebarData,
     isLoading,

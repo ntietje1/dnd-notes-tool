@@ -46,7 +46,10 @@ export default function NotesEditor() {
       "create" in sync &&
       sync.create
     ) {
-      sync.create(currentNote.content);
+      sync.create({
+        content: currentNote.content as any, // JSONContent[] from @tiptap/core
+        type: "doc",
+      });
     }
   }, [currentNote, sync.editor, sync.isLoading, sync]);
 

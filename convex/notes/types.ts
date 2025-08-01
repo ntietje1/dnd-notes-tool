@@ -17,10 +17,7 @@ export type SidebarItem<T extends SidebarItemType> = {
   type: T;
 };
 
-export type Note = SidebarItem<"notes"> & {
-  content: CustomBlock[];
-  tagIds?: Id<"tags">[];
-};
+export type Note = SidebarItem<"notes">;
 
 export const UNTITLED_NOTE_TITLE = "Untitled Note";
 export const UNTITLED_FOLDER_NAME = "Untitled Folder";
@@ -40,11 +37,17 @@ export type RawSidebarData = {
   notes: Note[];
 };
 
-export type BlockWithTags = {
+export type Block = {
+  _id: Id<"blocks">;
+  _creationTime: number;
   noteId: Id<"notes">;
-  noteName?: string;
   blockId: string;
-  blockContent: CustomBlock;
+  position?: number;
+  content: CustomBlock;
   tagIds: Id<"tags">[];
+  isTopLevel: boolean;
+  campaignId: Id<"campaigns">;
   updatedAt: number;
 };
+
+export type NoteWithContent = Note & { content: CustomBlock[] };
