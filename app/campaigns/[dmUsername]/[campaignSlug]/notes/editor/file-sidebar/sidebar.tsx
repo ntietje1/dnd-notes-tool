@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { Id } from "@/convex/_generated/dataModel";
-import { Note, FolderNode, AnySidebarItem } from "@/convex/notes/types";
+import { AnySidebarItem } from "@/convex/notes/types";
 import {
   DndContext,
   DragEndEvent,
@@ -28,8 +28,16 @@ type DraggableItem =
     };
 
 export function FileSidebar() {
-  const { openFolder, moveNote, moveFolder, createNote, sidebarData } =
-    useNotes();
+  const {
+    openFolder,
+    moveNote,
+    moveFolder,
+    createNote,
+    sidebarData,
+    findNoteRecursively,
+    findFolderRecursively,
+    isFolderDescendant,
+  } = useNotes();
 
   const [renamingId, setRenamingId] = useState<
     Id<"folders"> | Id<"notes"> | null
@@ -56,43 +64,21 @@ export function FileSidebar() {
     (event: DragStartEvent) => {
       const { active } = event;
 
-      const findNote = (items: AnySidebarItem[]): Note | undefined => {
-        for (const item of items) {
-          if (item.type === "notes" && item._id === active.id) {
-            return item;
-          }
-          if (item.type === "folders") {
-            const found = findNote(item.children);
-            if (found) return found;
-          }
-        }
-        return undefined;
-      };
-
-      const findFolder = (items: AnySidebarItem[]): FolderNode | undefined => {
-        for (const item of items) {
-          if (item.type === "folders") {
-            if (item._id === active.id) return item;
-            const found = findFolder(item.children);
-            if (found) return found;
-          }
-        }
-        return undefined;
-      };
-
       if (!sidebarData) return;
 
-      const draggedNote = findNote(sidebarData);
+      // Try to find the dragged item
+      const draggedNote = findNoteRecursively(active.id as Id<"notes">);
       if (draggedNote) {
         setActiveDragItem(draggedNote);
+        return;
       }
 
-      const draggedFolder = findFolder(sidebarData);
+      const draggedFolder = findFolderRecursively(active.id as Id<"folders">);
       if (draggedFolder) {
         setActiveDragItem(draggedFolder);
       }
     },
-    [sidebarData],
+    [sidebarData, findNoteRecursively, findFolderRecursively],
   );
 
   const handleDragEnd = useCallback(
@@ -104,12 +90,14 @@ export function FileSidebar() {
 
       const draggedItem = active.data.current as DraggableItem;
 
+      console.log("draggedItem", draggedItem);
+
       // Note dragging
       if (draggedItem.type === "note") {
-        const note = sidebarData?.find(
-          (item): item is Note =>
-            item.type === "notes" && item._id === draggedItem.id,
-        );
+        console.log("dragging note");
+        const note = findNoteRecursively(draggedItem.id);
+        console.log("note", note);
+
         if (note) {
           let parentFolderId: Id<"folders"> | undefined = undefined;
 
@@ -118,15 +106,28 @@ export function FileSidebar() {
             openFolder(parentFolderId);
           }
 
+          console.log("parentFolderId", parentFolderId);
           await moveNote(note._id, parentFolderId);
         }
       }
 
       // Folder dragging
       if (draggedItem.type === "folder") {
+        console.log("dragging folder");
+
         // Prevent dragging a folder onto itself
         if (over.id === draggedItem.id) {
+          console.log("Cannot drag folder onto itself");
           return;
+        }
+
+        // Prevent dragging a folder onto its descendants
+        if (over.id !== "root") {
+          const targetFolderId = over.id as Id<"folders">;
+          if (isFolderDescendant(draggedItem.id, targetFolderId)) {
+            console.log("Cannot drag folder onto its descendant");
+            return;
+          }
         }
 
         let parentId: Id<"folders"> | undefined = undefined;
@@ -134,10 +135,18 @@ export function FileSidebar() {
           parentId = over.id as Id<"folders">;
         }
 
+        console.log("Moving folder", draggedItem.id, "to parent", parentId);
         await moveFolder(draggedItem.id, parentId);
       }
     },
-    [sidebarData, moveNote, moveFolder, openFolder],
+    [
+      findNoteRecursively,
+      findFolderRecursively,
+      isFolderDescendant,
+      moveNote,
+      moveFolder,
+      openFolder,
+    ],
   );
 
   return (

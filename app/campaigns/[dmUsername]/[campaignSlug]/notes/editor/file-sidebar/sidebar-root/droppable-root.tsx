@@ -17,6 +17,10 @@ export function DroppableRoot({
 }: DroppableRootProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: "root",
+    data: {
+      accepts: ["folder", "note"],
+      id: "root",
+    },
   });
 
   return (

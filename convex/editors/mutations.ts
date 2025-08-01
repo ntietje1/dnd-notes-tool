@@ -13,6 +13,7 @@ export const setCurrentEditor = mutation({
       ),
     ),
     sortDirection: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
+    foldersAlwaysOnTop: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const identity = await verifyUserIdentity(ctx);
@@ -32,6 +33,7 @@ export const setCurrentEditor = mutation({
         campaignId: args.campaignId!,
         sortOrder: args.sortOrder ?? "alphabetical",
         sortDirection: args.sortDirection ?? "asc",
+        foldersAlwaysOnTop: args.foldersAlwaysOnTop ?? false,
       });
     }
 
@@ -39,6 +41,9 @@ export const setCurrentEditor = mutation({
       ...(args.sortOrder !== undefined && { sortOrder: args.sortOrder }),
       ...(args.sortDirection !== undefined && {
         sortDirection: args.sortDirection,
+      }),
+      ...(args.foldersAlwaysOnTop !== undefined && {
+        foldersAlwaysOnTop: args.foldersAlwaysOnTop,
       }),
     });
   },

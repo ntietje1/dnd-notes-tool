@@ -16,6 +16,8 @@ import {
   AnySidebarItem,
   NoteWithContent,
   SidebarItemType,
+  Note,
+  FolderNode,
 } from "@/convex/notes/types";
 import { CustomBlock } from "@/app/campaigns/[dmUsername]/[campaignSlug]/notes/editor/extensions/tags/tags";
 import { Campaign } from "@/convex/campaigns/types";
@@ -27,6 +29,7 @@ export type SortDirection = "asc" | "desc";
 export interface SortOptions {
   order: SortOrder;
   direction: SortDirection;
+  foldersAlwaysOnTop: boolean;
 }
 
 type NotesContextType = {
@@ -59,7 +62,15 @@ type NotesContextType = {
     parentId?: Id<"folders">,
   ) => Promise<void>;
   updateFolderName: (folderId: Id<"folders">, name: string) => Promise<void>;
-  setSortOptions: (options: SortOptions) => void;
+  setSortOptions: (options: SortOptions) => Promise<void>;
+
+  // Drag & Drop helpers
+  findNoteRecursively: (noteId: Id<"notes">) => Note | undefined;
+  findFolderRecursively: (folderId: Id<"folders">) => FolderNode | undefined;
+  isFolderDescendant: (
+    parentFolderId: Id<"folders">,
+    targetFolderId: Id<"folders">,
+  ) => boolean;
 };
 
 const NotesContext = createContext<NotesContextType | null>(null);
@@ -88,6 +99,20 @@ function recursiveSortItemsByOptions(
 
   return [...items]
     .sort((a, b) => {
+      if (
+        options.foldersAlwaysOnTop &&
+        a.type === "folders" &&
+        b.type !== "folders"
+      ) {
+        return -1;
+      }
+      if (
+        options.foldersAlwaysOnTop &&
+        a.type !== "folders" &&
+        b.type === "folders"
+      ) {
+        return 1;
+      }
       switch (order) {
         case "alphabetical":
           const nameA = a.name || "";
@@ -165,8 +190,13 @@ export function NotesProvider({
     () => ({
       order: currentEditor?.sortOrder ?? "dateCreated",
       direction: currentEditor?.sortDirection ?? "desc",
+      foldersAlwaysOnTop: currentEditor?.foldersAlwaysOnTop ?? false,
     }),
-    [currentEditor?.sortOrder, currentEditor?.sortDirection],
+    [
+      currentEditor?.sortOrder,
+      currentEditor?.sortDirection,
+      currentEditor?.foldersAlwaysOnTop,
+    ],
   );
 
   // Compute sorted sidebar data
@@ -192,6 +222,86 @@ export function NotesProvider({
     isCampaignLoading || isEditorLoading || isSidebarLoading || isNoteLoading;
 
   const isInitialLoading = isInitialLoad && isLoading;
+
+  // Drag & Drop helper functions
+  const findNoteRecursively = useCallback(
+    (noteId: Id<"notes">): Note | undefined => {
+      if (!sidebarData) return undefined;
+
+      const findInItems = (items: AnySidebarItem[]): Note | undefined => {
+        for (const item of items) {
+          if (item.type === "notes" && item._id === noteId) {
+            return item;
+          }
+          if (item.type === "folders") {
+            const found = findInItems(item.children);
+            if (found) return found;
+          }
+        }
+        return undefined;
+      };
+
+      return findInItems(sidebarData);
+    },
+    [sidebarData],
+  );
+
+  const findFolderRecursively = useCallback(
+    (folderId: Id<"folders">): FolderNode | undefined => {
+      if (!sidebarData) return undefined;
+
+      const findInItems = (items: AnySidebarItem[]): FolderNode | undefined => {
+        for (const item of items) {
+          if (item.type === "folders") {
+            if (item._id === folderId) return item;
+            const found = findInItems(item.children);
+            if (found) return found;
+          }
+        }
+        return undefined;
+      };
+
+      return findInItems(sidebarData);
+    },
+    [sidebarData],
+  );
+
+  const isFolderDescendant = useCallback(
+    (parentFolderId: Id<"folders">, targetFolderId: Id<"folders">): boolean => {
+      if (!sidebarData) return false;
+
+      const findInItems = (items: AnySidebarItem[]): boolean => {
+        for (const item of items) {
+          if (item.type === "folders" && item._id === parentFolderId) {
+            // Check if targetFolderId is in this folder's children
+            const checkChildren = (children: AnySidebarItem[]): boolean => {
+              for (const child of children) {
+                if (child.type === "folders") {
+                  if (child._id === targetFolderId) {
+                    return true;
+                  }
+                  if (checkChildren(child.children)) {
+                    return true;
+                  }
+                }
+              }
+              return false;
+            };
+            return checkChildren(item.children);
+          }
+          if (item.type === "folders") {
+            if (findInItems(item.children)) {
+              return true;
+            }
+          }
+        }
+        return false;
+      };
+
+      return findInItems(sidebarData);
+    },
+    [sidebarData],
+  );
 
   const setCurrentEditor = useMutation(api.editors.mutations.setCurrentEditor);
 
@@ -390,6 +500,7 @@ export function NotesProvider({
         campaignId: currentCampaign._id,
         sortOrder: options.order,
         sortDirection: options.direction,
+        foldersAlwaysOnTop: options.foldersAlwaysOnTop,
       });
     },
     [currentCampaign?._id, setCurrentEditor],
@@ -450,6 +561,11 @@ export function NotesProvider({
     moveNote,
     moveFolder,
     setSortOptions,
+
+    // Drag & Drop helpers
+    findNoteRecursively,
+    findFolderRecursively,
+    isFolderDescendant,
   };
 
   return (

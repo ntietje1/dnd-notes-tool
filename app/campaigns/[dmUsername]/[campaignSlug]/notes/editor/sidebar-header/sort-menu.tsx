@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
@@ -19,7 +20,8 @@ import {
   CalendarArrowDown,
   SortAsc,
 } from "lucide-react";
-import { useNotes, SortDirection, SortOrder } from "@/contexts/NotesContext";
+import { useNotes } from "@/contexts/NotesContext";
+import { SortDirection, SortOrder } from "@/convex/editors/types";
 
 export function SortMenu() {
   const { sortOptions, setSortOptions } = useNotes();
@@ -40,6 +42,10 @@ export function SortMenu() {
 
   const handleSortDirectionChange = (value: string) => {
     setSortOptions({ ...sortOptions, direction: value as SortDirection });
+  };
+
+  const handleFoldersAlwaysOnTopChange = (value: boolean) => {
+    setSortOptions({ ...sortOptions, foldersAlwaysOnTop: value });
   };
 
   return (
@@ -95,6 +101,13 @@ export function SortMenu() {
             Descending
           </DropdownMenuRadioItem>
         </DropdownMenuRadioGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuCheckboxItem
+          checked={sortOptions.foldersAlwaysOnTop}
+          onCheckedChange={handleFoldersAlwaysOnTopChange}
+        >
+          Folders always on top
+        </DropdownMenuCheckboxItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

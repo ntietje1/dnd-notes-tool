@@ -10,4 +10,5 @@ export type Editor = {
   userId: Id<"users">;
   sortOrder: SortOrder;
   sortDirection: SortDirection;
+  foldersAlwaysOnTop: boolean;
 };

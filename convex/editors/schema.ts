@@ -11,5 +11,6 @@ export const editorTables = {
       v.literal("dateModified"),
     ),
     sortDirection: v.union(v.literal("asc"), v.literal("desc")),
+    foldersAlwaysOnTop: v.boolean(),
   }).index("by_campaign_user", ["campaignId", "userId"]),
 };

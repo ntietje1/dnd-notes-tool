@@ -8,26 +8,14 @@ import { useTags } from "./use-tags";
 import { CustomBlockNoteEditor } from "@/app/campaigns/[dmUsername]/[campaignSlug]/notes/editor/extensions/tags/tags";
 
 const getTagMenuItems = (
-  editor?: CustomBlockNoteEditor,
+  onAddTag: (tag: Tag) => void,
   tags?: Tag[],
 ): DefaultReactSuggestionItem[] => {
   if (!tags) return [];
 
   return tags.map((tag: Tag) => ({
     title: tag.name,
-    onItemClick: () => {
-      editor?.insertInlineContent([
-        {
-          type: "tag",
-          props: {
-            tagId: tag._id,
-            tagName: tag.name,
-            tagColor: tag.color,
-          },
-        },
-        " ", // add a space after the mention
-      ]);
-    },
+    onItemClick: () => onAddTag(tag),
   }));
 };
 
@@ -38,11 +26,23 @@ export default function TagMenu({
 }) {
   const { tags } = useTags();
 
+  const onAddTag = (tag: Tag) => {
+    if (!editor) return;
+
+    editor.insertInlineContent([
+      {
+        type: "tag",
+        props: { tagId: tag._id, tagName: tag.name, tagColor: tag.color },
+      },
+      " ", // add a space after the mention
+    ]);
+  };
+
   return (
     <SuggestionMenuController
       triggerCharacter={"@"}
       getItems={async (query) =>
-        filterSuggestionItems(getTagMenuItems(editor, tags), query)
+        filterSuggestionItems(getTagMenuItems(onAddTag, tags), query)
       }
     />
   );
