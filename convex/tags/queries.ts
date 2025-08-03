@@ -40,7 +40,9 @@ export const getTags = query({
 
     const tags = await ctx.db
       .query("tags")
-      .withIndex("by_campaign", (q) => q.eq("campaignId", args.campaignId!))
+      .withIndex("by_campaign_name", (q) =>
+        q.eq("campaignId", args.campaignId!),
+      )
       .collect();
 
     return tags;
@@ -57,7 +59,7 @@ export const getSystemTagByName = query({
 
     const tag = await ctx.db
       .query("tags")
-      .withIndex("by_name", (q) =>
+      .withIndex("by_campaign_name", (q) =>
         q.eq("campaignId", args.campaignId).eq("name", args.name),
       )
       .unique();

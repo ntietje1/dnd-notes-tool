@@ -28,7 +28,7 @@ export async function findBlock(
 ): Promise<Block | null> {
   return await ctx.db
     .query("blocks")
-    .withIndex("by_block_unique", (q) =>
+    .withIndex("by_note_block", (q) =>
       q.eq("noteId", noteId).eq("blockId", blockId),
     )
     .first();
@@ -51,7 +51,6 @@ export async function addTagToBlock(
   blockDbId: Id<"blocks">,
   tagId: Id<"tags">,
 ) {
-  // Check if the relationship already exists
   const existing = await ctx.db
     .query("blockTags")
     .withIndex("by_block_tag", (q) =>
@@ -66,7 +65,6 @@ export async function addTagToBlock(
       createdAt: Date.now(),
     });
 
-    // Update block timestamp
     await ctx.db.patch(blockDbId, {
       updatedAt: Date.now(),
     });
@@ -80,7 +78,6 @@ export async function removeTagFromBlock(
   tagIdToRemove: Id<"tags">,
   isTopLevel: boolean,
 ) {
-  // Remove the tag relationship
   const blockTag = await ctx.db
     .query("blockTags")
     .withIndex("by_block_tag", (q) =>
@@ -92,15 +89,12 @@ export async function removeTagFromBlock(
     await ctx.db.delete(blockTag._id);
   }
 
-  // Check if block has any remaining tags
   const remainingTags = await getBlockTags(ctx, blockDbId);
 
-  // If no more tags and it's not a top-level block, delete it
   if (remainingTags.length === 0 && !isTopLevel) {
     await ctx.db.delete(blockDbId);
     return null;
   } else {
-    // Update block timestamp
     await ctx.db.patch(blockDbId, {
       updatedAt: Date.now(),
     });
@@ -112,18 +106,22 @@ export async function getTopLevelBlocks(
   ctx: { db: DatabaseReader },
   noteId: Id<"notes">,
 ): Promise<Block[]> {
+  const note = await ctx.db.get(noteId);
+  if (!note) return [];
+
   const blocks = await ctx.db
     .query("blocks")
-    .withIndex("by_note", (q) => q.eq("noteId", noteId))
-    .filter((q) => q.eq(q.field("isTopLevel"), true))
+    .withIndex("by_campaign_note_toplevel_pos", (q) =>
+      q
+        .eq("campaignId", note.campaignId)
+        .eq("noteId", noteId)
+        .eq("isTopLevel", true),
+    )
     .collect();
 
-  // Sort by position
-  return blocks.sort((a, b) => (a.position || 0) - (b.position || 0));
+  return blocks;
 }
 
-// New function to extract all blocks (including nested ones) with their tags
-// Only returns blocks that are top-level OR have tags (for efficient storage)
 export function extractAllBlocksWithTags(
   content: CustomBlock[],
 ): Map<
@@ -140,10 +138,8 @@ export function extractAllBlocksWithTags(
 
     blocks.forEach((block) => {
       if (block.id) {
-        // Extract tags from this specific block's immediate content (not nested content)
         const tagIds = extractTagIdsFromBlockContent(block);
 
-        // Only store blocks that are top-level OR have tags
         if (isTopLevel || tagIds.length > 0) {
           blocksMap.set(block.id, {
             block: block,
@@ -153,20 +149,8 @@ export function extractAllBlocksWithTags(
         }
       }
 
-      // Recursively traverse nested blocks in children property (BlockNote structure)
       if (block.children && Array.isArray(block.children)) {
         traverseBlocks(block.children, false);
-      }
-
-      // Also check content property in case there are nested blocks there
-      if (block.content && Array.isArray(block.content)) {
-        // Filter out non-block content (text, inline elements)
-        const nestedBlocks = block.content.filter(
-          (item: any) => item && typeof item === "object" && item.id,
-        );
-        if (nestedBlocks.length > 0) {
-          traverseBlocks(nestedBlocks, false);
-        }
       }
     });
   }
@@ -175,40 +159,34 @@ export function extractAllBlocksWithTags(
   return blocksMap;
 }
 
-// Modified function to extract tags only from immediate block content, not nested blocks
 export function extractTagIdsFromBlockContent(block: any): Id<"tags">[] {
   const tagIds: Id<"tags">[] = [];
 
   function traverseImmediate(content: any, depth: number = 0) {
-    if (!content || depth > 2) return; // Limit depth to avoid going into nested blocks
+    if (!content || depth > 2) return;
 
     if (Array.isArray(content)) {
       content.forEach((item) => traverseImmediate(item, depth + 1));
     } else if (typeof content === "object") {
-      // Check for tag type specifically
       if (
         content.type === "tag" &&
         content.props?.tagId &&
         !tagIds.includes(content.props.tagId)
       ) {
         tagIds.push(content.props.tagId);
-        return; // Don't traverse deeper into tag objects
+        return;
       }
 
-      // Only traverse specific properties to avoid nested blocks
       if (content.text !== undefined || content.type === "text") {
-        // This is text content, continue traversing
         Object.values(content).forEach((value) =>
           traverseImmediate(value, depth + 1),
         );
       } else if (content.content && !content.id) {
-        // This has content but no id, so it's not a nested block
         traverseImmediate(content.content, depth + 1);
       }
     }
   }
 
-  // Only traverse the immediate content, not nested blocks
   if (block.content) {
     traverseImmediate(block.content, 0);
   }
@@ -224,23 +202,24 @@ export async function saveTopLevelBlocks(
 ) {
   const now = Date.now();
 
-  // Extract all blocks (including nested ones) with their tags
   const allBlocksWithTags = extractAllBlocksWithTags(content);
 
-  // Get all existing blocks for this note
+  const note = await ctx.db.get(noteId);
+  if (!note) return;
+
   const existingBlocks = await ctx.db
     .query("blocks")
-    .withIndex("by_note", (q) => q.eq("noteId", noteId))
+    .withIndex("by_campaign_note_toplevel_pos", (q) =>
+      q.eq("campaignId", note.campaignId).eq("noteId", noteId),
+    )
     .collect();
 
   const existingBlocksMap = new Map(
     existingBlocks.map((block) => [block.blockId, block]),
   );
 
-  // Track which blocks we've processed
   const processedBlockIds = new Set<string>();
 
-  // Process each block found in content
   for (const [
     blockId,
     { block, tagIds: inlineTagIds, isTopLevel },
@@ -251,7 +230,6 @@ export async function saveTopLevelBlocks(
     let finalBlockDbId: Id<"blocks">;
 
     if (existingBlock) {
-      // Update existing block
       await ctx.db.patch(existingBlock._id, {
         position: isTopLevel
           ? Array.from(allBlocksWithTags.entries())
@@ -264,7 +242,6 @@ export async function saveTopLevelBlocks(
       });
       finalBlockDbId = existingBlock._id;
     } else {
-      // Create new block
       finalBlockDbId = await ctx.db.insert("blocks", {
         noteId,
         blockId: blockId,
@@ -280,25 +257,19 @@ export async function saveTopLevelBlocks(
       });
     }
 
-    // Handle tags for this block
     if (existingBlock) {
-      // Get current tags from junction table
       const currentTagIds = await getBlockTags(ctx, finalBlockDbId);
 
-      // Get old inline tags from previous content
       const oldInlineTagIds = existingBlock.content
         ? extractTagIdsFromBlockContent(existingBlock.content)
         : [];
 
-      // Find manual tags (tags that were added via side menu, not inline)
       const manualTags = currentTagIds.filter(
         (tagId) => !oldInlineTagIds.includes(tagId),
       );
 
-      // Determine final tag IDs (current inline tags + preserved manual tags)
       const finalTagIds = [...new Set([...inlineTagIds, ...manualTags])];
 
-      // Update tags: remove old ones and add new ones
       const tagsToRemove = currentTagIds.filter(
         (tagId) => !finalTagIds.includes(tagId),
       );
@@ -306,7 +277,6 @@ export async function saveTopLevelBlocks(
         (tagId) => !currentTagIds.includes(tagId),
       );
 
-      // Remove old tags
       for (const tagId of tagsToRemove) {
         const blockTag = await ctx.db
           .query("blockTags")
@@ -319,7 +289,6 @@ export async function saveTopLevelBlocks(
         }
       }
 
-      // Add new tags
       for (const tagId of tagsToAdd) {
         await ctx.db.insert("blockTags", {
           blockId: finalBlockDbId,
@@ -328,7 +297,6 @@ export async function saveTopLevelBlocks(
         });
       }
     } else {
-      // For new blocks, just add all inline tags
       for (const tagId of inlineTagIds) {
         await ctx.db.insert("blockTags", {
           blockId: finalBlockDbId,
@@ -339,18 +307,13 @@ export async function saveTopLevelBlocks(
     }
   }
 
-  // Handle existing blocks that are no longer in the content
   for (const existingBlock of existingBlocks) {
     if (!processedBlockIds.has(existingBlock.blockId)) {
-      // Block was removed from content
       const currentTagIds = await getBlockTags(ctx, existingBlock._id);
 
       if (currentTagIds.length === 0) {
-        // No tags, safe to delete
         await ctx.db.delete(existingBlock._id);
       } else {
-        // This block has tags but is no longer in the content
-        // Keep it but mark as non-top-level
         await ctx.db.patch(existingBlock._id, {
           isTopLevel: false,
           position: undefined,
@@ -361,11 +324,6 @@ export async function saveTopLevelBlocks(
   }
 }
 
-// Keep the old function for backward compatibility but mark it deprecated
-export function extractTagIdsFromBlock(block: CustomBlock): Id<"tags">[] {
-  return extractTagIdsFromBlockContent(block);
-}
-
 export function findBlockById(content: any, blockId: string): any | null {
   if (!Array.isArray(content)) return null;
 
@@ -374,15 +332,8 @@ export function findBlockById(content: any, blockId: string): any | null {
       return block;
     }
 
-    // Search in children property (BlockNote structure)
     if (block.children && Array.isArray(block.children)) {
       const found = findBlockById(block.children, blockId);
-      if (found) return found;
-    }
-
-    // Search in content property for nested blocks
-    if (block.content && Array.isArray(block.content)) {
-      const found = findBlockById(block.content, blockId);
       if (found) return found;
     }
   }
@@ -400,14 +351,8 @@ export function extractAllBlockIds(content: any): string[] {
     } else if (typeof items === "object" && items.id) {
       blockIds.push(items.id);
 
-      // Traverse children property (BlockNote structure)
       if (items.children) {
         traverse(items.children);
-      }
-
-      // Traverse content property
-      if (items.content) {
-        traverse(items.content);
       }
     } else if (typeof items === "object") {
       Object.values(items).forEach(traverse);
@@ -418,7 +363,6 @@ export function extractAllBlockIds(content: any): string[] {
   return blockIds;
 }
 
-// Helper function to check if blockId is a child of parentBlockId
 export function isBlockChildOf(
   blockId: string,
   parentBlockId: string,
@@ -436,19 +380,8 @@ export function isBlockChildOf(
         return currentParentId === parentBlockId;
       }
 
-      // Search in children
       if (block.children && Array.isArray(block.children)) {
         if (searchInBlocks(block.children, targetBlockId, block.id)) {
-          return true;
-        }
-      }
-
-      // Search in content
-      if (block.content && Array.isArray(block.content)) {
-        const nestedBlocks = block.content.filter(
-          (item: any) => item && typeof item === "object" && item.id,
-        );
-        if (searchInBlocks(nestedBlocks, targetBlockId, block.id)) {
           return true;
         }
       }
@@ -460,7 +393,6 @@ export function isBlockChildOf(
   return searchInBlocks(content, blockId);
 }
 
-// Filter out child blocks when their parent blocks are already in the result set
 export function filterOutChildBlocks(
   blocks: any[],
   content: CustomBlock[],
@@ -468,7 +400,6 @@ export function filterOutChildBlocks(
   const blockIds = blocks.map((b) => b.blockId);
 
   const filtered = blocks.filter((block) => {
-    // Check if this block is a child of any other block in the result set
     const isChild = blockIds.some(
       (otherBlockId) =>
         otherBlockId !== block.blockId &&

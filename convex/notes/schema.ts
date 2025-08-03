@@ -31,10 +31,13 @@ export const notesTables = {
     campaignId: v.id("campaigns"),
     updatedAt: v.number(),
   })
-    .index("by_note", ["noteId"])
-    .index("by_campaign", ["campaignId"])
-    .index("by_note_position", ["noteId", "position"])
-    .index("by_block_unique", ["noteId", "blockId"]),
+    .index("by_campaign_note_toplevel_pos", [
+      "campaignId",
+      "noteId",
+      "isTopLevel",
+      "position",
+    ])
+    .index("by_note_block", ["noteId", "blockId"]),
 
   blockTags: defineTable({
     blockId: v.id("blocks"),

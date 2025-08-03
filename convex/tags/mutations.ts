@@ -64,26 +64,23 @@ export const updateTag = mutation({
       updates.color = args.color;
     }
 
-    // Update the tag first
     await ctx.db.patch(args.tagId, updates);
 
-    // If name or color changed, update all blocks that reference this tag in their content
     if (args.name !== undefined || args.color !== undefined) {
       const newName = args.name ?? tag.name;
       const newColor = args.color ?? tag.color;
 
-      // Get all blocks in the campaign that could potentially have this tag
       const allBlocks = await ctx.db
         .query("blocks")
-        .withIndex("by_campaign", (q) => q.eq("campaignId", tag.campaignId))
+        .withIndex("by_campaign_note_toplevel_pos", (q) =>
+          q.eq("campaignId", tag.campaignId),
+        )
         .collect();
 
-      // Function to recursively update tag instances in content
       const updateTagsInContent = (content: any): any => {
         if (Array.isArray(content)) {
           return content.map(updateTagsInContent);
         } else if (content && typeof content === "object") {
-          // Check if this is a tag inline content with matching tagId
           if (content.type === "tag" && content.props?.tagId === args.tagId) {
             return {
               ...content,
@@ -95,7 +92,6 @@ export const updateTag = mutation({
             };
           }
 
-          // Recursively update nested content
           const updatedContent = { ...content };
           if (content.content) {
             updatedContent.content = updateTagsInContent(content.content);
@@ -109,11 +105,9 @@ export const updateTag = mutation({
         return content;
       };
 
-      // Update all blocks that contain references to this tag
       for (const block of allBlocks) {
         const updatedContent = updateTagsInContent(block.content);
 
-        // Only update if the content actually changed
         if (JSON.stringify(updatedContent) !== JSON.stringify(block.content)) {
           await ctx.db.patch(block._id, {
             content: updatedContent,

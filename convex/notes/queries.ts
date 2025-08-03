@@ -37,30 +37,33 @@ export const getNote = query({
       return null;
     }
 
-    // Get all blocks for this note (both top-level and nested)
-    const allBlocks = await ctx.db
+    const topLevelBlocks = await ctx.db
       .query("blocks")
-      .withIndex("by_note", (q) => q.eq("noteId", note._id))
+      .withIndex("by_campaign_note_toplevel_pos", (q) =>
+        q
+          .eq("campaignId", note.campaignId)
+          .eq("noteId", note._id)
+          .eq("isTopLevel", true),
+      )
       .collect();
 
-    // Separate top-level blocks and create a map of all blocks
-    const topLevelBlocks = allBlocks
-      .filter((block) => block.isTopLevel)
-      .sort((a, b) => (a.position || 0) - (b.position || 0));
+    const allBlocks = await ctx.db
+      .query("blocks")
+      .withIndex("by_campaign_note_toplevel_pos", (q) =>
+        q.eq("campaignId", note.campaignId).eq("noteId", note._id),
+      )
+      .collect();
 
     const blocksMap = new Map(
       allBlocks.map((block) => [block.blockId, block.content]),
     );
 
-    // Reconstruct content, ensuring nested tagged blocks are properly included
     function reconstructContent(content: any): any {
       if (Array.isArray(content)) {
         return content.map(reconstructContent);
       } else if (content && typeof content === "object" && content.id) {
-        // Check if we have an updated version of this block in the database
         const dbBlock = blocksMap.get(content.id);
         if (dbBlock) {
-          // Use the database version, but recursively reconstruct its content too
           return {
             ...dbBlock,
             content: dbBlock.content
@@ -68,7 +71,6 @@ export const getNote = query({
               : dbBlock.content,
           };
         }
-        // Recursively reconstruct nested content
         return {
           ...content,
           content: content.content
@@ -76,7 +78,6 @@ export const getNote = query({
             : content.content,
         };
       } else if (content && typeof content === "object") {
-        // Recursively reconstruct object properties
         const reconstructed: any = {};
         for (const [key, value] of Object.entries(content)) {
           reconstructed[key] = reconstructContent(value);
@@ -168,7 +169,6 @@ export const getBlocksByTags = query({
   args: {
     campaignId: v.optional(v.id("campaigns")),
     tagIds: v.array(v.id("tags")),
-    includeNoteLevel: v.optional(v.boolean()),
   },
   handler: async (ctx, args): Promise<Block[]> => {
     await verifyUserIdentity(ctx);
@@ -177,10 +177,9 @@ export const getBlocksByTags = query({
       return [];
     }
 
-    // Get the shared tag
     const sharedTag = await ctx.db
       .query("tags")
-      .withIndex("by_name", (q) =>
+      .withIndex("by_campaign_name", (q) =>
         q.eq("campaignId", args.campaignId!).eq("name", SYSTEM_TAGS.shared),
       )
       .unique();
@@ -189,52 +188,35 @@ export const getBlocksByTags = query({
       throw new Error("Shared tag not found, this should be impossible");
     }
 
-    // Get all blocks in the campaign
-    const allBlocks = await ctx.db
-      .query("blocks")
-      .withIndex("by_campaign", (q) => q.eq("campaignId", args.campaignId!))
-      .collect();
-
-    // Get all blockTags relationships for these blocks
     const allBlockTags = await ctx.db.query("blockTags").collect();
 
-    // Create a map of block ID to tag IDs
     const blockTagsMap = new Map<Id<"blocks">, Id<"tags">[]>();
+    const sharedTagCreationMap = new Map<Id<"blocks">, number>();
+
     allBlockTags.forEach((bt) => {
       if (!blockTagsMap.has(bt.blockId)) {
         blockTagsMap.set(bt.blockId, []);
       }
       blockTagsMap.get(bt.blockId)!.push(bt.tagId);
+
+      if (bt.tagId === sharedTag._id) {
+        sharedTagCreationMap.set(bt.blockId, bt.createdAt);
+      }
     });
 
-    // Filter blocks that have all required tags (including shared tag)
+    const allBlocks = await ctx.db
+      .query("blocks")
+      .withIndex("by_campaign_note_toplevel_pos", (q) =>
+        q.eq("campaignId", args.campaignId!),
+      )
+      .collect();
+
     const requiredTagIds = [sharedTag._id, ...args.tagIds];
     const matchingBlocks = allBlocks.filter((block) => {
       const blockTagIds = blockTagsMap.get(block._id) || [];
       return requiredTagIds.every((tagId) => blockTagIds.includes(tagId));
     });
 
-    // Group blocks by noteId to reconstruct content for filtering
-    const noteIds = [...new Set(matchingBlocks.map((b) => b.noteId))];
-
-    // Reconstruct content for each note to determine parent-child relationships
-    const noteContentMap = new Map<Id<"notes">, CustomBlock[]>();
-    for (const noteId of noteIds) {
-      // Get top-level blocks for this note to reconstruct content
-      const topLevelBlocks = await ctx.db
-        .query("blocks")
-        .withIndex("by_note", (q) => q.eq("noteId", noteId))
-        .filter((q) => q.eq(q.field("isTopLevel"), true))
-        .collect();
-
-      const sortedBlocks = topLevelBlocks.sort(
-        (a, b) => (a.position || 0) - (b.position || 0),
-      );
-      const content = sortedBlocks.map((block) => block.content);
-      noteContentMap.set(noteId, content);
-    }
-
-    // Filter out child blocks for each note separately
     const noteGroups = new Map<Id<"notes">, Block[]>();
     matchingBlocks.forEach((block) => {
       if (!noteGroups.has(block.noteId)) {
@@ -245,96 +227,29 @@ export const getBlocksByTags = query({
 
     const filteredResults: Block[] = [];
     for (const [noteId, noteBlocks] of noteGroups) {
-      const noteContent = noteContentMap.get(noteId);
-      if (noteContent) {
-        const filtered = filterOutChildBlocks(noteBlocks, noteContent);
-        filteredResults.push(...filtered);
-      } else {
-        // If we can't get content, include all blocks (fallback)
-        filteredResults.push(...noteBlocks);
-      }
-    }
-
-    return filteredResults.sort((a, b) => b.updatedAt - a.updatedAt);
-  },
-});
-
-export const getBlocksByTag = query({
-  args: {
-    campaignId: v.optional(v.id("campaigns")),
-    tagId: v.optional(v.id("tags")),
-  },
-  handler: async (ctx, args): Promise<Block[]> => {
-    await verifyUserIdentity(ctx);
-
-    if (!args.campaignId || !args.tagId) {
-      return [];
-    }
-
-    // Get all blockTags for this tag
-    const blockTags = await ctx.db
-      .query("blockTags")
-      .withIndex("by_tag", (q) => q.eq("tagId", args.tagId!))
-      .collect();
-
-    if (blockTags.length === 0) {
-      return [];
-    }
-
-    // Get all blocks that have this tag
-    const blockIds = blockTags.map((bt) => bt.blockId);
-    const blocks = await Promise.all(
-      blockIds.map((blockId) => ctx.db.get(blockId)),
-    );
-
-    // Filter out null blocks and blocks not in the campaign
-    const matchingBlocks = blocks.filter(
-      (block): block is Block =>
-        block !== null && block.campaignId === args.campaignId,
-    );
-
-    // Group blocks by noteId to reconstruct content for filtering
-    const noteIds = [...new Set(matchingBlocks.map((b) => b.noteId))];
-
-    // Reconstruct content for each note to determine parent-child relationships
-    const noteContentMap = new Map<Id<"notes">, CustomBlock[]>();
-    for (const noteId of noteIds) {
-      // Get top-level blocks for this note to reconstruct content
       const topLevelBlocks = await ctx.db
         .query("blocks")
-        .withIndex("by_note", (q) => q.eq("noteId", noteId))
-        .filter((q) => q.eq(q.field("isTopLevel"), true))
+        .withIndex("by_campaign_note_toplevel_pos", (q) =>
+          q
+            .eq("campaignId", args.campaignId!)
+            .eq("noteId", noteId)
+            .eq("isTopLevel", true),
+        )
         .collect();
 
-      const sortedBlocks = topLevelBlocks.sort(
-        (a, b) => (a.position || 0) - (b.position || 0),
-      );
-      const content = sortedBlocks.map((block) => block.content);
-      noteContentMap.set(noteId, content);
+      const topLevelContent = topLevelBlocks
+        .sort((a, b) => (a.position || 0) - (b.position || 0))
+        .map((block) => block.content);
+
+      const filtered = filterOutChildBlocks(noteBlocks, topLevelContent);
+      filteredResults.push(...filtered);
     }
 
-    // Filter out child blocks for each note separately
-    const noteGroups = new Map<Id<"notes">, Block[]>();
-    matchingBlocks.forEach((block) => {
-      if (!noteGroups.has(block.noteId)) {
-        noteGroups.set(block.noteId, []);
-      }
-      noteGroups.get(block.noteId)!.push(block);
+    return filteredResults.sort((a, b) => {
+      const aCreatedAt = sharedTagCreationMap.get(a._id) || 0;
+      const bCreatedAt = sharedTagCreationMap.get(b._id) || 0;
+      return bCreatedAt - aCreatedAt;
     });
-
-    const filteredResults: Block[] = [];
-    for (const [noteId, noteBlocks] of noteGroups) {
-      const noteContent = noteContentMap.get(noteId);
-      if (noteContent) {
-        const filtered = filterOutChildBlocks(noteBlocks, noteContent);
-        filteredResults.push(...filtered);
-      } else {
-        // If we can't get content, include all blocks (fallback)
-        filteredResults.push(...noteBlocks);
-      }
-    }
-
-    return filteredResults.sort((a, b) => b.updatedAt - a.updatedAt);
   },
 });
 
@@ -380,13 +295,10 @@ export const getBlockTagState = query({
       };
     }
 
-    // Get all tags for this block from junction table
     const allTagIds = await getBlockTags(ctx, block._id);
 
-    // Get inline tags from block content
     const inlineTagIds = extractTagIdsFromBlockContent(block.content);
 
-    // Manual tags are those in the database that aren't inline
     const manualTagIds = allTagIds.filter(
       (tagId) => !inlineTagIds.includes(tagId),
     );

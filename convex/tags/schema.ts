@@ -14,7 +14,5 @@ export const tagTables = {
       v.literal("other"),
     ),
     updatedAt: v.number(),
-  })
-    .index("by_campaign", ["campaignId"])
-    .index("by_name", ["campaignId", "name"]),
+  }).index("by_campaign_name", ["campaignId", "name"]),
 };

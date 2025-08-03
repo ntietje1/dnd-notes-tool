@@ -12,7 +12,7 @@ export const getUserCampaigns = query({
 
     const campaignMemberships = await ctx.db
       .query("campaignMembers")
-      .withIndex("by_user", (q) => q.eq("userId", baseUserId))
+      .withIndex("by_user_campaign", (q) => q.eq("userId", baseUserId))
       .collect();
 
     const campaigns = await Promise.all(
@@ -86,8 +86,9 @@ export const getCampaignBySlug = query({
     const baseUserId = getBaseUserId(identity.subject);
     const membership = await ctx.db
       .query("campaignMembers")
-      .withIndex("by_user", (q) => q.eq("userId", baseUserId))
-      .filter((q) => q.eq(q.field("campaignId"), campaign._id))
+      .withIndex("by_user_campaign", (q) =>
+        q.eq("userId", baseUserId).eq("campaignId", campaign._id),
+      )
       .unique();
 
     if (!membership) {
