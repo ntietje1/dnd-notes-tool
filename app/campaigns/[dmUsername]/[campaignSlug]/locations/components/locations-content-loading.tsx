@@ -1,11 +1,11 @@
 import { CardGridSkeleton } from "@/components/ui/content-grid-page/card-grid-skeleton";
 
-export function CampaignsListSkeleton() {
+export function LocationsContentLoading() {
   return (
-    <CardGridSkeleton
-      count={4}
+    <CardGridSkeleton 
+      count={6} 
       showCreateCard={true}
-      cardHeight="h-64"
+      cardHeight="h-[180px]"
     />
   );
 } 

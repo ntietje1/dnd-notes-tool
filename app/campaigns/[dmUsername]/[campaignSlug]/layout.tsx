@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import React from "react";
-import { CampaignValidation } from "@/components/campaign-validation";
+import { CampaignValidation } from "@/app/campaigns/[dmUsername]/[campaignSlug]/campaign-validation";
 
 interface CampaignLayoutProps {
   children: React.ReactNode;

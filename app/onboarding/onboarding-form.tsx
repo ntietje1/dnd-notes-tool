@@ -5,7 +5,7 @@ import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { useRouter } from "next/navigation";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
-import { ValidatedInput } from "@/components/ui/validated-input";
+import { ValidatedInput } from "@/components/ui/forms/validated-input";
 import {
   Card,
   CardContent,

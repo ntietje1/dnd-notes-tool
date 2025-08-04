@@ -115,3 +115,192 @@ export const joinCampaign = mutation({
     return campaign._id;
   },
 });
+
+export const updateCampaign = mutation({
+  args: {
+    campaignId: v.id("campaigns"),
+    name: v.optional(v.string()),
+    description: v.optional(v.string()),
+    slug: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await verifyUserIdentity(ctx);
+    const baseUserId = getBaseUserId(identity.subject);
+
+    const campaignMember = await ctx.db
+      .query("campaignMembers")
+      .withIndex("by_user_campaign", (q) =>
+        q.eq("userId", baseUserId).eq("campaignId", args.campaignId)
+      )
+      .unique();
+
+    if (!campaignMember || campaignMember.role !== "DM") {
+      throw new Error("Only the DM can update this campaign");
+    }
+
+    const campaign = await ctx.db.get(args.campaignId);
+    if (!campaign) {
+      throw new Error("Campaign not found");
+    }
+
+    const now = Date.now();
+
+    const campaignUpdates: {
+      name?: string;
+      description?: string;
+      updatedAt: number;
+    } = {
+      updatedAt: now,
+    };
+
+    if (args.name !== undefined) {
+      campaignUpdates.name = args.name;
+    }
+    if (args.description !== undefined) {
+      campaignUpdates.description = args.description;
+    }
+
+    await ctx.db.patch(args.campaignId, campaignUpdates);
+
+    if (args.slug !== undefined) {
+      const userProfile = await ctx.db
+        .query("userProfiles")
+        .withIndex("by_user", (q) => q.eq("userId", baseUserId))
+        .unique();
+      if (!userProfile) {
+        throw new Error("User profile not found");
+      }
+
+      const existingSlug = await ctx.db
+         .query("campaignSlugs")
+         .withIndex("by_slug_username", (q) =>
+           q.eq("slug", args.slug!).eq("username", userProfile.username)
+         )
+         .unique();
+
+      if (existingSlug && existingSlug.campaignId !== args.campaignId) {
+        throw new Error("Slug already exists");
+      }
+
+      const campaignSlug = await ctx.db
+        .query("campaignSlugs")
+        .withIndex("by_campaign", (q) => q.eq("campaignId", args.campaignId))
+        .unique();
+
+      if (campaignSlug) {
+                 await ctx.db.patch(campaignSlug._id, {
+           slug: args.slug!,
+           updatedAt: now,
+         });
+      }
+    }
+
+    return args.campaignId;
+  },
+});
+
+export const deleteCampaign = mutation({
+  args: {
+    campaignId: v.id("campaigns"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await verifyUserIdentity(ctx);
+    const baseUserId = getBaseUserId(identity.subject);
+
+    const campaignMember = await ctx.db
+      .query("campaignMembers")
+      .withIndex("by_user_campaign", (q) =>
+        q.eq("userId", baseUserId).eq("campaignId", args.campaignId)
+      )
+      .unique();
+
+    if (!campaignMember || campaignMember.role !== "DM") {
+      throw new Error("Only the DM can delete this campaign");
+    }
+
+    const campaign = await ctx.db.get(args.campaignId);
+    if (!campaign) {
+      throw new Error("Campaign not found");
+    }
+
+    const blocks = await ctx.db
+      .query("blocks")
+      .withIndex("by_campaign_note_toplevel_pos", (q) =>
+        q.eq("campaignId", args.campaignId)
+      )
+      .collect();
+
+    for (const block of blocks) {
+      await ctx.db.delete(block._id);
+    }
+
+    const notes = await ctx.db
+      .query("notes")
+      .withIndex("by_campaign", (q) => q.eq("campaignId", args.campaignId))
+      .collect();
+
+    for (const note of notes) {
+      await ctx.db.delete(note._id);
+    }
+
+    const folders = await ctx.db
+      .query("folders")
+      .withIndex("by_campaign", (q) => q.eq("campaignId", args.campaignId))
+      .collect();
+
+    for (const folder of folders) {
+      await ctx.db.delete(folder._id);
+    }
+
+    const tags = await ctx.db
+      .query("tags")
+      .collect();
+    
+    const campaignTags = tags.filter(tag => tag.campaignId === args.campaignId);
+
+    for (const tag of campaignTags) {
+      await ctx.db.delete(tag._id);
+    }
+
+    const locations = await ctx.db
+      .query("locations")
+      .withIndex("by_campaign", (q) => q.eq("campaignId", args.campaignId))
+      .collect();
+
+    for (const location of locations) {
+      await ctx.db.delete(location._id);
+    }
+
+    const characters = await ctx.db
+      .query("characters")
+      .withIndex("by_campaign", (q) => q.eq("campaignId", args.campaignId))
+      .collect();
+
+    for (const character of characters) {
+      await ctx.db.delete(character._id);
+    }
+
+    const members = await ctx.db
+      .query("campaignMembers")
+      .collect();
+    
+    const campaignMembers = members.filter(member => member.campaignId === args.campaignId);
+
+    for (const member of campaignMembers) {
+      await ctx.db.delete(member._id);
+    }
+
+    const campaignSlug = await ctx.db
+      .query("campaignSlugs")
+      .withIndex("by_campaign", (q) => q.eq("campaignId", args.campaignId))
+      .unique();
+
+    if (campaignSlug) {
+      await ctx.db.delete(campaignSlug._id);
+    }
+
+    await ctx.db.delete(args.campaignId);
+
+    return args.campaignId;
+  },
+});

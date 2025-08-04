@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { Input } from "./input";
-import { Label } from "./label";
+import { Input } from "../input";
+import { Label } from "../label";
 import { Check, X, Loader2 } from "lucide-react";
 import type {
   ValidationResult,

@@ -5,6 +5,7 @@ import { campaignTables } from "./campaigns/schema";
 import { editorTables } from "./editors/schema";
 import { userTables } from "./users/schema";
 import { characterTables } from "./characters/schema";
+import { locationTables } from "./locations/schema";
 import { tagTables } from "./tags/schema";
 
 export default defineSchema({
@@ -14,6 +15,6 @@ export default defineSchema({
   ...campaignTables,
   ...userTables,
   ...characterTables,
-  // ...locationTables,
+  ...locationTables,
   ...tagTables,
 });
