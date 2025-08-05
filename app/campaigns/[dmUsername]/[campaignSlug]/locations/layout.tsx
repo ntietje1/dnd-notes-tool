@@ -16,6 +16,8 @@ interface LocationsLayoutProps {
 }
 
 type LocationsContextType = {
+  dmUsername: string;
+  campaignSlug: string;
   currentCampaign: Campaign | null | undefined;
   isLoading: boolean;
 };
@@ -47,6 +49,8 @@ export function LocationsProvider({
   const isLoading = currentCampaign === undefined;
 
   const value: LocationsContextType = {
+    dmUsername,
+    campaignSlug,
     currentCampaign,
     isLoading,
   };

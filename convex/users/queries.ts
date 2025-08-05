@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { query } from "../_generated/server";
-import { getBaseUserId } from "../model/helpers";
+import { getBaseUserId } from "../common/identity";
 
 export const getUserProfile = query({
   args: {},

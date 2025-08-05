@@ -1,38 +1,39 @@
 import { v } from "convex/values";
 import { mutation } from "../_generated/server";
-import { verifyUserIdentity } from "../model/helpers";
+import { verifyUserIdentity } from "../common/identity";
+import { insertTag } from "./helpers";
 
-// export const createTag = mutation({
-//   args: {
-//     name: v.string(),
-//     type: v.union(
-//       v.literal("Character"),
-//       v.literal("Location"),
-//       v.literal("Session"),
-//       v.literal("System"),
-//       v.literal("Other"),
-//     ),
-//     color: v.string(),
-//     campaignId: v.id("campaigns"),
-//   },
-//   handler: async (ctx, args) => {
-//     await verifyUserIdentity(ctx);
+export const createTag = mutation({
+  args: {
+    name: v.string(),
+    type: v.union(
+      v.literal("Character"),
+      v.literal("Location"),
+      v.literal("Session"),
+      v.literal("System"),
+      v.literal("Other"),
+    ),
+    color: v.string(),
+    campaignId: v.id("campaigns"),
+  },
+  handler: async (ctx, args) => {
+    await verifyUserIdentity(ctx);
 
-//     if (args.type === "System") {
-//       throw new Error("System tags cannot be created");
-//     }
+    if (args.type === "System") {
+      throw new Error("System tags cannot be created");
+    }
 
-//     const tag = await ctx.db.insert("tags", {
-//       name: args.name,
-//       type: args.type,
-//       color: args.color,
-//       campaignId: args.campaignId,
-//       updatedAt: Date.now(),
-//     });
+    // Use insertTag helper to ensure note page is created
+    const tagId = await insertTag(ctx, {
+      name: args.name,
+      type: args.type,
+      color: args.color,
+      campaignId: args.campaignId,
+    });
 
-//     return tag;
-//   },
-// });
+    return tagId;
+  },
+});
 
 export const updateTag = mutation({
   args: {

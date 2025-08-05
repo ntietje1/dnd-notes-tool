@@ -5,7 +5,7 @@ export type Campaign = {
   _id: Id<"campaigns">;
   _creationTime: number;
 
-  userId: string;
+  dmUserId: string;
   name: string;
   description?: string;
   updatedAt: number;

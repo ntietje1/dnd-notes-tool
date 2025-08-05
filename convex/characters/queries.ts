@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { query } from "../_generated/server";
-import { verifyUserIdentity } from "../model/helpers";
+import { verifyUserIdentity } from "../common/identity";
 import { CharacterWithTag } from "./types";
 
 export const getCharactersByCampaign = query({
@@ -28,7 +28,7 @@ export const getCharactersByCampaign = query({
             _id: tag._id,
             name: tag.name,
             color: tag.color,
-            type: tag.type as "character",
+            type: tag.type as "Character",
           },
         };
       })
@@ -61,7 +61,7 @@ export const getCharacterById = query({
         _id: tag._id,
         name: tag.name,
         color: tag.color,
-        type: tag.type as "character",
+        type: tag.type as "Character",
       },
     };
   },
@@ -94,7 +94,7 @@ export const getCharacterByTag = query({
         _id: tag._id,
         name: tag.name,
         color: tag.color,
-        type: tag.type as "character",
+        type: tag.type as "Character",
       },
     };
   },

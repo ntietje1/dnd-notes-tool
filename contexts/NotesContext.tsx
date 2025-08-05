@@ -19,7 +19,7 @@ import {
   Note,
   FolderNode,
 } from "@/convex/notes/types";
-import { CustomBlock } from "@/app/campaigns/[dmUsername]/[campaignSlug]/notes/editor/extensions/tags/tags";
+import { CustomBlock } from "@/lib/tags";
 import { Campaign } from "@/convex/campaigns/types";
 import { debounce } from "lodash-es";
 

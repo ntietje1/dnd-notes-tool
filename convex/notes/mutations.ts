@@ -11,7 +11,7 @@ import {
   findBlockById,
   extractTagIdsFromBlockContent,
 } from "../tags/helpers";
-import { getBaseUserId, verifyUserIdentity } from "../model/helpers";
+import { getBaseUserId, verifyUserIdentity } from "../common/identity";
 
 export const updateNote = mutation({
   args: {
@@ -89,7 +89,9 @@ export const deleteNote = mutation({
     for (const block of blocks) {
       const blockTags = await ctx.db
         .query("blockTags")
-        .withIndex("by_block", (q) => q.eq("blockId", block._id))
+        .withIndex("by_campaign_block_tag", (q) =>
+          q.eq("campaignId", note.campaignId).eq("blockId", block._id),
+        )
         .collect();
 
       for (const blockTag of blockTags) {
@@ -113,15 +115,20 @@ export const deleteFolder = mutation({
 
     const userId = getBaseUserId(identity.subject);
 
+    const folder = await ctx.db.get(args.folderId);
+    if (!folder || folder.userId !== userId) {
+      throw new Error("Folder not found");
+    }
+
     const recursiveDelete = async (folderId: Id<"folders">) => {
       const childFolders = await ctx.db
         .query("folders")
-        .withIndex("by_folder", (q) => q.eq("parentFolderId", folderId))
+        .withIndex("by_campaign_parent", (q) => q.eq("campaignId", folder.campaignId).eq("parentFolderId", folderId))
         .collect();
 
       const notesInFolder = await ctx.db
         .query("notes")
-        .withIndex("by_folder", (q) => q.eq("parentFolderId", folderId))
+        .withIndex("by_campaign_parent", (q) => q.eq("campaignId", folder.campaignId).eq("parentFolderId", folderId))
         .collect();
 
       for (const childFolder of childFolders) {
@@ -142,7 +149,9 @@ export const deleteFolder = mutation({
           for (const block of blocks) {
             const blockTags = await ctx.db
               .query("blockTags")
-              .withIndex("by_block", (q) => q.eq("blockId", block._id))
+              .withIndex("by_campaign_block_tag", (q) =>
+                q.eq("campaignId", note.campaignId).eq("blockId", block._id),
+              )
               .collect();
 
             for (const blockTag of blockTags) {
@@ -158,11 +167,6 @@ export const deleteFolder = mutation({
 
       await ctx.db.delete(folderId);
     };
-
-    const folder = await ctx.db.get(args.folderId);
-    if (!folder || folder.userId !== userId) {
-      throw new Error("Folder not found or unauthorized");
-    }
 
     await recursiveDelete(args.folderId);
     return args.folderId;
@@ -298,6 +302,7 @@ export const addTagToBlockMutation = mutation({
         });
 
         await ctx.db.insert("blockTags", {
+          campaignId: note.campaignId,
           blockId: newBlockDbId,
           tagId: args.tagId,
           createdAt: Date.now(),

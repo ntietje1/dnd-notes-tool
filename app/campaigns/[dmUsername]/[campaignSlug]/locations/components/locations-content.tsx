@@ -13,9 +13,11 @@ import { useState } from "react";
 import { LocationDialog } from "./location-dialog";
 import { LocationWithTag } from "@/convex/locations/types";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 export default function LocationsContent() {
-  const { currentCampaign } = useLocations();
+  const { currentCampaign, dmUsername, campaignSlug } = useLocations();
+  const router = useRouter();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingLocation, setEditingLocation] = useState<LocationWithTag | null>(null);
   const [deletingLocation, setDeletingLocation] = useState<LocationWithTag | null>(null);
@@ -27,6 +29,10 @@ export default function LocationsContent() {
   );
 
   const deleteLocation = useMutation(api.locations.mutations.deleteLocation);
+
+  const handleViewLocationNotes = (location: LocationWithTag) => {
+    router.push(`/campaigns/${dmUsername}/${campaignSlug}/notes?locationId=${location._id}`);
+  };
 
   const handleDeleteLocation = async () => {
     if (!deletingLocation) return;
@@ -87,6 +93,7 @@ export default function LocationsContent() {
               icon: <MapPin className="w-3 h-3" />,
               variant: "secondary"
             }}
+            onClick={() => handleViewLocationNotes(location)}
             actionButtons={[
               {
                 icon: <Edit className="w-4 h-4" />,

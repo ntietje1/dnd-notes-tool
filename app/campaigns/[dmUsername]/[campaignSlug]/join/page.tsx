@@ -118,7 +118,7 @@ export default function JoinCampaignPage({ params }: JoinCampaignPageProps) {
               </p>
               <div className="flex items-center gap-2 text-sm text-slate-600">
                 <Users className="h-4 w-4" />
-                <span>Campaign by {campaign.userId}</span>
+                <span>Campaign by {campaign.dmUserId}</span>
               </div>
             </div>
 

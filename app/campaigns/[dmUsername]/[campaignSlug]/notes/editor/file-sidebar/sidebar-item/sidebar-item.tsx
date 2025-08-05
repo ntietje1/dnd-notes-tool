@@ -4,6 +4,7 @@ import { NoteButton } from "../sidebar-note/note-button";
 import { Id } from "@/convex/_generated/dataModel";
 import { RecursiveFolder } from "../sidebar-folder/recursive-folder";
 import { useNotes } from "@/contexts/NotesContext";
+import { NoteContextMenu } from "../sidebar-note/note-context-menu";
 
 function isFolderNode(item: AnySidebarItem): item is FolderNode {
   return item.type === "folders" && "children" in item;
@@ -54,18 +55,18 @@ export const SidebarItem = ({
   if (isNote(item)) {
     return (
       <DraggableNote key={item._id} note={item}>
-        <NoteButton
-          note={item}
-          isRenaming={renamingId === item._id}
-          onStartRename={() => setRenamingId(item._id)}
-          onFinishRename={(name) => {
-            updateNoteName(item._id, name);
-            setRenamingId(null);
-          }}
-          isSelected={currentNote?._id === item._id}
-          onNoteSelected={() => selectNote(item._id)}
-          onDelete={() => deleteNote(item._id)}
-        />
+        <NoteContextMenu onEdit={() => setRenamingId(item._id)} onDelete={() => deleteNote(item._id)}>
+          <NoteButton
+            note={item}
+            isRenaming={renamingId === item._id}
+            onFinishRename={(name) => {
+              updateNoteName(item._id, name);
+              setRenamingId(null);
+            }}
+            isSelected={currentNote?._id === item._id}
+            onNoteSelected={() => selectNote(item._id)}
+          />
+        </NoteContextMenu>
       </DraggableNote>
     );
   }

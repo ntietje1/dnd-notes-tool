@@ -4,18 +4,22 @@ import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useCharacters } from "../layout";
+import { useNotes } from "@/contexts/NotesContext";
 import { ContentGrid } from "@/components/ui/content-grid-page/content-grid";
 import { ContentCard } from "@/components/ui/content-grid-page/content-card";
 import { CreateActionCard } from "@/components/ui/content-grid-page/create-action-card";
 import { EmptyState } from "@/components/ui/content-grid-page/empty-state";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
-import { Users, Edit, Plus, Trash2 } from "lucide-react";
+import { Users, Edit, Plus, Trash2, FileText } from "lucide-react";
 import { CharacterWithTag } from "@/convex/characters/types";
 import { CharacterDialog } from "./character-dialog";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 export default function CharactersContent() {
-  const { currentCampaign } = useCharacters();
+  const { currentCampaign, dmUsername, campaignSlug } = useCharacters();
+  const { selectNote } = useNotes(); // Now available thanks to the provider being moved up!
+  const router = useRouter();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingCharacter, setEditingCharacter] = useState<CharacterWithTag | null>(null);
   const [deletingCharacter, setDeletingCharacter] = useState<CharacterWithTag | null>(null);
@@ -27,6 +31,10 @@ export default function CharactersContent() {
   );
 
   const deleteCharacter = useMutation(api.characters.mutations.deleteCharacter);
+
+  const handleViewCharacterNotes = (character: CharacterWithTag) => {
+    router.push(`/campaigns/${dmUsername}/${campaignSlug}/notes?characterId=${character._id}`);
+  };
 
   const handleDeleteCharacter = async () => {
     if (!deletingCharacter) return;
@@ -83,7 +91,16 @@ export default function CharactersContent() {
               icon: <Users className="w-3 h-3" />,
               variant: "secondary"
             }}
+            onClick={() => handleViewCharacterNotes(character)}
             actionButtons={[
+              // {
+              //   icon: <FileText className="w-4 h-4" />,
+              //   onClick: (e) => {
+              //     e.stopPropagation();
+              //     handleViewCharacterNotes(character);
+              //   },
+              //   "aria-label": "View character notes"
+              // },
               {
                 icon: <Edit className="w-4 h-4" />,
                 onClick: (e) => {

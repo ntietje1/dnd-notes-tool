@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { query } from "../_generated/server";
 import { Campaign, CampaignSlug, UserCampaign } from "./types";
-import { getBaseUserId, verifyUserIdentity } from "../model/helpers";
+import { getBaseUserId, verifyUserIdentity } from "../common/identity";
 
 export const getUserCampaigns = query({
   args: {},
@@ -12,7 +12,7 @@ export const getUserCampaigns = query({
 
     const campaignMemberships = await ctx.db
       .query("campaignMembers")
-      .withIndex("by_user_campaign", (q) => q.eq("userId", baseUserId))
+      .withIndex("by_user", (q) => q.eq("userId", baseUserId))
       .collect();
 
     const campaigns = await Promise.all(
@@ -40,7 +40,7 @@ export const getUserCampaigns = query({
         if (membership?.role === "DM") {
           notes = await ctx.db
             .query("notes")
-            .withIndex("by_campaign", (q) => q.eq("campaignId", campaign._id))
+            .withIndex("by_campaign_parent", (q) => q.eq("campaignId", campaign._id))
             .collect();
         }
 
@@ -84,12 +84,14 @@ export const getCampaignBySlug = query({
     }
 
     const baseUserId = getBaseUserId(identity.subject);
-    const membership = await ctx.db
+    const campaignMembers = await ctx.db
       .query("campaignMembers")
-      .withIndex("by_user_campaign", (q) =>
-        q.eq("userId", baseUserId).eq("campaignId", campaign._id),
-      )
-      .unique();
+      .withIndex("by_campaign", (q) => q.eq("campaignId", campaign._id))
+      .collect();
+    
+    const membership = campaignMembers.find(
+      (member) => member.userId === baseUserId,
+    );
 
     if (!membership) {
       return null;
@@ -102,6 +104,7 @@ export const getCampaignBySlug = query({
 export const checkCampaignSlugExists = query({
   args: {
     slug: v.string(),
+    excludeCampaignId: v.optional(v.id("campaigns")),
   },
   handler: async (ctx, args) => {
     const identity = await verifyUserIdentity(ctx);
@@ -123,6 +126,17 @@ export const checkCampaignSlugExists = query({
       )
       .unique();
 
-    return slug !== null;
+    // If no slug found, it doesn't exist
+    if (!slug) {
+      return false;
+    }
+
+    // If excludeCampaignId is provided and matches the found slug's campaign, 
+    // treat it as not existing (allow the current campaign to keep its slug)
+    if (args.excludeCampaignId && slug.campaignId === args.excludeCampaignId) {
+      return false;
+    }
+
+    return true;
   },
 });

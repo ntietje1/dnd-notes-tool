@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation } from "../_generated/server";
-import { getBaseUserId, verifyUserIdentity } from "../model/helpers";
+import { getBaseUserId, verifyUserIdentity } from "../common/identity";
 
 export const createUserProfile = mutation({
   args: {

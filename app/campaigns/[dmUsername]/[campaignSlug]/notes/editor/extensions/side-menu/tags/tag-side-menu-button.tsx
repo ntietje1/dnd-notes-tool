@@ -4,13 +4,14 @@ import { useNotes } from "@/contexts/NotesContext";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { CustomBlockNoteEditor } from "./tags";
+import { CustomBlockNoteEditor } from "../../../../../../../../../lib/tags";
 import { Badge } from "@/components/ui/badge";
 import { TagIcon, PlusIcon, CheckIcon, LockIcon } from "lucide-react";
 import { useComponentsContext } from "@blocknote/react";
+import { toast } from "sonner";
 
 interface TagSideMenuButtonProps {
-  editor: CustomBlockNoteEditor;
+  editor: CustomBlockNoteEditor | null;
   block: any;
 }
 
@@ -19,6 +20,7 @@ export default function TagSideMenuButton({
   block,
 }: TagSideMenuButtonProps) {
   const { tags } = useTags();
+  const nonSystemTags = tags?.filter((tag) => tag.type !== "System") || [];
   const { currentNote } = useNotes();
   const addTagToBlock = useMutation(api.notes.mutations.addTagToBlockMutation);
   const removeTagFromBlock = useMutation(
@@ -29,13 +31,15 @@ export default function TagSideMenuButton({
 
   const Components = useComponentsContext()!;
 
-  const blockTagState = useQuery(api.notes.queries.getBlockTagState, {
-    noteId: currentNote?._id!,
-    blockId: block.id,
-  });
+  const blockTagState = useQuery(api.notes.queries.getBlockTagState, currentNote?._id ? {
+    noteId: currentNote._id,
+    blockId: block.id
+  } : "skip");
 
   // Prevent BlockNote from moving the side menu when dropdown is open
   useEffect(() => {
+    if (!editor) return;
+    
     if (isOpen && editor.sideMenu) {
       // Freeze the side menu to prevent it from moving
       editor.sideMenu.freezeMenu();
@@ -75,9 +79,8 @@ export default function TagSideMenuButton({
         tagId,
       });
     } catch (error) {
-      console.error("Failed to add tag:", error);
-      // Show user-friendly error message
-      alert(error instanceof Error ? error.message : "Failed to add tag");
+      console.error(error);
+      toast.error("Failed to add tag");
     }
   };
 
@@ -91,20 +94,22 @@ export default function TagSideMenuButton({
         tagId,
       });
     } catch (error) {
-      console.error("Failed to remove tag:", error);
-      // Show user-friendly error message
-      alert(error instanceof Error ? error.message : "Failed to remove tag");
+      console.error(error);
+      toast.error("Failed to remove tag");
     }
   };
 
-  // Get tag state
   const inlineTagIds = blockTagState?.inlineTagIds || [];
-  const manualTagIds = blockTagState?.manualTagIds || [];
+  const manualTagIds = blockTagState?.blockTagIds || []; // These are manually added tags (removable)
+  const noteTagId = blockTagState?.noteTagId || null;
   const allBlockTagIds = blockTagState?.allTagIds || [];
 
-  // Tags available for addition (not already on the block)
-  const availableTags =
-    tags?.filter((tag) => !allBlockTagIds.includes(tag._id)) || [];
+  // Tags that are unavailable (locked) include inline tags and the note tag
+  const lockedTagIds = [...inlineTagIds, ...(noteTagId ? [noteTagId] : [])];
+  const unavailableTags = nonSystemTags?.filter((tag) => lockedTagIds.includes(tag._id)) || [];
+  
+  // Available tags are those not already applied to the block
+  const availableTags = nonSystemTags?.filter((tag) => !allBlockTagIds.includes(tag._id)) || [];
 
   return (
     <div ref={buttonRef} className="relative flex items-center">
@@ -135,14 +140,12 @@ export default function TagSideMenuButton({
                   Current tags:
                 </div>
 
-                {/* Inline tags (locked) */}
-                {inlineTagIds.map((tagId) => {
-                  const tag = tags?.find((t) => t._id === tagId);
+                {unavailableTags.map((tag) => {
                   if (!tag) return null;
 
                   return (
                     <div
-                      key={`inline-${tagId}`}
+                      key={`inline-${tag._id}`}
                       className="flex items-center justify-between px-2 py-1.5 rounded opacity-75"
                     >
                       <Badge
@@ -160,8 +163,7 @@ export default function TagSideMenuButton({
                   );
                 })}
 
-                {/* Manual tags (removable) */}
-                {manualTagIds.map((tagId) => {
+                {manualTagIds.map((tagId: Id<"tags">) => {
                   const tag = tags?.find((t) => t._id === tagId);
                   if (!tag) return null;
 
@@ -192,7 +194,6 @@ export default function TagSideMenuButton({
               </>
             )}
 
-            {/* Available tags */}
             {availableTags.length > 0 ? (
               <>
                 <div className="px-2 py-1.5 text-xs text-muted-foreground">

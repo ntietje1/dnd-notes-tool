@@ -1,8 +1,8 @@
 import type React from "react";
-import CreateCampaignDialog from "./[dmUsername]/[campaignSlug]/components/create-campaign-dialog";
-import { CampaignsHeader } from "./[dmUsername]/[campaignSlug]/components/campaigns-header";
-import { CampaignsList } from "./[dmUsername]/[campaignSlug]/components/campaigns-list";
-import { CampaignsFooter } from "./[dmUsername]/[campaignSlug]/components/campaigns-footer";
+import CreateCampaignDialog from "./components/create-campaign-dialog";
+import { CampaignsHeader } from "./components/campaigns-header";
+import { CampaignsList } from "./components/campaigns-list";
+import { CampaignsFooter } from "./components/campaigns-footer";
 
 export default function CampaignDashboard() {
   return (

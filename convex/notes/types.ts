@@ -1,10 +1,11 @@
 import { Id } from "../_generated/dataModel";
-import { CustomBlock } from "../../app/campaigns/[dmUsername]/[campaignSlug]/notes/editor/extensions/tags/tags";
+import { CustomBlock } from "../../lib/tags";
 
-// Only include actual database table types
-export type SidebarItemType = "notes" | "folders";
+export const NOTES_TYPE = "notes" as const;
+export const FOLDERS_TYPE = "folders" as const;
 
-// Generic type for all sidebar items
+export type SidebarItemType = typeof NOTES_TYPE | typeof FOLDERS_TYPE;
+
 export type SidebarItem<T extends SidebarItemType> = {
   _id: Id<T>;
   _creationTime: number;
@@ -17,15 +18,15 @@ export type SidebarItem<T extends SidebarItemType> = {
   type: T;
 };
 
-export type Note = SidebarItem<"notes">;
+export type Note = SidebarItem<typeof NOTES_TYPE>;
 
 export const UNTITLED_NOTE_TITLE = "Untitled Note";
 export const UNTITLED_FOLDER_NAME = "Untitled Folder";
 
-export type Folder = SidebarItem<"folders">;
+export type Folder = SidebarItem<typeof FOLDERS_TYPE>;
 
 export interface FolderNode extends Folder {
-  type: "folders";
+  type: typeof FOLDERS_TYPE;
   children: AnySidebarItem[];
 }
 
@@ -52,6 +53,7 @@ export type Block = {
 export type BlockTag = {
   _id: Id<"blockTags">;
   _creationTime: number;
+  campaignId: Id<"campaigns">;
   blockId: Id<"blocks">;
   tagId: Id<"tags">;
   createdAt: number;

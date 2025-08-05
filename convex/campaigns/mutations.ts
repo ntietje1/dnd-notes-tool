@@ -1,8 +1,8 @@
 import { v } from "convex/values";
 import { mutation } from "../_generated/server";
-import { getBaseUserId, verifyUserIdentity } from "../model/helpers";
+import { getBaseUserId, verifyUserIdentity } from "../common/identity";
 import { SYSTEM_TAGS } from "../tags/types";
-import { insertTag } from "../model/tags/helpers";
+import { insertTag } from "../tags/helpers";
 
 export const createCampaign = mutation({
   args: {
@@ -128,9 +128,8 @@ export const updateCampaign = mutation({
 
     const campaignMember = await ctx.db
       .query("campaignMembers")
-      .withIndex("by_user_campaign", (q) =>
-        q.eq("userId", baseUserId).eq("campaignId", args.campaignId),
-      )
+      .withIndex("by_campaign", (q) => q.eq("campaignId", args.campaignId))
+      .filter((q) => q.eq("userId", baseUserId))
       .unique();
 
     if (!campaignMember || campaignMember.role !== "DM") {
@@ -208,9 +207,8 @@ export const deleteCampaign = mutation({
 
     const campaignMember = await ctx.db
       .query("campaignMembers")
-      .withIndex("by_user_campaign", (q) =>
-        q.eq("userId", baseUserId).eq("campaignId", args.campaignId),
-      )
+      .withIndex("by_campaign", (q) => q.eq("campaignId", args.campaignId))
+      .filter((q) => q.eq("userId", baseUserId))
       .unique();
 
     if (!campaignMember || campaignMember.role !== "DM") {
@@ -235,7 +233,7 @@ export const deleteCampaign = mutation({
 
     const notes = await ctx.db
       .query("notes")
-      .withIndex("by_campaign", (q) => q.eq("campaignId", args.campaignId))
+      .withIndex("by_campaign_parent", (q) => q.eq("campaignId", args.campaignId))
       .collect();
 
     for (const note of notes) {
@@ -244,18 +242,17 @@ export const deleteCampaign = mutation({
 
     const folders = await ctx.db
       .query("folders")
-      .withIndex("by_campaign", (q) => q.eq("campaignId", args.campaignId))
+      .withIndex("by_campaign_parent", (q) => q.eq("campaignId", args.campaignId))
       .collect();
 
     for (const folder of folders) {
       await ctx.db.delete(folder._id);
     }
 
-    const tags = await ctx.db.query("tags").collect();
-
-    const campaignTags = tags.filter(
-      (tag) => tag.campaignId === args.campaignId,
-    );
+    const campaignTags = await ctx.db
+      .query("tags")
+      .withIndex("by_campaign_name", (q) => q.eq("campaignId", args.campaignId))
+      .collect();
 
     for (const tag of campaignTags) {
       await ctx.db.delete(tag._id);
@@ -279,11 +276,10 @@ export const deleteCampaign = mutation({
       await ctx.db.delete(character._id);
     }
 
-    const members = await ctx.db.query("campaignMembers").collect();
-
-    const campaignMembers = members.filter(
-      (member) => member.campaignId === args.campaignId,
-    );
+    const campaignMembers = await ctx.db
+      .query("campaignMembers")
+      .withIndex("by_campaign", (q) => q.eq("campaignId", args.campaignId))
+      .collect();
 
     for (const member of campaignMembers) {
       await ctx.db.delete(member._id);

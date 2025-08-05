@@ -1,9 +1,8 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
-  BookOpen,
   Users,
   MapPin,
   FileText,
@@ -14,7 +13,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import React from "react";
-import { CampaignValidation } from "@/app/campaigns/[dmUsername]/[campaignSlug]/campaign-validation";
+import { CampaignValidation } from "@/app/campaigns/[dmUsername]/[campaignSlug]/components/campaign-validation";
+import { NotesProvider } from "@/contexts/NotesContext";
 
 interface CampaignLayoutProps {
   children: React.ReactNode;
@@ -69,7 +69,6 @@ function CampaignLayoutContent({ children, params }: CampaignLayoutProps) {
 
   const basePath = `/campaigns/${dmUsername}/${campaignSlug}`;
 
-  // Don't show sidebar for join page
   const isJoinPage = pathname.includes("/join");
 
   if (isJoinPage) {
@@ -78,11 +77,7 @@ function CampaignLayoutContent({ children, params }: CampaignLayoutProps) {
 
   return (
     <div className="flex h-[calc(100vh-2.5rem)] bg-slate-50">
-      {/* Sidebar */}
       <div className="w-16 bg-white border-r border-slate-200 flex flex-col items-center py-4 space-y-2">
-        {/* <div className="w-8 h-8 bg-amber-600 rounded-lg flex items-center justify-center mb-4">
-          <Sword className="h-5 w-5 text-white" />
-        </div> */}
 
         {navigationItems.map((item) => {
           const isActive = item.exact
@@ -120,6 +115,37 @@ function CampaignLayoutContent({ children, params }: CampaignLayoutProps) {
   );
 }
 
+function NotesProviderWrapper({
+  children,
+  dmUsername,
+  campaignSlug,
+}: {
+  children: React.ReactNode;
+  dmUsername: string;
+  campaignSlug: string;
+}) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  
+  const isNotesRoute = pathname.includes("/notes");
+  const noteId = isNotesRoute ? searchParams.get("noteId") : null;
+  const characterId = isNotesRoute ? searchParams.get("characterId") : null;
+  const locationId = isNotesRoute ? searchParams.get("locationId") : null;
+  const sessionId = isNotesRoute ? searchParams.get("sessionId") : null;
+
+  //TODO: make a hook that handles converting characterId, locationId, or sessionId to noteId
+
+  return (
+    <NotesProvider
+      dmUsername={dmUsername}
+      campaignSlug={campaignSlug}
+      noteId={noteId || undefined}
+    >
+      {children}
+    </NotesProvider>
+  );
+}
+
 export default function CampaignLayout({
   children,
   params,
@@ -128,7 +154,12 @@ export default function CampaignLayout({
 
   return (
     <CampaignValidation dmUsername={dmUsername} campaignSlug={campaignSlug}>
-      <CampaignLayoutContent params={params}>{children}</CampaignLayoutContent>
+      <NotesProviderWrapper
+        dmUsername={dmUsername}
+        campaignSlug={campaignSlug}
+      >
+        <CampaignLayoutContent params={params}>{children}</CampaignLayoutContent>
+      </NotesProviderWrapper>
     </CampaignValidation>
   );
 }

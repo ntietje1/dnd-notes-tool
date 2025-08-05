@@ -1,8 +1,148 @@
-import { CustomBlock } from "../../app/campaigns/[dmUsername]/[campaignSlug]/notes/editor/extensions/tags/tags";
+import { CustomBlock } from "../../lib/tags";
 import { Id } from "../_generated/dataModel";
-import { DatabaseReader, DatabaseWriter } from "../_generated/server";
+import { DatabaseReader, DatabaseWriter, MutationCtx } from "../_generated/server";
 import { Tag } from "./types";
 import { Block } from "../notes/types";
+import { getBaseUserId } from "../common/identity";
+
+export const insertTag = async (
+  ctx: MutationCtx,
+  tag: Omit<Tag, "_id" | "_creationTime" | "updatedAt">,
+) => {
+  const tagId = await ctx.db.insert("tags", {
+    name: tag.name,
+    type: tag.type,
+    color: tag.color,
+    campaignId: tag.campaignId,
+    updatedAt: Date.now(),
+  });
+
+  let noteId: Id<"notes"> | null = null;
+
+  // Create associated note page for Character, Location, and Session tags
+  if (tag.type === "Character" || tag.type === "Location" || tag.type === "Session") {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+
+    noteId = await ctx.db.insert("notes", {
+      userId: getBaseUserId(identity.subject),
+      name: tag.name,
+      campaignId: tag.campaignId,
+      tagId: tagId,
+      updatedAt: Date.now(),
+    });
+
+    // Create initial block for the note
+    const initialBlockId = crypto.randomUUID();
+    await ctx.db.insert("blocks", {
+      noteId,
+      blockId: initialBlockId,
+      position: 0,
+      content: {
+        type: "paragraph",
+        id: initialBlockId,
+        content: [],
+      },
+      isTopLevel: true,
+      campaignId: tag.campaignId,
+      updatedAt: Date.now(),
+    });
+  }
+
+  return { tagId, noteId };
+};
+
+export const updateTagAndContent = async (
+  ctx: MutationCtx,
+  tagId: Id<"tags">,
+  campaignId: Id<"campaigns">,
+  currentName: string,
+  currentColor: string,
+  updates: {
+    name?: string;
+    color?: string;
+  },
+) => {
+  const tagUpdates: {
+    name?: string;
+    color?: string;
+    updatedAt: number;
+  } = {
+    updatedAt: Date.now(),
+  };
+
+  if (updates.name !== undefined) {
+    tagUpdates.name = updates.name;
+  }
+  if (updates.color !== undefined) {
+    tagUpdates.color = updates.color;
+  }
+
+  await ctx.db.patch(tagId, tagUpdates);
+
+  if (updates.name !== undefined || updates.color !== undefined) {
+    const newName = updates.name ?? currentName;
+    const newColor = updates.color ?? currentColor;
+
+    const allBlocks = await ctx.db
+      .query("blocks")
+      .withIndex("by_campaign_note_toplevel_pos", (q) =>
+        q.eq("campaignId", campaignId),
+      )
+      .collect();
+
+    const updateTagsInContent = (content: any): any => {
+      if (Array.isArray(content)) {
+        return content.map(updateTagsInContent);
+      } else if (content && typeof content === "object") {
+        if (content.type === "tag" && content.props?.tagId === tagId) {
+          return {
+            ...content,
+            props: {
+              ...content.props,
+              tagName: newName,
+              tagColor: newColor,
+            },
+          };
+        }
+
+        const updatedContent = { ...content };
+        if (content.content) {
+          updatedContent.content = updateTagsInContent(content.content);
+        }
+        if (content.children) {
+          updatedContent.children = updateTagsInContent(content.children);
+        }
+
+        return updatedContent;
+      }
+      return content;
+    };
+
+    for (const block of allBlocks) {
+      const updatedContent = updateTagsInContent(block.content);
+
+      if (JSON.stringify(updatedContent) !== JSON.stringify(block.content)) {
+        await ctx.db.patch(block._id, {
+          content: updatedContent,
+          updatedAt: Date.now(),
+        });
+      }
+    }
+  }
+};
+
+export const deleteTagAndCleanupContent = async (
+  ctx: MutationCtx,
+  tagId: Id<"tags">,
+) => {
+  //TODO: modify all tags in content to just be text without being an actual tag inline content
+
+  await ctx.db.delete(tagId);
+};
+
 
 export async function validateTagBelongsToCampaign(
   ctx: { db: DatabaseReader },
@@ -26,10 +166,15 @@ export async function findBlock(
   noteId: Id<"notes">,
   blockId: string,
 ): Promise<Block | null> {
+  const note = await ctx.db.get(noteId);
+  if (!note) {
+    return null;
+  }
+
   return await ctx.db
     .query("blocks")
-    .withIndex("by_note_block", (q) =>
-      q.eq("noteId", noteId).eq("blockId", blockId),
+    .withIndex("by_campaign_note_block", (q) =>
+      q.eq("campaignId", note.campaignId).eq("noteId", noteId).eq("blockId", blockId),
     )
     .first();
 }
@@ -38,9 +183,16 @@ export async function getBlockTags(
   ctx: { db: DatabaseReader },
   blockDbId: Id<"blocks">,
 ): Promise<Id<"tags">[]> {
+  const block = await ctx.db.get(blockDbId);
+  if (!block) {
+    return [];
+  }
+
   const blockTags = await ctx.db
     .query("blockTags")
-    .withIndex("by_block", (q) => q.eq("blockId", blockDbId))
+    .withIndex("by_campaign_block_tag", (q) =>
+      q.eq("campaignId", block.campaignId).eq("blockId", blockDbId),
+    )
     .collect();
 
   return blockTags.map((bt) => bt.tagId);
@@ -51,15 +203,21 @@ export async function addTagToBlock(
   blockDbId: Id<"blocks">,
   tagId: Id<"tags">,
 ) {
+  const block = await ctx.db.get(blockDbId);
+  if (!block) {
+    return [];
+  }
+
   const existing = await ctx.db
     .query("blockTags")
-    .withIndex("by_block_tag", (q) =>
-      q.eq("blockId", blockDbId).eq("tagId", tagId),
+    .withIndex("by_campaign_block_tag", (q) =>
+      q.eq("campaignId", block.campaignId).eq("blockId", blockDbId).eq("tagId", tagId),
     )
     .first();
 
   if (!existing) {
     await ctx.db.insert("blockTags", {
+      campaignId: block.campaignId,
       blockId: blockDbId,
       tagId: tagId,
       createdAt: Date.now(),
@@ -78,10 +236,15 @@ export async function removeTagFromBlock(
   tagIdToRemove: Id<"tags">,
   isTopLevel: boolean,
 ) {
+  const block = await ctx.db.get(blockDbId);
+  if (!block) {
+    return [];
+  }
+
   const blockTag = await ctx.db
     .query("blockTags")
-    .withIndex("by_block_tag", (q) =>
-      q.eq("blockId", blockDbId).eq("tagId", tagIdToRemove),
+    .withIndex("by_campaign_block_tag", (q) =>
+      q.eq("campaignId", block.campaignId).eq("blockId", blockDbId).eq("tagId", tagIdToRemove),
     )
     .first();
 
@@ -124,6 +287,7 @@ export async function getTopLevelBlocks(
 
 export function extractAllBlocksWithTags(
   content: CustomBlock[],
+  noteTagId: Id<"tags"> | null,
 ): Map<
   string,
   { block: CustomBlock; tagIds: Id<"tags">[]; isTopLevel: boolean }
@@ -140,10 +304,10 @@ export function extractAllBlocksWithTags(
       if (block.id) {
         const tagIds = extractTagIdsFromBlockContent(block);
 
-        if (isTopLevel || tagIds.length > 0) {
+        if (isTopLevel || tagIds.length > 0 || noteTagId) {
           blocksMap.set(block.id, {
             block: block,
-            tagIds: tagIds,
+            tagIds: [...tagIds, ...(noteTagId ? [noteTagId] : [])],
             isTopLevel: isTopLevel,
           });
         }
@@ -202,10 +366,10 @@ export async function saveTopLevelBlocks(
 ) {
   const now = Date.now();
 
-  const allBlocksWithTags = extractAllBlocksWithTags(content);
-
   const note = await ctx.db.get(noteId);
   if (!note) return;
+
+  const allBlocksWithTags = extractAllBlocksWithTags(content, note.tagId || null);
 
   const existingBlocks = await ctx.db
     .query("blocks")
@@ -268,7 +432,8 @@ export async function saveTopLevelBlocks(
         (tagId) => !oldInlineTagIds.includes(tagId),
       );
 
-      const finalTagIds = [...new Set([...inlineTagIds, ...manualTags])];
+      const noteLevelTag = note.tagId ? [note.tagId] : [];
+      const finalTagIds = [...new Set([...inlineTagIds, ...manualTags, ...noteLevelTag])];
 
       const tagsToRemove = currentTagIds.filter(
         (tagId) => !finalTagIds.includes(tagId),
@@ -280,8 +445,8 @@ export async function saveTopLevelBlocks(
       for (const tagId of tagsToRemove) {
         const blockTag = await ctx.db
           .query("blockTags")
-          .withIndex("by_block_tag", (q) =>
-            q.eq("blockId", finalBlockDbId).eq("tagId", tagId),
+          .withIndex("by_campaign_block_tag", (q) =>
+            q.eq("campaignId", campaignId).eq("blockId", finalBlockDbId).eq("tagId", tagId),
           )
           .first();
         if (blockTag) {
@@ -291,14 +456,19 @@ export async function saveTopLevelBlocks(
 
       for (const tagId of tagsToAdd) {
         await ctx.db.insert("blockTags", {
+          campaignId: campaignId,
           blockId: finalBlockDbId,
           tagId: tagId,
           createdAt: now,
         });
       }
     } else {
-      for (const tagId of inlineTagIds) {
+      const noteLevelTag = note.tagId ? [note.tagId] : [];
+      const finalTagIds = [...new Set([...inlineTagIds, ...noteLevelTag])];
+      
+      for (const tagId of finalTagIds) {
         await ctx.db.insert("blockTags", {
+          campaignId: campaignId,
           blockId: finalBlockDbId,
           tagId: tagId,
           createdAt: now,

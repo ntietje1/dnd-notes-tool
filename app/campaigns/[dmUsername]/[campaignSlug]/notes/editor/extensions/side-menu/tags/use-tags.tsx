@@ -4,6 +4,7 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { TagType } from "@/convex/tags/types";
 import { useNotes } from "@/contexts/NotesContext";
+import { toast } from "sonner";
 
 export function useTags() {
   const { currentCampaign } = useNotes();
@@ -19,11 +20,15 @@ export function useTags() {
 
   const handleCreateTag = useCallback(
     async (name: string, type: TagType, color: string) => {
+      if (!currentCampaign?._id) {
+        toast.error("Still loading... Try again in a moment");
+        return;
+      }
       return await createTag({
         name,
         type,
         color,
-        campaignId: currentCampaign?._id!,
+        campaignId: currentCampaign._id,
       });
     },
     [createTag, currentCampaign],
@@ -59,7 +64,7 @@ export function useTags() {
   );
 
   return {
-    tags: tags?.filter((tag) => tag.type !== "system"),
+    tags: tags?.filter((tag) => tag.type !== "System") || [],
     createTag: handleCreateTag,
     deleteTag: handleDeleteTag,
     addTagToBlock: handleAddTagToBlock,

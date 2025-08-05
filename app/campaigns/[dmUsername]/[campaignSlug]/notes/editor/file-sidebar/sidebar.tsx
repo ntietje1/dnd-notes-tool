@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import { Id } from "@/convex/_generated/dataModel";
 import { AnySidebarItem } from "@/convex/notes/types";
+import { TagType } from "@/convex/tags/types";
 import {
   DndContext,
   DragEndEvent,
@@ -16,6 +17,8 @@ import {
 import { DroppableRoot } from "./sidebar-root/droppable-root";
 import { useNotes } from "@/contexts/NotesContext";
 import { SidebarItem } from "./sidebar-item/sidebar-item";
+import { SystemFolderButton } from "./sidebar-system-folder/system-folder-button";
+import { SystemFolders } from "./sidebar-system-folder/system-folders";
 
 type DraggableItem =
   | {
@@ -26,6 +29,8 @@ type DraggableItem =
       id: Id<"folders">;
       type: "folder";
     };
+
+const SIDEBAR_FOLDER_TYPES: TagType[] = ["Character", "Location", "Session"];
 
 export function FileSidebar() {
   const {
@@ -162,16 +167,33 @@ export function FileSidebar() {
             className="absolute inset-0 p-1 transition-colors overflow-y-auto"
             onNewPage={createNote}
           >
-            {sidebarData?.map((item) => {
-              return (
-                <SidebarItem
-                  key={item._id}
-                  item={item}
+            {!sidebarData ? (
+              <div className="flex-1 p-2">
+                <div className="space-y-2 animate-pulse">
+                  {SIDEBAR_FOLDER_TYPES.map((tagType) => (
+                    <div key={tagType} className="h-6 w-full bg-gray-200 rounded" />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <>
+                <SystemFolders
                   renamingId={renamingId}
                   setRenamingId={setRenamingId}
                 />
-              );
-            })}
+
+                <div className="my-2 border-t border-muted-foreground/20" />
+
+                {sidebarData.map((item) => (
+                  <SidebarItem
+                    key={item._id}
+                    item={item}
+                    renamingId={renamingId}
+                    setRenamingId={setRenamingId}
+                  />
+                ))}
+              </>
+            )}
           </DroppableRoot>
         </div>
       </div>

@@ -1,13 +1,13 @@
 "use client";
 
 import React from "react";
-import { useTags } from "../editor/extensions/tags/use-tags";
+import { useTags } from "../editor/extensions/side-menu/tags/use-tags";
 import { useNotes } from "@/contexts/NotesContext";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { BlockNoteView } from "@blocknote/shadcn";
 import { BlockNoteSchema, BlockNoteEditor } from "@blocknote/core";
-import { customInlineContentSpecs } from "../editor/extensions/tags/tags";
+import { customInlineContentSpecs } from "../../../../../../lib/tags";
 import { Id } from "@/convex/_generated/dataModel";
 
 export default function NotesViewer() {
@@ -43,7 +43,6 @@ export default function NotesViewer() {
 
   return (
     <div className="h-full flex flex-col bg-white">
-      {/* Tag selection UI */}
       <div className="mb-4 flex flex-wrap gap-2">
         {tags?.map((tag) => (
           <button
@@ -67,7 +66,6 @@ export default function NotesViewer() {
         ))}
       </div>
 
-      {/* Read-only BlockNoteView */}
       <div className="flex-1">
         {editor && (
           <BlockNoteView

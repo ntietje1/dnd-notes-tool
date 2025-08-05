@@ -77,48 +77,48 @@ export function CampaignsList() {
 
   // Helper function to render campaign footer
   const renderCampaignFooter = (campaign: UserCampaign) => (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-sm text-slate-600">
-                    <Users className="h-4 w-4" />
-                    <span>{campaign.playerCount} players</span>
-                  </div>
+    <div className="space-y-3">
+      <div className="flex items-center gap-2 text-sm text-slate-600">
+        <Users className="h-4 w-4" />
+        <span>{campaign.playerCount} players</span>
+      </div>
 
-                  <div className="flex items-center gap-2 text-sm text-slate-600">
-                    <Calendar className="h-4 w-4" />
-                    <span>
-                      Created{" "}
-                      {new Date(campaign._creationTime).toLocaleDateString()}
-                    </span>
-                  </div>
+      <div className="flex items-center gap-2 text-sm text-slate-600">
+        <Calendar className="h-4 w-4" />
+        <span>
+          Created{" "}
+          {new Date(campaign._creationTime).toLocaleDateString()}
+        </span>
+      </div>
 
-                  <div className="flex gap-2 flex-wrap">
-                    <Badge
-                      variant="secondary"
-                      className={`text-xs ${
-                        campaign.status === "Active"
-                          ? "bg-green-100 text-green-600"
-                          : campaign.status === "Inactive"
-                            ? "bg-red-100 text-red-600"
-                            : "bg-slate-100 text-slate-600"
-                      }`}
-                    >
-                      {campaign.status}
-                    </Badge>
-                    <Badge
-                      variant="outline"
-                      className={`text-xs ${
-                        campaign.role === "DM"
-                          ? "bg-amber-100 text-amber-600"
-                          : "bg-slate-100 text-slate-600"
-                      }`}
-                    >
-                      {campaign.role}
-                    </Badge>
-                    <Badge variant="outline" className="text-xs">
-                      {campaign.notes?.length || 0} notes
-                    </Badge>
-                  </div>
-                </div>
+      <div className="flex gap-2 flex-wrap">
+        <Badge
+          variant="secondary"
+          className={`text-xs ${
+            campaign.status === "Active"
+              ? "bg-green-100 text-green-600"
+              : campaign.status === "Inactive"
+                ? "bg-red-100 text-red-600"
+                : "bg-slate-100 text-slate-600"
+          }`}
+        >
+          {campaign.status}
+        </Badge>
+        <Badge
+          variant="outline"
+          className={`text-xs ${
+            campaign.role === "DM"
+              ? "bg-amber-100 text-amber-600"
+              : "bg-slate-100 text-slate-600"
+          }`}
+        >
+          {campaign.role}
+        </Badge>
+        <Badge variant="outline" className="text-xs">
+          {campaign.notes?.length || 0} notes
+        </Badge>
+      </div>
+    </div>
   );
 
   return (

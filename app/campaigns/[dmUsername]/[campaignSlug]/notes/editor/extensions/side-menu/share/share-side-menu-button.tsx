@@ -1,23 +1,21 @@
-import React, { useState } from "react";
+import React from "react";
 import { useNotes } from "@/contexts/NotesContext";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { CustomBlockNoteEditor } from "./tags";
 import { useComponentsContext } from "@blocknote/react";
 import { SYSTEM_TAGS } from "@/convex/tags/types";
 import { Share2Icon } from "lucide-react";
+import { toast } from "sonner";
+import { CustomBlock } from "@/lib/tags";
 
 interface ShareSideMenuButtonProps {
-  editor: CustomBlockNoteEditor;
-  block: any;
+  block: CustomBlock;
 }
 
 export default function ShareSideMenuButton({
-  editor,
   block,
 }: ShareSideMenuButtonProps) {
   const { currentCampaign, currentNote } = useNotes();
-  const [isSharing, setIsSharing] = useState(false);
 
   const Components = useComponentsContext()!;
 
@@ -33,10 +31,10 @@ export default function ShareSideMenuButton({
   );
 
   // Get current block tag state
-  const blockTagState = useQuery(api.notes.queries.getBlockTagState, {
-    noteId: currentNote?._id!,
+  const blockTagState = useQuery(api.notes.queries.getBlockTagState, currentNote?._id ? {
+    noteId: currentNote._id,
     blockId: block.id,
-  });
+  } : "skip");
 
   const addTagToBlock = useMutation(api.notes.mutations.addTagToBlockMutation);
   const removeTagFromBlock = useMutation(
@@ -49,7 +47,6 @@ export default function ShareSideMenuButton({
   const handleToggleShare = async () => {
     if (!currentNote || !sharedTag) return;
 
-    setIsSharing(true);
     try {
       if (isShared) {
         await removeTagFromBlock({
@@ -66,9 +63,7 @@ export default function ShareSideMenuButton({
       }
     } catch (error) {
       console.error("Failed to toggle share:", error);
-      alert(error instanceof Error ? error.message : "Failed to toggle share");
-    } finally {
-      setIsSharing(false);
+      toast.error("Failed to toggle share");
     }
   };
 

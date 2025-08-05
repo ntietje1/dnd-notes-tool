@@ -1,16 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useMutation } from "convex/react";
+import { useEffect } from "react";
+import { useMutation, useQuery } from "convex/react";
+import { useForm } from "react-hook-form";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { CharacterWithTag } from "@/convex/characters/types";
 import { FormDialog } from "@/components/ui/forms/form-dialog";
-import { FormField } from "@/components/ui/forms/form-field";
 import { FormActions } from "@/components/ui/forms/form-actions";
 import { ColorPicker, DEFAULT_COLORS } from "@/components/ui/forms/color-picker";
 import { Users, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { useNotes } from "@/contexts/NotesContext";
 
 interface CharacterDialogProps {
   mode: "create" | "edit";
@@ -18,58 +19,91 @@ interface CharacterDialogProps {
   onClose: () => void;
   campaignId?: Id<"campaigns">; // Required for create mode
   character?: CharacterWithTag; // Required for edit mode
+  navigateToNote?: boolean; // Whether to navigate to the character's note page after creation
 }
 
-export function CharacterDialog({ mode, isOpen, onClose, campaignId, character }: CharacterDialogProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
+interface CharacterFormData {
+  name: string;
+  description: string;
+  color: string;
+}
 
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [color, setColor] = useState(DEFAULT_COLORS[0]);
-
+export function CharacterDialog({ mode, isOpen, onClose, campaignId, character, navigateToNote = false }: CharacterDialogProps) {
   const createCharacter = useMutation(api.characters.mutations.createCharacter);
   const updateCharacter = useMutation(api.characters.mutations.updateCharacter);
+  const { selectNote } = useNotes();
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    reset,
+    formState: { errors, isSubmitting, isValid, isDirty }
+  } = useForm<CharacterFormData>({
+    mode: "onChange",
+    defaultValues: {
+      name: "",
+      description: "",
+      color: DEFAULT_COLORS[0]
+    }
+  });
+
+  const colorValue = watch("color");
 
   // Initialize form data
   useEffect(() => {
     if (mode === "create") {
-      setName("");
-      setDescription("");
-      setColor(DEFAULT_COLORS[0]);
+      reset({
+        name: "",
+        description: "",
+        color: DEFAULT_COLORS[0]
+      });
     } else if (mode === "edit" && character) {
-      setName(character.name);
-      setDescription(character.description || "");
-      setColor(character.color);
+      reset({
+        name: character.name,
+        description: character.description || "",
+        color: character.color
+      });
     }
-  }, [mode, character, isOpen]);
+  }, [mode, character, isOpen, reset]);
 
-  const handleSubmit = async () => {
-    if (!name.trim()) {
-      toast.error("Character name is required");
-      return;
-    }
-
-    setIsSubmitting(true);
-
+  const onSubmit = async (data: CharacterFormData) => {
     try {
       if (mode === "create" && campaignId) {
-        await createCharacter({
-          name: name.trim(),
-          description: description.trim() || undefined,
-          color,
+        const result = await createCharacter({
+          name: data.name.trim(),
+          description: data.description.trim() || undefined,
+          color: data.color,
           campaignId,
         });
 
         toast.success("Character created successfully");
-        setName("");
-        setDescription("");
-        setColor(DEFAULT_COLORS[0]);
+        
+        // Navigate to the character's note page if requested
+        if (navigateToNote && result.noteId) {
+          selectNote(result.noteId);
+        }
+        
+        // Clear form for next creation
+        reset({
+          name: "",
+          description: "",
+          color: DEFAULT_COLORS[0]
+        }, {
+          keepErrors: false,
+          keepDirty: false,
+          keepIsSubmitted: false,
+          keepTouched: false,
+          keepIsValid: false,
+          keepSubmitCount: false
+        });
       } else if (mode === "edit" && character) {
         await updateCharacter({
           characterId: character._id,
-          name: name.trim(),
-          description: description.trim() || undefined,
-          color,
+          name: data.name.trim(),
+          description: data.description.trim() || undefined,
+          color: data.color,
         });
 
         toast.success("Character updated successfully");
@@ -79,17 +113,25 @@ export function CharacterDialog({ mode, isOpen, onClose, campaignId, character }
     } catch (error) {
       console.error(`Failed to ${mode} character:`, error);
       toast.error(`Failed to ${mode} character`);
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
   const handleClose = () => {
     if (!isSubmitting) {
-      if (mode === "create") {
-        setName("");
-        setDescription("");
-        setColor(DEFAULT_COLORS[0]);
+      // Ensure form is completely reset before closing
+      if (isDirty) {
+        reset({
+          name: "",
+          description: "",
+          color: DEFAULT_COLORS[0]
+        }, {
+          keepErrors: false,
+          keepDirty: false,
+          keepIsSubmitted: false,
+          keepTouched: false,
+          keepIsValid: false,
+          keepSubmitCount: false
+        });
       }
       onClose();
     }
@@ -107,53 +149,68 @@ export function CharacterDialog({ mode, isOpen, onClose, campaignId, character }
       }
       icon={Users}
     >
-      <div className="space-y-4">
-        <FormField
-          type="text"
-          label="Character Name"
-          value={name}
-          onChange={setName}
-          placeholder="Enter character name..."
-          disabled={isSubmitting}
-          required
-        />
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <div className="space-y-2 px-px">
+          <label htmlFor="name" className="text-sm font-medium">
+            Character Name <span className="text-red-500 ml-1">*</span>
+          </label>
+          <input
+            id="name"
+            {...register("name", {
+              required: "Character name is required",
+              validate: (value) => value.trim() !== "" || "Character name is required"
+            })}
+            placeholder="Enter character name..."
+            disabled={isSubmitting}
+            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 break-all min-w-0 focus:ring-offset-0"
+          />
+          {errors.name && (
+            <p className="text-sm text-red-500">{errors.name.message}</p>
+          )}
+        </div>
 
-        <FormField
-          type="textarea"
-          label="Description"
-          value={description}
-          onChange={setDescription}
-          placeholder="Describe this character..."
-          disabled={isSubmitting}
-        />
+        <div className="space-y-2 px-px">
+          <label htmlFor="description" className="text-sm font-medium">
+            Description
+          </label>
+          <textarea
+            id="description"
+            {...register("description")}
+            placeholder="Describe this character..."
+            disabled={isSubmitting}
+            className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 resize-none min-w-0 focus:ring-offset-0"
+          />
+        </div>
 
-        <ColorPicker
-          selectedColor={color}
-          onColorChange={setColor}
-          disabled={isSubmitting}
-          label="Character Color"
-        />
+        <div className="space-y-2 px-px">
+          <ColorPicker
+            selectedColor={colorValue}
+            onColorChange={(color) => setValue("color", color)}
+            disabled={isSubmitting}
+            label="Character Color"
+          />
+        </div>
 
         <FormActions
           actions={[
             {
-              type: "submit",
-              label: mode === "create" ? "Create Character" : "Update Character",
-              onClick: handleSubmit,
-              disabled: isSubmitting,
-              loading: isSubmitting,
-              icon: mode === "create" ? Plus : undefined,
-            },
-            {
-              type: "button",
-              variant: "outline",
               label: "Cancel",
               onClick: handleClose,
-              disabled: isSubmitting
-            }
+              variant: "outline",
+              disabled: isSubmitting,
+            },
+            {
+              label: mode === "create" ? "Create Character" : "Update Character",
+              onClick: () => {}, // Form submission handled by onSubmit
+              type: "submit",
+              disabled: !isValid || isSubmitting,
+              loading: isSubmitting,
+              loadingText: mode === "create" ? "Creating..." : "Updating...",
+              icon: mode === "create" ? Plus : undefined,
+            },
           ]}
         />
-      </div>
+      </form>
     </FormDialog>
   );
 } 

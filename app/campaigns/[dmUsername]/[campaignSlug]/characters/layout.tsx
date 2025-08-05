@@ -16,6 +16,8 @@ interface CharactersLayoutProps {
 }
 
 type CharactersContextType = {
+  dmUsername: string;
+  campaignSlug: string;
   currentCampaign: Campaign | null | undefined;
   isLoading: boolean;
 };
@@ -47,6 +49,8 @@ export function CharactersProvider({
   const isLoading = currentCampaign === undefined;
 
   const value: CharactersContextType = {
+    dmUsername,
+    campaignSlug,
     currentCampaign,
     isLoading,
   };

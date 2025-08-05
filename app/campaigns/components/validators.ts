@@ -16,10 +16,12 @@ const linkFormatValidator: Validator<string> = {
   validate: (value) => {
     if (!value) return { state: "none" };
     const formatted = formatLink(value);
+    if (formatted === value) {
+      return { state: "success" };
+    }
     return {
-      state: formatted === value ? "success" : "error",
-      message:
-        "Link can only contain lowercase letters, numbers, and single hyphens",
+      state: "error",
+      message: "Link can only contain lowercase letters, numbers, and single hyphens",
     };
   },
 };

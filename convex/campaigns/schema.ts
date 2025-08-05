@@ -15,7 +15,7 @@ export const campaignTables = {
     campaignId: v.id("campaigns"),
     role: v.union(v.literal("DM"), v.literal("Player")),
     updatedAt: v.number(),
-  }).index("by_user_campaign", ["userId", "campaignId"]),
+  }).index("by_campaign", ["campaignId"]).index("by_user", ["userId"]),
 
   campaignSlugs: defineTable({
     campaignId: v.id("campaigns"),

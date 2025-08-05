@@ -6,6 +6,8 @@ import {
   AnySidebarItem,
   Block,
   NoteWithContent,
+  NOTES_TYPE,
+  FOLDERS_TYPE,
 } from "./types";
 import { Id } from "../_generated/dataModel";
 import {
@@ -14,8 +16,7 @@ import {
   extractTagIdsFromBlockContent,
   getBlockTags,
 } from "../tags/helpers";
-import { getBaseUserId, verifyUserIdentity } from "../model/helpers";
-import { CustomBlock } from "../../app/campaigns/[dmUsername]/[campaignSlug]/notes/editor/extensions/tags/tags";
+import { getBaseUserId, verifyUserIdentity } from "../common/identity";
 import { SYSTEM_TAGS } from "../tags/types";
 
 export const getNote = query({
@@ -93,7 +94,7 @@ export const getNote = query({
 
     return {
       ...note,
-      type: "notes" as const,
+      type: NOTES_TYPE,
       content,
     };
   },
@@ -113,20 +114,23 @@ export const getSidebarData = query({
     const [folders, notes] = await Promise.all([
       ctx.db
         .query("folders")
-        .withIndex("by_campaign", (q) => q.eq("campaignId", args.campaignId!))
+        .withIndex("by_campaign_parent", (q) => q.eq("campaignId", args.campaignId!))
         .collect(),
       ctx.db
         .query("notes")
-        .withIndex("by_campaign", (q) => q.eq("campaignId", args.campaignId!))
+        .withIndex("by_campaign_parent", (q) => q.eq("campaignId", args.campaignId!))
         .collect(),
     ]);
+
+    // Filter out notes that are associated with tags (they appear in system folders)
+    const regularNotes = notes.filter((note) => !note.tagId);
 
     const folderMap = new Map<Id<"folders">, FolderNode>();
 
     folders.forEach((folder) => {
       folderMap.set(folder._id, {
         ...folder,
-        type: "folders" as const,
+        type: FOLDERS_TYPE,
         children: [],
       });
     });
@@ -141,9 +145,9 @@ export const getSidebarData = query({
       }
     });
 
-    const typedNotes = notes.map((note) => ({
+    const typedNotes = regularNotes.map((note) => ({
       ...note,
-      type: "notes" as const,
+      type: NOTES_TYPE,
     })) as Note[];
 
     typedNotes.forEach((note) => {
@@ -281,9 +285,20 @@ export const getBlockTagState = query({
   ): Promise<{
     allTagIds: Id<"tags">[];
     inlineTagIds: Id<"tags">[];
-    manualTagIds: Id<"tags">[];
+    blockTagIds: Id<"tags">[];
+    noteTagId: Id<"tags"> | null;
   }> => {
-    await verifyUserIdentity(ctx);
+    const identity = await verifyUserIdentity(ctx);
+
+    const note = await ctx.db.get(args.noteId);
+    if (!note || note.userId !== getBaseUserId(identity.subject)) {
+      return {
+        allTagIds: [],
+        inlineTagIds: [],
+        blockTagIds: [],
+        noteTagId: null,
+      };
+    }
 
     const block = await findBlock(ctx, args.noteId, args.blockId);
 
@@ -291,31 +306,90 @@ export const getBlockTagState = query({
       return {
         allTagIds: [],
         inlineTagIds: [],
-        manualTagIds: [],
+        blockTagIds: [],
+        noteTagId: null,
       };
     }
 
-    const allTagIds = await getBlockTags(ctx, block._id);
-
+    const blockTagIds = await getBlockTags(ctx, block._id);
     const inlineTagIds = extractTagIdsFromBlockContent(block.content);
-
-    const manualTagIds = allTagIds.filter(
-      (tagId) => !inlineTagIds.includes(tagId),
+    
+    const manualTagIds = blockTagIds.filter(
+      (tagId) => !inlineTagIds.includes(tagId) && note.tagId !== tagId,
     );
+    
+    const noteTagIdList = note.tagId ? [note.tagId] : [];
+    const allTagIds = [...new Set([...blockTagIds, ...inlineTagIds, ...noteTagIdList])];
 
     return {
       allTagIds,
       inlineTagIds,
-      manualTagIds,
+      blockTagIds: manualTagIds,
+      noteTagId: note.tagId || null,
     };
   },
 });
 
-// export const getTagNotePages = query({
-//   args: {
-//     tagType: v.string(),
-//   },
-//   handler: async (ctx, args): Promise<Note[]> => {
-//     await verifyUserIdentity(ctx);
-//   },
-// });
+export const getTagNotePages = query({
+  args: {
+    campaignId: v.id("campaigns"),
+    tagType: v.union(
+      v.literal("Character"),
+      v.literal("Location"),
+      v.literal("Session"),
+      v.literal("System"),
+      v.literal("Other"),
+    ),
+  },
+  handler: async (ctx, args) => {
+    await verifyUserIdentity(ctx);
+    
+    const tags = await ctx.db
+      .query("tags")
+      .withIndex("by_campaign_type", (q) =>
+        q.eq("campaignId", args.campaignId).eq("type", args.tagType),
+      )
+      .collect();
+
+    const tagNotePages = [];
+    for (const tag of tags) {
+      const notes = await ctx.db
+        .query("notes")
+        .withIndex("by_campaign_tag", (q) =>
+          q.eq("campaignId", args.campaignId).eq("tagId", tag._id),
+        )
+        .collect();
+      
+      for (const note of notes) {
+        tagNotePages.push({
+          ...note,
+          type: NOTES_TYPE,
+          tagName: tag.name,
+          tagColor: tag.color,
+          tagType: tag.type,
+        });
+      }
+    }
+
+    return tagNotePages;
+  },
+});
+
+export const getNoteIdByTagId = query({
+  args: {
+    tagId: v.id("tags"),
+    campaignId: v.id("campaigns"),
+  },
+  handler: async (ctx, args) => {
+    await verifyUserIdentity(ctx);
+    
+    const note = await ctx.db
+      .query("notes")
+      .withIndex("by_campaign_tag", (q) =>
+        q.eq("campaignId", args.campaignId).eq("tagId", args.tagId),
+      )
+      .unique();
+    
+    return note?._id || null;
+  },
+});

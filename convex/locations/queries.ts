@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { query } from "../_generated/server";
-import { verifyUserIdentity } from "../model/helpers";
+import { verifyUserIdentity } from "../common/identity";
 import { LocationWithTag } from "./types";
 
 export const getLocationsByCampaign = query({

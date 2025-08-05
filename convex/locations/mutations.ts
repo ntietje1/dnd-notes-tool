@@ -1,11 +1,11 @@
 import { v } from "convex/values";
 import { mutation } from "../_generated/server";
-import { verifyUserIdentity } from "../model/helpers";
+import { verifyUserIdentity } from "../common/identity";
 import {
   insertTag,
   updateTagAndContent,
   deleteTagAndCleanupContent,
-} from "../model/tags/helpers";
+} from "../tags/helpers";
 
 export const createLocation = mutation({
   args: {
@@ -17,7 +17,7 @@ export const createLocation = mutation({
   handler: async (ctx, args) => {
     const identity = await verifyUserIdentity(ctx);
 
-    const tagId = await insertTag(ctx, {
+    const { tagId, noteId } = await insertTag(ctx, {
       name: args.name,
       type: "Location",
       color: args.color,
@@ -34,7 +34,7 @@ export const createLocation = mutation({
       updatedAt: Date.now(),
     });
 
-    return locationId;
+    return { locationId, tagId, noteId };
   },
 });
 
@@ -86,6 +86,23 @@ export const updateLocation = mutation({
           color: args.color,
         },
       );
+      
+      // Also update the associated note name if location name changed
+      if (args.name !== undefined) {
+        const associatedNote = await ctx.db
+          .query("notes")
+          .withIndex("by_campaign_tag", (q) =>
+            q.eq("campaignId", location.campaignId).eq("tagId", location.tagId),
+          )
+          .unique();
+          
+        if (associatedNote) {
+          await ctx.db.patch(associatedNote._id, {
+            name: args.name,
+            updatedAt: Date.now(),
+          });
+        }
+      }
     }
 
     return args.locationId;

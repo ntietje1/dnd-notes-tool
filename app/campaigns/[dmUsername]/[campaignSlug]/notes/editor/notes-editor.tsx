@@ -1,26 +1,17 @@
 "use client";
 
+import React, { useMemo } from "react";
 import { useNotes } from "@/contexts/NotesContext";
 import { Button } from "@/components/ui/button";
 import { BlockNoteView } from "@blocknote/shadcn";
-import { BlockNoteSchema } from "@blocknote/core";
-import { api } from "@/convex/_generated/api";
-import { useBlockNoteSync } from "@convex-dev/prosemirror-sync/blocknote";
-import React from "react";
-import {
-  CustomBlockNoteEditor,
-  customInlineContentSpecs,
-} from "@/app/campaigns/[dmUsername]/[campaignSlug]/notes/editor/extensions/tags/tags";
-import TagMenu from "./extensions/tags/tag-menu";
-import TagSideMenuButton from "./extensions/tags/tag-side-menu-button";
-import {
-  SideMenu,
-  SideMenuController,
-  DragHandleButton,
-} from "@blocknote/react";
+import { CustomBlockNoteEditor, customInlineContentSpecs } from "../../../../../../lib/tags";
+import TagMenu from "./extensions/side-menu/tags/tag-menu";
+import { SideMenuController } from "@blocknote/react";
 import SelectionToolbar from "./extensions/selection-toolbar/selection-toolbar";
-import { CustomDragHandleMenu } from "./extensions/drag-handle/drag-handle";
-import ShareSideMenuButton from "./extensions/tags/share-side-menu-button";
+import { useBlockNoteSync } from "@convex-dev/prosemirror-sync/blocknote";
+import { api } from "@/convex/_generated/api";
+import { BlockNoteSchema } from "@blocknote/core";
+import { SideMenuRenderer } from "./extensions/side-menu/side-menu";
 
 const schema = BlockNoteSchema.create({
   inlineContentSpecs: customInlineContentSpecs,
@@ -38,6 +29,8 @@ export default function NotesEditor() {
       },
     },
   );
+
+  const sideMenuRenderer = useMemo(() => SideMenuRenderer(sync.editor), [sync.editor]);
 
   React.useEffect(() => {
     if (
@@ -85,16 +78,7 @@ export default function NotesEditor() {
                 }
               },
             }}
-            sideMenu={(props) => (
-              <SideMenu {...props}>
-                <ShareSideMenuButton editor={sync.editor} block={props.block} />
-                <TagSideMenuButton editor={sync.editor} block={props.block} />
-                <DragHandleButton
-                  {...props}
-                  dragHandleMenu={CustomDragHandleMenu}
-                />
-              </SideMenu>
-            )}
+            sideMenu={sideMenuRenderer}
           />
           <SelectionToolbar />
         </BlockNoteView>
