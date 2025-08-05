@@ -23,6 +23,7 @@ import type * as locations_mutations from "../locations/mutations.js";
 import type * as locations_queries from "../locations/queries.js";
 import type * as locations_types from "../locations/types.js";
 import type * as model_helpers from "../model/helpers.js";
+import type * as model_tags_helpers from "../model/tags/helpers.js";
 import type * as notes_mutations from "../notes/mutations.js";
 import type * as notes_queries from "../notes/queries.js";
 import type * as notes_types from "../notes/types.js";
@@ -64,6 +65,7 @@ declare const fullApi: ApiFromModules<{
   "locations/queries": typeof locations_queries;
   "locations/types": typeof locations_types;
   "model/helpers": typeof model_helpers;
+  "model/tags/helpers": typeof model_tags_helpers;
   "notes/mutations": typeof notes_mutations;
   "notes/queries": typeof notes_queries;
   "notes/types": typeof notes_types;

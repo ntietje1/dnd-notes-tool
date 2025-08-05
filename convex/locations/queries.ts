@@ -28,10 +28,10 @@ export const getLocationsByCampaign = query({
             _id: tag._id,
             name: tag.name,
             color: tag.color,
-            type: tag.type as "location",
+            type: tag.type as "Location",
           },
         };
-      })
+      }),
     );
 
     return locationsWithTags.sort((a, b) => b._creationTime - a._creationTime);
@@ -61,7 +61,7 @@ export const getLocationById = query({
         _id: tag._id,
         name: tag.name,
         color: tag.color,
-        type: tag.type as "location",
+        type: tag.type as "Location",
       },
     };
   },
@@ -94,8 +94,8 @@ export const getLocationByTag = query({
         _id: tag._id,
         name: tag.name,
         color: tag.color,
-        type: tag.type as "location",
+        type: tag.type as "Location",
       },
     };
   },
-}); 
+});

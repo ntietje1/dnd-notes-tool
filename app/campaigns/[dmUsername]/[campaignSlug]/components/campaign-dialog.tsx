@@ -21,7 +21,12 @@ interface CampaignDialogProps {
   campaign?: UserCampaign; // Required for edit mode
 }
 
-export function CampaignDialog({ mode, isOpen, onClose, campaign }: CampaignDialogProps) {
+export function CampaignDialog({
+  mode,
+  isOpen,
+  onClose,
+  campaign,
+}: CampaignDialogProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -29,7 +34,9 @@ export function CampaignDialog({ mode, isOpen, onClose, campaign }: CampaignDial
   const [description, setDescription] = useState("");
   const [slug, setSlug] = useState("");
 
-  const [validationStates, setValidationStates] = useState<Record<string, ValidationResult>>({});
+  const [validationStates, setValidationStates] = useState<
+    Record<string, ValidationResult>
+  >({});
 
   const userProfile = useQuery(api.users.queries.getUserProfile);
   const createCampaign = useMutation(api.campaigns.mutations.createCampaign);
@@ -59,9 +66,10 @@ export function CampaignDialog({ mode, isOpen, onClose, campaign }: CampaignDial
     }
   }, [isOpen]);
 
-  const handleValidationChange = (field: string) => (result: ValidationResult) => {
-    setValidationStates((prev) => ({ ...prev, [field]: result }));
-  };
+  const handleValidationChange =
+    (field: string) => (result: ValidationResult) => {
+      setValidationStates((prev) => ({ ...prev, [field]: result }));
+    };
 
   const isFormValid = () => {
     if (!name.trim() || !slug.trim()) {
@@ -94,7 +102,9 @@ export function CampaignDialog({ mode, isOpen, onClose, campaign }: CampaignDial
 
         // Redirect to the new campaign
         if (userProfile?.username) {
-          router.push(`/campaigns/${userProfile.username}/${slug.trim()}/notes`);
+          router.push(
+            `/campaigns/${userProfile.username}/${slug.trim()}/notes`,
+          );
         }
       } else if (mode === "edit" && campaign) {
         await updateCampaign({
@@ -201,4 +211,4 @@ export function CampaignDialog({ mode, isOpen, onClose, campaign }: CampaignDial
       </form>
     </FormDialog>
   );
-} 
+}

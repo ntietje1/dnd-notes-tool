@@ -1,6 +1,6 @@
 import { Id } from "../_generated/dataModel";
 
-export type TagType = "character" | "location" | "session" | "system" | "other";
+export type TagType = "Character" | "Location" | "Session" | "System" | "Other";
 
 export type Tag = {
   _id: Id<"tags">;

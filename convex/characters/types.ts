@@ -17,6 +17,6 @@ export type CharacterWithTag = Character & {
     _id: Id<"tags">;
     name: string;
     color: string;
-    type: "character";
+    type: "Character";
   };
 };

@@ -44,7 +44,7 @@ export function RecursiveFolder({
           isExpanded={isExpanded}
           isRenaming={isRenaming}
           hasItems={hasItems}
-          onToggle={() => toggleFolder(folder._id)}
+          onToggleExpanded={() => toggleFolder(folder._id)}
           onStartRename={() => setRenamingId(folder._id)}
           onFinishRename={(name) => {
             updateFolderName(folder._id, name);

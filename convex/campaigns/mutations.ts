@@ -1,8 +1,8 @@
 import { v } from "convex/values";
-import { mutation, QueryCtx } from "../_generated/server";
+import { mutation } from "../_generated/server";
 import { getBaseUserId, verifyUserIdentity } from "../model/helpers";
-import { Id } from "../_generated/dataModel";
 import { SYSTEM_TAGS } from "../tags/types";
+import { insertTag } from "../model/tags/helpers";
 
 export const createCampaign = mutation({
   args: {
@@ -57,12 +57,11 @@ export const createCampaign = mutation({
       updatedAt: now,
     });
 
-    await ctx.db.insert("tags", {
+    await insertTag(ctx, {
       name: SYSTEM_TAGS.shared,
       color: "#FFFF00",
       campaignId,
-      type: "system",
-      updatedAt: now,
+      type: "System",
     });
 
     return campaignId;
@@ -130,7 +129,7 @@ export const updateCampaign = mutation({
     const campaignMember = await ctx.db
       .query("campaignMembers")
       .withIndex("by_user_campaign", (q) =>
-        q.eq("userId", baseUserId).eq("campaignId", args.campaignId)
+        q.eq("userId", baseUserId).eq("campaignId", args.campaignId),
       )
       .unique();
 
@@ -172,11 +171,11 @@ export const updateCampaign = mutation({
       }
 
       const existingSlug = await ctx.db
-         .query("campaignSlugs")
-         .withIndex("by_slug_username", (q) =>
-           q.eq("slug", args.slug!).eq("username", userProfile.username)
-         )
-         .unique();
+        .query("campaignSlugs")
+        .withIndex("by_slug_username", (q) =>
+          q.eq("slug", args.slug!).eq("username", userProfile.username),
+        )
+        .unique();
 
       if (existingSlug && existingSlug.campaignId !== args.campaignId) {
         throw new Error("Slug already exists");
@@ -188,10 +187,10 @@ export const updateCampaign = mutation({
         .unique();
 
       if (campaignSlug) {
-                 await ctx.db.patch(campaignSlug._id, {
-           slug: args.slug!,
-           updatedAt: now,
-         });
+        await ctx.db.patch(campaignSlug._id, {
+          slug: args.slug!,
+          updatedAt: now,
+        });
       }
     }
 
@@ -210,7 +209,7 @@ export const deleteCampaign = mutation({
     const campaignMember = await ctx.db
       .query("campaignMembers")
       .withIndex("by_user_campaign", (q) =>
-        q.eq("userId", baseUserId).eq("campaignId", args.campaignId)
+        q.eq("userId", baseUserId).eq("campaignId", args.campaignId),
       )
       .unique();
 
@@ -226,7 +225,7 @@ export const deleteCampaign = mutation({
     const blocks = await ctx.db
       .query("blocks")
       .withIndex("by_campaign_note_toplevel_pos", (q) =>
-        q.eq("campaignId", args.campaignId)
+        q.eq("campaignId", args.campaignId),
       )
       .collect();
 
@@ -252,11 +251,11 @@ export const deleteCampaign = mutation({
       await ctx.db.delete(folder._id);
     }
 
-    const tags = await ctx.db
-      .query("tags")
-      .collect();
-    
-    const campaignTags = tags.filter(tag => tag.campaignId === args.campaignId);
+    const tags = await ctx.db.query("tags").collect();
+
+    const campaignTags = tags.filter(
+      (tag) => tag.campaignId === args.campaignId,
+    );
 
     for (const tag of campaignTags) {
       await ctx.db.delete(tag._id);
@@ -280,11 +279,11 @@ export const deleteCampaign = mutation({
       await ctx.db.delete(character._id);
     }
 
-    const members = await ctx.db
-      .query("campaignMembers")
-      .collect();
-    
-    const campaignMembers = members.filter(member => member.campaignId === args.campaignId);
+    const members = await ctx.db.query("campaignMembers").collect();
+
+    const campaignMembers = members.filter(
+      (member) => member.campaignId === args.campaignId,
+    );
 
     for (const member of campaignMembers) {
       await ctx.db.delete(member._id);

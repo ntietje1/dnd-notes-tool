@@ -310,3 +310,12 @@ export const getBlockTagState = query({
     };
   },
 });
+
+// export const getTagNotePages = query({
+//   args: {
+//     tagType: v.string(),
+//   },
+//   handler: async (ctx, args): Promise<Note[]> => {
+//     await verifyUserIdentity(ctx);
+//   },
+// });

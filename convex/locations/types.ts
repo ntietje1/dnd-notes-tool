@@ -17,6 +17,6 @@ export type LocationWithTag = Location & {
     _id: Id<"tags">;
     name: string;
     color: string;
-    type: "location";
+    type: "Location";
   };
 };

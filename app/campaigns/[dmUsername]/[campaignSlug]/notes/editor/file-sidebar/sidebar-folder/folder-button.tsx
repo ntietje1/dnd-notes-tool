@@ -20,7 +20,7 @@ interface FolderButtonProps {
   isExpanded: boolean;
   isRenaming: boolean;
   hasItems: boolean;
-  onToggle: () => void;
+  onToggleExpanded: () => void;
   onStartRename: () => void;
   onFinishRename: (name: string) => void;
   onDelete: () => void;
@@ -32,7 +32,7 @@ export function FolderButton({
   isExpanded,
   isRenaming,
   hasItems,
-  onToggle,
+  onToggleExpanded,
   onStartRename,
   onFinishRename,
   onDelete,
@@ -48,7 +48,7 @@ export function FolderButton({
         <Button
           variant="ghost"
           className="w-full flex-1 justify-start gap-2 h-8 min-w-0 p-0"
-          onClick={onToggle}
+          onClick={onToggleExpanded}
         >
           <div className="flex items-center gap-1 min-w-0 w-full">
             <div className="flex items-center h-4 w-3 shrink-0">

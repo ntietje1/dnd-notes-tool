@@ -1,6 +1,11 @@
 import { v } from "convex/values";
 import { mutation } from "../_generated/server";
 import { verifyUserIdentity } from "../model/helpers";
+import {
+  insertTag,
+  updateTagAndContent,
+  deleteTagAndCleanupContent,
+} from "../model/tags/helpers";
 
 export const createLocation = mutation({
   args: {
@@ -12,12 +17,11 @@ export const createLocation = mutation({
   handler: async (ctx, args) => {
     const identity = await verifyUserIdentity(ctx);
 
-    const tagId = await ctx.db.insert("tags", {
+    const tagId = await insertTag(ctx, {
       name: args.name,
-      type: "location",
+      type: "Location",
       color: args.color,
       campaignId: args.campaignId,
-      updatedAt: Date.now(),
     });
 
     const locationId = await ctx.db.insert("locations", {
@@ -71,73 +75,17 @@ export const updateLocation = mutation({
     await ctx.db.patch(args.locationId, locationUpdates);
 
     if (args.name !== undefined || args.color !== undefined) {
-      const tagUpdates: {
-        name?: string;
-        color?: string;
-        updatedAt: number;
-      } = {
-        updatedAt: Date.now(),
-      };
-
-      if (args.name !== undefined) {
-        tagUpdates.name = args.name;
-      }
-      if (args.color !== undefined) {
-        tagUpdates.color = args.color;
-      }
-
-      await ctx.db.patch(location.tagId, tagUpdates);
-
-      if (args.name !== undefined || args.color !== undefined) {
-        const newName = args.name ?? location.name;
-        const newColor = args.color ?? location.color;
-
-        const allBlocks = await ctx.db
-          .query("blocks")
-          .withIndex("by_campaign_note_toplevel_pos", (q) =>
-            q.eq("campaignId", location.campaignId),
-          )
-          .collect();
-
-        const updateTagsInContent = (content: any): any => {
-          if (Array.isArray(content)) {
-            return content.map(updateTagsInContent);
-          } else if (content && typeof content === "object") {
-            if (content.type === "tag" && content.props?.tagId === location.tagId) {
-              return {
-                ...content,
-                props: {
-                  ...content.props,
-                  tagName: newName,
-                  tagColor: newColor,
-                },
-              };
-            }
-
-            const updatedContent = { ...content };
-            if (content.content) {
-              updatedContent.content = updateTagsInContent(content.content);
-            }
-            if (content.children) {
-              updatedContent.children = updateTagsInContent(content.children);
-            }
-
-            return updatedContent;
-          }
-          return content;
-        };
-
-        for (const block of allBlocks) {
-          const updatedContent = updateTagsInContent(block.content);
-
-          if (JSON.stringify(updatedContent) !== JSON.stringify(block.content)) {
-            await ctx.db.patch(block._id, {
-              content: updatedContent,
-              updatedAt: Date.now(),
-            });
-          }
-        }
-      }
+      await updateTagAndContent(
+        ctx,
+        location.tagId,
+        location.campaignId,
+        location.name,
+        location.color,
+        {
+          name: args.name,
+          color: args.color,
+        },
+      );
     }
 
     return args.locationId;
@@ -156,12 +104,10 @@ export const deleteLocation = mutation({
       throw new Error("Location not found");
     }
 
-     //TODO: modify all tags in content to just be text without being an actual tag inline content
-
-    await ctx.db.delete(location.tagId);
+    await deleteTagAndCleanupContent(ctx, location.tagId);
 
     await ctx.db.delete(args.locationId);
 
     return args.locationId;
   },
-}); 
+});
