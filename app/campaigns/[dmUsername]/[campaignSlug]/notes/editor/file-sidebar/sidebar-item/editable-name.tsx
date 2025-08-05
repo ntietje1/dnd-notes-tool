@@ -20,6 +20,7 @@ export function EditableName({
 
   useEffect(() => {
     if (isRenaming && inputRef.current) {
+      setName(initialName);
       inputRef.current.focus();
       inputRef.current.select();
     }

@@ -21,19 +21,13 @@ export function FileTopbar() {
     setTitle(currentNote?.name ?? "");
   }, [currentNote?.name]);
 
-  const handleTitleChange = useCallback(
-    (newTitle: string) => {
-      setTitle(newTitle);
-      if (currentNote) {
-        updateNoteName(currentNote._id, newTitle);
-      }
-    },
-    [currentNote, updateNoteName],
-  );
 
   const handleTitleSubmit = useCallback(() => {
     setIsEditing(false);
-  }, []);
+    if (currentNote) {
+      updateNoteName(currentNote._id, title);
+    }
+  }, [currentNote, title, updateNoteName]);
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -52,7 +46,7 @@ export function FileTopbar() {
                 type="text"
                 value={title}
                 placeholder={UNTITLED_NOTE_TITLE}
-                onChange={(e) => handleTitleChange(e.target.value)}
+                onChange={(e) => setTitle(e.target.value)}
                 onBlur={handleTitleSubmit}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {

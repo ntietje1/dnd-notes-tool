@@ -10,6 +10,7 @@ import {
   saveTopLevelBlocks,
   findBlockById,
   extractTagIdsFromBlockContent,
+  updateTagAndContent,
 } from "../tags/helpers";
 import { getBaseUserId, verifyUserIdentity } from "../common/identity";
 
@@ -38,6 +39,13 @@ export const updateNote = mutation({
 
     if (args.name !== undefined) {
       updates.name = args.name;
+
+      if (note.tagId) {
+        const tag = await ctx.db.get(note.tagId);
+        if (tag) {
+          await updateTagAndContent(ctx, note.tagId, note.campaignId, tag.name, tag.color, { name: args.name });
+        }
+      }
     }
 
     await ctx.db.patch(args.noteId, updates);
