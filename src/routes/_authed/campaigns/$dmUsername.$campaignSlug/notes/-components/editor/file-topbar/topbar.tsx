@@ -40,7 +40,7 @@ export function FileTopbar() {
 
   return (
     <div className="flex items-center justify-between px-4 py-2 h-12 border-b bg-white w-full">
-      {note && (
+      {note ? (
         <div className="flex items-center justify-between w-full">
           {isEditing ? (
             <input
@@ -72,10 +72,6 @@ export function FileTopbar() {
           )}
 
           <div className="flex items-center gap-2 flex-shrink-0">
-            {/* <Button variant="ghost" size="icon" onClick={toggleShared}>
-              <Users className="h-4 w-4" />
-            </Button> */}
-
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon">
@@ -95,7 +91,9 @@ export function FileTopbar() {
             </Button>
           </div>
         </div>
-      )}
+      ) : (
+      <div className="flex items-center justify-between w-full h-12"/>
+    )}
     </div>
   );
 }

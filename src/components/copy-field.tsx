@@ -70,7 +70,7 @@ export function CopyField({
         onClick={handleCopy}
         disabled={disabled || !text}
         className={cn(
-          "rounded-[7] rounded-l-none h-9",
+          "rounded-l-none h-9",
           buttonProps?.className,
         )}
         {...buttonProps}
