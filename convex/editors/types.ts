@@ -1,0 +1,33 @@
+import { Id } from "../_generated/dataModel";
+
+export const SORT_ORDERS = {
+  Alphabetical: "Alphabetical",
+  DateCreated: "DateCreated",
+  DateModified: "DateModified",
+} as const;
+
+export type SortOrder = (typeof SORT_ORDERS)[keyof typeof SORT_ORDERS];
+
+export const SORT_DIRECTIONS = {
+  Ascending: "Ascending",
+  Descending: "Descending",
+} as const;
+
+export type SortDirection =
+  (typeof SORT_DIRECTIONS)[keyof typeof SORT_DIRECTIONS];
+
+export interface SortOptions {
+  order: SortOrder;
+  direction: SortDirection;
+  foldersAlwaysOnTop: boolean;
+}
+
+export type Editor = {
+  _id: Id<"editor">;
+  _creationTime: number;
+
+  userId: string;
+  sortOrder: SortOrder;
+  sortDirection: SortDirection;
+  foldersAlwaysOnTop: boolean;
+};
