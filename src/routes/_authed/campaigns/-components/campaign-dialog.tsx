@@ -1,18 +1,22 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
+import { useForm } from "@tanstack/react-form";
 import type { CampaignWithMembership } from "convex/campaigns/types";
 import { api } from "convex/_generated/api";
 import { FormActions } from "~/components/forms/form-actions";
-import { UrlPreview } from "~/components/forms/url-preview";
-import { AsyncValidatedInput } from "~/components/forms/async-validated-input";
-import { ValidatedInput } from "~/components/forms/validated-input";
+import { UrlPreview } from "~/routes/_authed/campaigns/-components/url-preview";
+import { Input } from "~/components/shadcn/ui/input";
+import { Label } from "~/components/shadcn/ui/label";
 import { Plus, Sword, Link } from "~/lib/icons";
 import { toast } from "sonner";
 import { convexQuery, useConvex, useConvexMutation } from "@convex-dev/react-query";
 import { FormDialog } from "~/components/forms/form-dialog";
-import { createCampaignSlugValidator } from "./campaign-slug-validator";
-import { createCampaignNameValidators } from "./campaign-name-validator";
+import {
+  removeInvalidCharacters,
+  validateCampaignName,
+  validateCampaignSlugSync,
+  validateCampaignSlugAsync,
+} from "./campaign-form-validators";
 
 interface CampaignDialogProps {
   mode: "create" | "edit";
@@ -21,11 +25,7 @@ interface CampaignDialogProps {
   campaignWithMembership?: CampaignWithMembership; // Required for edit mode
 }
 
-interface CampaignFormData {
-  name: string;
-  description: string;
-  slug: string;
-}
+// Using inferred form data shape from defaultValues
 
 export function CampaignDialog({
   mode,
@@ -38,125 +38,81 @@ export function CampaignDialog({
   const createCampaign = useMutation({mutationFn: useConvexMutation(api.campaigns.mutations.createCampaign)});
   const updateCampaign = useMutation({mutationFn: useConvexMutation(api.campaigns.mutations.updateCampaign)});
 
-  const [isSlugValid, setIsSlugValid] = useState(false);
-  const [isNameValid, setIsNameValid] = useState(false);
-
   const campaign = campaignWithMembership?.campaign;
 
-  const {
-    handleSubmit,
-    watch,
-    reset,
-    setValue,
-    formState: { isSubmitting, isValid, isDirty },
-  } = useForm<CampaignFormData>({
-    mode: "onChange",
+  const form = useForm({
     defaultValues: {
       name: "",
       description: "",
       slug: "",
     },
+    onSubmit: async ({ value }) => {
+      // Prevent submission if validation failed
+      try {
+        if (mode === "create") {
+          await createCampaign.mutateAsync({
+            name: value.name.trim(),
+            description: value.description.trim(),
+            slug: value.slug.trim(),
+          });
+
+          toast.success("Campaign created successfully");
+          onClose();
+        } else if (mode === "edit" && campaign) {
+          await updateCampaign.mutateAsync({
+            campaignId: campaign._id,
+            name: value.name.trim(),
+            description: value.description.trim() || undefined,
+            slug: value.slug.trim(),
+          });
+
+          toast.success("Campaign updated successfully");
+          onClose();
+        }
+      } catch (error) {
+        console.error("Failed to save campaign:", error);
+        toast.error(`Failed to ${mode} campaign`);
+      }
+    },
   });
-
-  const slugValue = watch("slug");
-
-  // Create async validator for slug
-  const slugValidator = createCampaignSlugValidator(
-    convex,
-    mode === "edit" && campaign ? campaign._id : undefined,
-  );
 
   // Initialize form data
   useEffect(() => {
     if (mode === "create") {
       const randomSlug = Math.random().toString(36).substring(2, 15);
-      reset({
+      form.reset({
         name: "",
         description: "",
         slug: randomSlug,
       });
     } else if (mode === "edit" && campaign) {
-      reset({
+      form.reset({
         name: campaign.name,
         description: campaign.description || "",
         slug: campaign.slug,
       });
     }
-  }, [mode, campaign, isOpen, reset]);
+  }, [mode, campaign, isOpen, form]);
 
   // Clear form when dialog closes
   useEffect(() => {
-    if (!isOpen && isDirty) {
-      reset(
-        {
+    if (!isOpen && form.state.isDirty) {
+      form.reset({
+        name: "",
+        description: "",
+        slug: "",
+      });
+    }
+  }, [isOpen, form.state.isDirty, form]);
+
+  const handleClose = () => {
+    if (!form.state.isSubmitting) {
+      if (form.state.isDirty) {
+        form.reset({
           name: "",
           description: "",
           slug: "",
-        },
-        {
-          keepErrors: false,
-          keepDirty: false,
-          keepIsSubmitted: false,
-          keepTouched: false,
-          keepIsValid: false,
-          keepSubmitCount: false,
-        },
-      );
-    }
-  }, [isOpen, isDirty, reset]);
-
-  const onSubmit = async (data: CampaignFormData) => {
-    // Prevent submission if validation failed
-    if (!isSlugValid || !isNameValid) {
-      return;
-    }
-
-    try {
-      if (mode === "create") {
-        await createCampaign.mutateAsync({
-          name: data.name.trim(),
-          description: data.description.trim(),
-          slug: data.slug.trim(),
         });
-
-        toast.success("Campaign created successfully");
-        onClose();
-      } else if (mode === "edit" && campaign) {
-        await updateCampaign.mutateAsync({
-          campaignId: campaign._id,
-          name: data.name.trim(),
-          description: data.description.trim() || undefined,
-          slug: data.slug.trim(),
-        });
-
-        toast.success("Campaign updated successfully");
-        onClose();
-      }
-    } catch (error) {
-      console.error("Failed to save campaign:", error);
-      toast.error(`Failed to ${mode} campaign`);
-    }
-  };
-
-  const handleClose = () => {
-    if (!isSubmitting) {
-      // Ensure form is completely reset before closing
-      if (isDirty) {
-        reset(
-          {
-            name: "",
-            description: "",
-            slug: "",
-          },
-          {
-            keepErrors: false,
-            keepDirty: false,
-            keepIsSubmitted: false,
-            keepTouched: false,
-            keepIsValid: false,
-            keepSubmitCount: false,
-          },
-        );
       }
       onClose();
     }
@@ -176,97 +132,121 @@ export function CampaignDialog({
       icon={Sword}
       maxWidth="max-w-lg"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        <ValidatedInput
-          label="Campaign Name"
-          required
-          value={watch("name") || ""}
-          inputProps={{
-            placeholder: "Enter campaign name",
-            disabled: isSubmitting,
-            onChange: (e) => {
-              setValue("name", e.target.value, { shouldValidate: true });
-            },
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            form.handleSubmit();
           }}
-          validationConfig={{
-            validators: createCampaignNameValidators(),
-            validateOnChange: true,
-            errorDisplayDelay: 600,
-            onStatusChange: ({ state }) => setIsNameValid(state === "success"),
-          }}
-        />
+          className="space-y-4"
+        >
+          <form.Field
+            name="name"
+            validators={{
+              onChange: () => undefined,
+              onBlur: ({ value }) => validateCampaignName(value),
+            }}
+          >
+            {(field) => (
+              <div className="space-y-2 px-px">
+                <Label>Campaign Name</Label>
+                <Input
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
+                  placeholder="Enter campaign name"
+                  disabled={form.state.isSubmitting}
+                  required
+                />
+                {field.state.meta.errors?.length ? (
+                  <p className="text-sm text-red-500">{field.state.meta.errors[0]}</p>
+                ) : null}
+              </div>
+            )}
+          </form.Field>
 
-        <ValidatedInput
-          label="Description"
-          value={watch("description") || ""}
-          isTextarea
-          textareaProps={{
-            rows: 3,
-            placeholder: "A thrilling adventure in the Sword Coast...",
-            disabled: isSubmitting,
-            onChange: (e) => {
-              setValue("description", e.target.value, { shouldValidate: true });
-            },
-          }}
-        />
+          <form.Field name="description">
+            {(field) => (
+              <div className="space-y-2 px-px">
+                <Label>Description</Label>
+                <textarea
+                  rows={3}
+                  className="flex h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
+                  placeholder="A thrilling adventure in the Sword Coast..."
+                  disabled={form.state.isSubmitting}
+                />
+              </div>
+            )}
+          </form.Field>
 
-        <AsyncValidatedInput
-          label="Custom Link"
-          leftIcon={<Link className="h-4 w-4" />}
-          required
-          value={slugValue}
-          inputProps={{
-            placeholder: "campaign-link",
-            minLength: 3,
-            maxLength: 30,
-            disabled: isSubmitting,
-            onChange: (e) => {
-              setValue("slug", e.target.value, { shouldValidate: true });
-            },
-          }}
-          validationConfig={{
-            asyncValidators: [slugValidator],
-            asyncValidationOptions: {
-              minLength: 3,
-              debounceMs: 300,
-              validateOnChange: false,
-              initialValue: mode === "edit" ? campaign?.slug : undefined,
-              skipWhenEqualToInitial: true,
-            },
-            errorDisplayDelay: 0,
-            showCheckingMessage: false,
-            onStatusChange: ({ state }) => setIsSlugValid(state === "success"),
-          }}
-        />
+          <form.Field
+            name="slug"
+            validators={{
+              onChange: () => undefined,
+              onBlur: ({ value }) => validateCampaignSlugSync(value),
+              onBlurAsync: async ({ value }) => {
+                const trimmed = value.trim();
+                const normalized = removeInvalidCharacters(trimmed);
+                if (validateCampaignSlugSync(normalized)) return undefined;
+                return validateCampaignSlugAsync(
+                  convex,
+                  normalized,
+                  mode === "edit" && campaign ? campaign._id : undefined,
+                );
+              },
+              onBlurAsyncDebounceMs: 300,
+            }}
+          >
+            {(field) => (
+              <div className="space-y-2 px-px">
+                <Label className="flex items-center gap-2">
+                  <Link className="h-4 w-4" />
+                  Custom Link
+                </Label>
+                <Input
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
+                  placeholder="campaign-link"
+                  minLength={3}
+                  maxLength={30}
+                  disabled={form.state.isSubmitting}
+                  required
+                />
+                {field.state.meta.errors?.length ? (
+                  <p className="text-sm text-red-500">{field.state.meta.errors[0]}</p>
+                ) : null}
 
-        
-        <UrlPreview
-          baseUrl={window.location.origin}
-          path={`/campaigns/${userProfile.data?.username}/${slugValue}`}
-        />
-        
+                <UrlPreview
+                  url={`${window.location.origin}/join/${userProfile.data?.username}/${field.state.value}`}
+                />
+              </div>
+            )}
+          </form.Field>
 
-        <FormActions
-          actions={[
-            {
-              label: "Cancel",
-              onClick: handleClose,
-              variant: "outline",
-              disabled: isSubmitting,
-            },
-            {
-              label: mode === "create" ? "Create Campaign" : "Update Campaign",
-              onClick: () => {}, // Form submission handled by onSubmit
-              type: "submit",
-              disabled:
-                !isValid || isSubmitting || !isSlugValid || !isNameValid,
-              loading: isSubmitting,
-              loadingText: mode === "create" ? "Creating..." : "Updating...",
-              icon: mode === "create" ? Plus : undefined,
-            },
-          ]}
-        />
-      </form>
+          <FormActions
+            actions={[
+              {
+                label: "Cancel",
+                onClick: handleClose,
+                variant: "outline",
+                disabled: form.state.isSubmitting,
+              },
+              {
+                label: mode === "create" ? "Create Campaign" : "Update Campaign",
+                onClick: () => {},
+                type: "submit",
+                disabled: form.state.isSubmitting,
+                loading: form.state.isSubmitting,
+                loadingText: mode === "create" ? "Creating..." : "Updating...",
+                icon: mode === "create" ? Plus : undefined,
+              },
+            ]}
+          />
+        </form>
     </FormDialog>
   );
 }

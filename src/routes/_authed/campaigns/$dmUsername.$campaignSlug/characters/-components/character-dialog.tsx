@@ -1,22 +1,22 @@
 import { useEffect } from "react";
 import { useRouter } from "@tanstack/react-router";
-import { useForm } from "react-hook-form";
+import { useForm } from "@tanstack/react-form";
 import { api } from "convex/_generated/api";
 import type { Character } from "convex/characters/types";
 import { FormDialog } from "~/components/forms/form-dialog";
 import { FormActions } from "~/components/forms/form-actions";
-import { ValidatedInput } from "~/components/forms/validated-input";
 import {
   ColorPicker,
   DEFAULT_COLORS,
 } from "~/components/forms/color-picker";
 import { Plus, Users } from "~/lib/icons";
 import { toast } from "sonner";
-import { useNotes } from "~/contexts/NotesContext";
 import { useCampaign } from "~/contexts/CampaignContext";
 import { useMutation } from "@tanstack/react-query";
 import { useConvexMutation } from "@convex-dev/react-query";
-import { Skeleton } from "~/components/shadcn/ui/skeleton";
+import { Input } from "~/components/shadcn/ui/input";
+import { Label } from "~/components/shadcn/ui/label";
+import { validateCharacterName } from "./character-form-validators";
 
 interface CharacterDialogProps {
   mode: "create" | "edit";
@@ -28,11 +28,7 @@ interface CharacterDialogProps {
   navigateToNote?: boolean;
 }
 
-interface CharacterFormData {
-  name: string;
-  description: string;
-  color: string;
-}
+// Using inferred form data shape from defaultValues
 
 export default function CharacterDialog({
   mode,
@@ -49,125 +45,94 @@ export default function CharacterDialog({
   const createCharacter = useMutation({ mutationFn: useConvexMutation(api.characters.mutations.createCharacter) });
   const updateCharacter = useMutation({ mutationFn: useConvexMutation(api.characters.mutations.updateCharacter) });
 
-  const {
-    handleSubmit,
-    watch,
-    setValue,
-    reset,
-    formState: { errors, isSubmitting, isValid, isDirty },
-  } = useForm<CharacterFormData>({
-    mode: "onChange",
+  const form = useForm({
     defaultValues: {
       name: "",
       description: "",
       color: DEFAULT_COLORS[0],
     },
-  });
+    onSubmit: async ({ value }) => {
+      if (!campaign) {
+        toast.error("Campaign not found");
+        return;
+      }
 
-  const colorValue = watch("color");
+      try {
+        if (mode === "create") {
+          const result = await createCharacter.mutateAsync({
+            name: value.name.trim(),
+            description: value.description.trim() || undefined,
+            color: value.color,
+            campaignId: campaign._id,
+          });
+
+          toast.success("Character created successfully");
+          onClose();
+
+          if (navigateToNote && result.noteId) {
+            router.navigate({
+              to: "/campaigns/$dmUsername/$campaignSlug/notes/$noteId",
+              params: {
+                dmUsername,
+                campaignSlug,
+                noteId: result.noteId,
+              },
+            });
+          }
+        } else if (mode === "edit" && character) {
+          await updateCharacter.mutateAsync({
+            characterId: character._id,
+            name: value.name.trim(),
+            description: value.description.trim() || undefined,
+            color: value.color,
+          });
+
+          toast.success("Character updated successfully");
+          onClose();
+        }
+      } catch (error) {
+        console.error(`Failed to ${mode} character:`, error);
+        toast.error(`Failed to ${mode} character`);
+      }
+    },
+  });
 
   // Initialize form data
   useEffect(() => {
     if (mode === "create") {
-      reset({
+      form.reset({
         name: "",
         description: "",
         color: DEFAULT_COLORS[0],
       });
     } else if (mode === "edit" && character) {
-      reset({
+      form.reset({
         name: character.name,
         description: character.description || "",
         color: character.color,
       });
     }
-  }, [mode, character, isOpen, reset]);
+  }, [mode, character, isOpen, form]);
 
   // Clear form when dialog closes
   useEffect(() => {
-    if (!isOpen && isDirty) {
-      reset(
-        {
+    if (!isOpen && form.state.isDirty) {
+      form.reset({
+        name: "",
+        description: "",
+        color: DEFAULT_COLORS[0],
+      });
+    }
+  }, [isOpen, form.state.isDirty, form]);
+
+  const handleClose = () => {
+    if (!form.state.isSubmitting) {
+      if (form.state.isDirty) {
+        form.reset({
           name: "",
           description: "",
           color: DEFAULT_COLORS[0],
-        },
-        {
-          keepErrors: false,
-          keepDirty: false,
-          keepIsSubmitted: false,
-          keepTouched: false,
-          keepIsValid: false,
-          keepSubmitCount: false,
-        },
-      );
-    }
-  }, [isOpen, isDirty, reset]);
-
-  const onSubmit = async (data: CharacterFormData) => {
-    if (!campaign) {
-      toast.error("Campaign not found");
-      return;
-    }
-
-    try {
-      if (mode === "create") {
-        const result = await createCharacter.mutateAsync({
-          name: data.name.trim(),
-          description: data.description.trim() || undefined,
-          color: data.color,
-          campaignId: campaign._id,
         });
-
-        toast.success("Character created successfully");
-        onClose();
-
-        if (navigateToNote && result.noteId) {
-          router.navigate({
-            to: "/campaigns/$dmUsername/$campaignSlug/notes/$noteId",
-            params: {
-              dmUsername,
-              campaignSlug,
-              noteId: result.noteId,
-            },
-          });
-        }
-      } else if (mode === "edit" && character) {
-        await updateCharacter.mutateAsync({
-          characterId: character._id,
-          name: data.name.trim(),
-          description: data.description.trim() || undefined,
-          color: data.color,
-        });
-
-        toast.success("Character updated successfully");
-        onClose();
-      }
-    } catch (error) {
-      console.error(`Failed to ${mode} character:`, error);
-      toast.error(`Failed to ${mode} character`);
-    }
-  };
-
-  const handleClose = () => {
-    if (!isSubmitting) {
-      // Ensure form is completely reset before closing
-      if (isDirty) {
-        reset(
-          {
-            name: "",
-            description: "",
-            color: DEFAULT_COLORS[0],
-          },
-          {
-            keepErrors: false,
-            keepDirty: false,
-            keepIsSubmitted: false,
-            keepTouched: false,
-            keepIsValid: false,
-            keepSubmitCount: false,
-          },
-        );
       }
       onClose();
     }
@@ -187,122 +152,92 @@ export default function CharacterDialog({
       }
       icon={Users}
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        <ValidatedInput
-          label="Character Name"
-          required
-          value={watch("name") || ""}
-          inputProps={{
-            placeholder: "Enter character name...",
-            disabled: isSubmitting,
-            maxLength: 100,
-            onChange: (e) => {
-              setValue("name", e.target.value, { shouldValidate: true });
-            },
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            form.handleSubmit();
           }}
-          validationConfig={{
-            validators: [
+          className="space-y-4"
+        >
+          <form.Field
+            name="name"
+            validators={{
+              onChange: () => undefined,
+              onBlur: ({ value }) => validateCharacterName(value),
+            }}
+          >
+            {(field) => (
+              <div className="space-y-2 px-px">
+                <Label>Character Name</Label>
+                <Input
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
+                  placeholder="Enter character name..."
+                  maxLength={100}
+                  disabled={form.state.isSubmitting}
+                />
+                {field.state.meta.errors?.length ? (
+                  <p className="text-sm text-red-500">{field.state.meta.errors[0]}</p>
+                ) : null}
+              </div>
+            )}
+          </form.Field>
+
+          <form.Field name="description">
+            {(field) => (
+              <div className="space-y-2 px-px">
+                <Label>Description</Label>
+                <textarea
+                  rows={3}
+                  className="flex h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
+                  placeholder="Describe this character..."
+                  disabled={form.state.isSubmitting}
+                />
+              </div>
+            )}
+          </form.Field>
+
+          <form.Field name="color">
+            {(field) => (
+              <div className="space-y-2 px-px">
+                <ColorPicker
+                  selectedColor={field.state.value}
+                  onColorChange={(color) => field.handleChange(color)}
+                  disabled={form.state.isSubmitting}
+                  label="Character Color"
+                />
+              </div>
+            )}
+          </form.Field>
+
+          <FormActions
+            actions={[
               {
-                validate: (value: string) => ({
-                  state: value.trim() !== "" ? "success" : "error",
-                  message:
-                    value.trim() !== "" ? "" : "Character name is required",
-                }),
+                label: "Cancel",
+                onClick: handleClose,
+                variant: "outline",
+                disabled: form.state.isSubmitting,
               },
-            ],
-          }}
-        />
-        {errors.name && (
-          <p className="text-sm text-red-500 px-px">{errors.name.message}</p>
-        )}
-
-        <ValidatedInput
-          label="Description"
-          value={watch("description") || ""}
-          isTextarea
-          textareaProps={{
-            rows: 3,
-            placeholder: "Describe this character...",
-            disabled: isSubmitting,
-            onChange: (e) => {
-              setValue("description", e.target.value, { shouldValidate: true });
-            },
-          }}
-        />
-
-        <div className="space-y-2 px-px">
-          <ColorPicker
-            selectedColor={colorValue}
-            onColorChange={(color) => setValue("color", color)}
-            disabled={isSubmitting}
-            label="Character Color"
+              {
+                label:
+                  mode === "create" ? "Create Character" : "Update Character",
+                onClick: () => {},
+                type: "submit",
+                disabled: form.state.isSubmitting,
+                loading: form.state.isSubmitting,
+                loadingText: mode === "create" ? "Creating..." : "Updating...",
+                icon: mode === "create" ? Plus : undefined,
+              },
+            ]}
           />
-        </div>
-
-        <FormActions
-          actions={[
-            {
-              label: "Cancel",
-              onClick: handleClose,
-              variant: "outline",
-              disabled: isSubmitting,
-            },
-            {
-              label:
-                mode === "create" ? "Create Character" : "Update Character",
-              onClick: () => {}, // Form submission handled by onSubmit
-              type: "submit",
-              disabled: !isValid || isSubmitting,
-              loading: isSubmitting,
-              loadingText: mode === "create" ? "Creating..." : "Updating...",
-              icon: mode === "create" ? Plus : undefined,
-            },
-          ]}
-        />
-      </form>
+        </form>
     </FormDialog>
   );
 }
 
-const CharacterDialogLoading = ({
-  isOpen,
-  onClose,
-  mode,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  mode: "create" | "edit";
-}) => {
-  return (
-    <FormDialog
-      isOpen={isOpen}
-      onClose={onClose}
-      title={mode === "create" ? "Create New Character" : "Edit Character"}
-      description={
-        mode === "create"
-          ? "Add a new character to your campaign"
-          : "Update character details"
-      }
-      icon={Users}
-    >
-      <div className="space-y-4">
-        <div className="space-y-2 px-px">
-          <Skeleton className="h-4 bg-muted rounded"/>
-          <Skeleton className="h-9 bg-muted rounded"/>
-        </div>
-        <div className="space-y-2 px-px">
-          <Skeleton className="h-4 bg-muted rounded"/>
-          <Skeleton className="h-16 bg-muted rounded"/>
-        </div>
-        <div className="space-y-2 px-px">
-          <Skeleton className="h-4 bg-muted rounded"/>
-          <Skeleton className="h-10 bg-muted rounded"/>
-        </div>
-        <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 pt-4">
-          <Skeleton className="h-10 w-20 bg-muted rounded"/>
-          <Skeleton className="h-10 w-32 bg-muted rounded"/>
-        </div>
-      </div>
-    </FormDialog>
-  );
-};
+// Loading skeleton retained in git history if needed

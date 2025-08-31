@@ -2,6 +2,10 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useCampaign } from '~/contexts/CampaignContext'
 import { CAMPAIGN_MEMBER_ROLE } from 'convex/campaigns/types'
 import { LoadingPage } from '~/components/loading/loading-page'
+import { useForm } from '@tanstack/react-form'
+import { Input } from '~/components/shadcn/ui/input'
+import { Label } from '~/components/shadcn/ui/label'
+import { validateCampaignSettingsName } from './settings-form-validators'
 
 
 export const Route = createFileRoute('/_authed/campaigns/$dmUsername/$campaignSlug/settings/')({
@@ -12,6 +16,17 @@ function CampaignSettingsPage() {
   const { campaignWithMembership } = useCampaign()
   const campaign = campaignWithMembership?.data?.campaign;
   const campaignStatus = campaignWithMembership?.status;
+
+  const form = useForm({
+    defaultValues: {
+      name: campaign?.name ?? '',
+      description: campaign?.description ?? '',
+      slug: campaign?.slug ?? '',
+    },
+    onSubmit: async () => {
+      // TODO: wire to mutation endpoints when available
+    },
+  })
 
   if (campaignStatus === "pending" || !campaign) {
     return <LoadingPage/>
@@ -38,50 +53,80 @@ function CampaignSettingsPage() {
       {/* Basic Information */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <h3 className="text-lg font-semibold mb-4">Basic Information</h3>
-        <form className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Campaign Name
-            </label>
-            <input
-              type="text"
-              defaultValue={campaign?.name}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Description
-            </label>
-            <textarea
-              rows={3}
-              defaultValue={campaign?.description}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Campaign Slug
-            </label>
-            <input
-              type="text"
-              defaultValue={campaign?.slug}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <p className="text-sm text-gray-500 mt-1">
-              This appears in the URL. Use lowercase letters, numbers, and hyphens only.
-            </p>
-          </div>
-
-          <button
-            type="submit"
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              form.handleSubmit();
+            }}
+            className="space-y-4"
           >
-            Save Changes
-          </button>
-        </form>
+            <form.Field
+              name="name"
+              validators={{
+                onChange: () => undefined,
+                onBlur: ({ value }) => validateCampaignSettingsName(value),
+              }}
+            >
+              {(field) => (
+                <div>
+                  <Label className="block text-sm font-medium text-gray-700 mb-1">
+                    Campaign Name
+                  </Label>
+                  <Input
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                  />
+                  {field.state.meta.errors?.length ? (
+                    <p className="text-sm text-red-500 mt-1">{field.state.meta.errors[0]}</p>
+                  ) : null}
+                </div>
+              )}
+            </form.Field>
+
+            <form.Field name="description">
+              {(field) => (
+                <div>
+                  <Label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description
+                  </Label>
+                  <textarea
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                  />
+                </div>
+              )}
+            </form.Field>
+
+            <form.Field name="slug">
+              {(field) => (
+                <div>
+                  <Label className="block text-sm font-medium text-gray-700 mb-1">
+                    Campaign Slug
+                  </Label>
+                  <Input
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                  />
+                  <p className="text-sm text-gray-500 mt-1">
+                    This appears in the URL. Use lowercase letters, numbers, and hyphens only.
+                  </p>
+                </div>
+              )}
+            </form.Field>
+
+            <button
+              type="submit"
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+            >
+              Save Changes
+            </button>
+          </form>
       </div>
 
       {/* Privacy & Access */}
