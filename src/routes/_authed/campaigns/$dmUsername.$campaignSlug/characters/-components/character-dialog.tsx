@@ -18,6 +18,12 @@ import { Input } from "~/components/shadcn/ui/input";
 import { Label } from "~/components/shadcn/ui/label";
 import { validateCharacterName } from "./character-form-validators";
 
+const DEFAULT_CHARACTER_FORM_VALUES: { name: string; description: string; color: string } = {
+  name: "",
+  description: "",
+  color: DEFAULT_COLORS[0],
+};
+
 interface CharacterDialogProps {
   mode: "create" | "edit";
   isOpen: boolean;
@@ -27,8 +33,6 @@ interface CharacterDialogProps {
   character?: Character; // Required for edit mode
   navigateToNote?: boolean;
 }
-
-// Using inferred form data shape from defaultValues
 
 export default function CharacterDialog({
   mode,
@@ -46,11 +50,7 @@ export default function CharacterDialog({
   const updateCharacter = useMutation({ mutationFn: useConvexMutation(api.characters.mutations.updateCharacter) });
 
   const form = useForm({
-    defaultValues: {
-      name: "",
-      description: "",
-      color: DEFAULT_COLORS[0],
-    },
+    defaultValues: { ...DEFAULT_CHARACTER_FORM_VALUES },
     onSubmit: async ({ value }) => {
       if (!campaign) {
         toast.error("Campaign not found");
@@ -100,11 +100,7 @@ export default function CharacterDialog({
   // Initialize form data
   useEffect(() => {
     if (mode === "create") {
-      form.reset({
-        name: "",
-        description: "",
-        color: DEFAULT_COLORS[0],
-      });
+      form.reset({ ...DEFAULT_CHARACTER_FORM_VALUES });
     } else if (mode === "edit" && character) {
       form.reset({
         name: character.name,
@@ -112,30 +108,18 @@ export default function CharacterDialog({
         color: character.color,
       });
     }
-  }, [mode, character, isOpen, form]);
+  }, [mode, character, isOpen]);
 
   // Clear form when dialog closes
   useEffect(() => {
     if (!isOpen && form.state.isDirty) {
-      form.reset({
-        name: "",
-        description: "",
-        color: DEFAULT_COLORS[0],
-      });
+      form.reset({ ...DEFAULT_CHARACTER_FORM_VALUES });
     }
-  }, [isOpen, form.state.isDirty, form]);
+  }, [isOpen]);
 
   const handleClose = () => {
-    if (!form.state.isSubmitting) {
-      if (form.state.isDirty) {
-        form.reset({
-          name: "",
-          description: "",
-          color: DEFAULT_COLORS[0],
-        });
-      }
+      if (form.state.isSubmitting) return;
       onClose();
-    }
   };
 
   if (!isOpen) return null;
@@ -169,8 +153,9 @@ export default function CharacterDialog({
           >
             {(field) => (
               <div className="space-y-2 px-px">
-                <Label>Character Name</Label>
+                <Label htmlFor="character-name">Character Name</Label>
                 <Input
+                  id="character-name"
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
                   onBlur={field.handleBlur}
@@ -188,8 +173,9 @@ export default function CharacterDialog({
           <form.Field name="description">
             {(field) => (
               <div className="space-y-2 px-px">
-                <Label>Description</Label>
+                <Label htmlFor="character-description">Description</Label>
                 <textarea
+                  id="character-description"
                   rows={3}
                   className="flex h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   value={field.state.value}
@@ -239,5 +225,3 @@ export default function CharacterDialog({
     </FormDialog>
   );
 }
-
-// Loading skeleton retained in git history if needed

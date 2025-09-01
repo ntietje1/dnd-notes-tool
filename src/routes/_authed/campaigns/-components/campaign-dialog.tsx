@@ -11,6 +11,7 @@ import { Plus, Sword, Link } from "~/lib/icons";
 import { toast } from "sonner";
 import { convexQuery, useConvex, useConvexMutation } from "@convex-dev/react-query";
 import { FormDialog } from "~/components/forms/form-dialog";
+import { LoadingSpinner } from "~/components/loading/loading-spinner";
 import {
   removeInvalidCharacters,
   validateCampaignName,
@@ -18,14 +19,18 @@ import {
   validateCampaignSlugAsync,
 } from "./campaign-form-validators";
 
+const DEFAULT_CAMPAIGN_FORM_VALUES: { name: string; description: string; slug: string } = {
+  name: "",
+  description: "",
+  slug: "",
+};
+
 interface CampaignDialogProps {
   mode: "create" | "edit";
   isOpen: boolean;
   onClose: () => void;
   campaignWithMembership?: CampaignWithMembership; // Required for edit mode
 }
-
-// Using inferred form data shape from defaultValues
 
 export function CampaignDialog({
   mode,
@@ -41,11 +46,7 @@ export function CampaignDialog({
   const campaign = campaignWithMembership?.campaign;
 
   const form = useForm({
-    defaultValues: {
-      name: "",
-      description: "",
-      slug: "",
-    },
+    defaultValues: { ...DEFAULT_CAMPAIGN_FORM_VALUES },
     onSubmit: async ({ value }) => {
       // Prevent submission if validation failed
       try {
@@ -81,8 +82,7 @@ export function CampaignDialog({
     if (mode === "create") {
       const randomSlug = Math.random().toString(36).substring(2, 15);
       form.reset({
-        name: "",
-        description: "",
+        ...DEFAULT_CAMPAIGN_FORM_VALUES,
         slug: randomSlug,
       });
     } else if (mode === "edit" && campaign) {
@@ -92,7 +92,7 @@ export function CampaignDialog({
         slug: campaign.slug,
       });
     }
-  }, [mode, campaign, isOpen, form]);
+  }, [mode, campaign, isOpen]);
 
   // Clear form when dialog closes
   useEffect(() => {
@@ -103,19 +103,11 @@ export function CampaignDialog({
         slug: "",
       });
     }
-  }, [isOpen, form.state.isDirty, form]);
+  }, [isOpen]);
 
   const handleClose = () => {
-    if (!form.state.isSubmitting) {
-      if (form.state.isDirty) {
-        form.reset({
-          name: "",
-          description: "",
-          slug: "",
-        });
-      }
-      onClose();
-    }
+    if (form.state.isSubmitting) return;
+    onClose();
   };
 
 
@@ -149,8 +141,9 @@ export function CampaignDialog({
           >
             {(field) => (
               <div className="space-y-2 px-px">
-                <Label>Campaign Name</Label>
+                <Label htmlFor="campaign-name">Campaign Name</Label>
                 <Input
+                  id="campaign-name"
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
                   onBlur={field.handleBlur}
@@ -168,8 +161,9 @@ export function CampaignDialog({
           <form.Field name="description">
             {(field) => (
               <div className="space-y-2 px-px">
-                <Label>Description</Label>
+                <Label htmlFor="campaign-description">Description</Label>
                 <textarea
+                  id="campaign-description"
                   rows={3}
                   className="flex h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   value={field.state.value}
@@ -187,7 +181,7 @@ export function CampaignDialog({
             validators={{
               onChange: () => undefined,
               onBlur: ({ value }) => validateCampaignSlugSync(value),
-              onBlurAsync: async ({ value }) => {
+              onChangeAsync: async ({ value }) => {
                 const trimmed = value.trim();
                 const normalized = removeInvalidCharacters(trimmed);
                 if (validateCampaignSlugSync(normalized)) return undefined;
@@ -197,31 +191,44 @@ export function CampaignDialog({
                   mode === "edit" && campaign ? campaign._id : undefined,
                 );
               },
-              onBlurAsyncDebounceMs: 300,
+              onChangeAsyncDebounceMs: 300,
             }}
           >
             {(field) => (
               <div className="space-y-2 px-px">
-                <Label className="flex items-center gap-2">
+                <Label htmlFor="campaign-slug" className="flex items-center gap-2">
                   <Link className="h-4 w-4" />
                   Custom Link
                 </Label>
-                <Input
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  onBlur={field.handleBlur}
-                  placeholder="campaign-link"
-                  minLength={3}
-                  maxLength={30}
-                  disabled={form.state.isSubmitting}
-                  required
-                />
+                <div className="relative">
+                  <Input
+                    id="campaign-slug"
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={() => {
+                      field.handleBlur();
+                    }}
+                    placeholder="campaign-link"
+                    minLength={3}
+                    maxLength={30}
+                    disabled={form.state.isSubmitting}
+                    required
+                    className="pr-8"
+                  />
+                  {field.state.meta.isValidating && (
+                    <LoadingSpinner
+                      size="sm"
+                      className="absolute right-2 top-1/2 -translate-y-1/2"
+                      aria-label="Validating slug"
+                    />
+                  )}
+                </div>
                 {field.state.meta.errors?.length ? (
                   <p className="text-sm text-red-500">{field.state.meta.errors[0]}</p>
                 ) : null}
 
                 <UrlPreview
-                  url={`${window.location.origin}/join/${userProfile.data?.username}/${field.state.value}`}
+                  url={`${window.location.origin}/join/${userProfile.data?.username}/${field.state.value ? field.state.value : "campaign-link"}`}
                 />
               </div>
             )}

@@ -33,7 +33,7 @@ export function ColorPicker({
   return (
     <div className="space-y-2">
       {label && (
-        <label className="text-sm font-medium">
+        <label htmlFor="color-picker" className="text-sm font-medium">
           {label}
           {isChanged && <span className="text-amber-600 ml-1">*</span>}
         </label>
@@ -42,6 +42,7 @@ export function ColorPicker({
         <div className="flex flex-wrap gap-2 justify-between">
         {colors.map((color) => (
           <button
+            id={`color-picker-${color}`}
             key={color}
             type="button"
             onClick={() => onColorChange(color)}

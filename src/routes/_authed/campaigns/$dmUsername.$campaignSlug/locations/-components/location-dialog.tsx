@@ -18,6 +18,12 @@ import { Input } from "~/components/shadcn/ui/input";
 import { Label } from "~/components/shadcn/ui/label";
 import { validateLocationName } from "./location-form-validators";
 
+const DEFAULT_LOCATION_FORM_VALUES: { name: string; description: string; color: string } = {
+  name: "",
+  description: "",
+  color: DEFAULT_COLORS[0]
+}
+
 interface LocationDialogProps {
   mode: "create" | "edit";
   isOpen: boolean;
@@ -27,8 +33,6 @@ interface LocationDialogProps {
   location?: Location; // Required for edit mode
   navigateToNote?: boolean;
 }
-
-// Using inferred form data shape from defaultValues
 
 export default function LocationDialog({
   mode,
@@ -47,11 +51,7 @@ export default function LocationDialog({
   const updateLocation = useMutation({ mutationFn: useConvexMutation(api.locations.mutations.updateLocation) });
 
   const form = useForm({
-    defaultValues: {
-      name: "",
-      description: "",
-      color: DEFAULT_COLORS[0],
-    },
+    defaultValues: { ...DEFAULT_LOCATION_FORM_VALUES },
     onSubmit: async ({ value }) => {
       if (!campaign) {
         toast.error("Campaign not found");
@@ -101,9 +101,7 @@ export default function LocationDialog({
   useEffect(() => {
     if (mode === "create") {
       form.reset({
-        name: "",
-        description: "",
-        color: DEFAULT_COLORS[0],
+        ...DEFAULT_LOCATION_FORM_VALUES,
       });
     } else if (mode === "edit" && location) {
       form.reset({
@@ -112,32 +110,20 @@ export default function LocationDialog({
         color: location.color,
       });
     }
-  }, [mode, location, isOpen, form]);
+  }, [mode, location, isOpen]);
 
   // Clear form when dialog closes
   useEffect(() => {
     if (!isOpen && form.state.isDirty) {
       form.reset({
-        name: "",
-        description: "",
-        color: DEFAULT_COLORS[0],
+        ...DEFAULT_LOCATION_FORM_VALUES,
       });
     }
-  }, [isOpen, form.state.isDirty, form]);
-
-  // onSubmit handled in TanStack Form config
+  }, [isOpen]);
 
   const handleClose = () => {
-    if (!form.state.isSubmitting) {
-      if (form.state.isDirty) {
-        form.reset({
-          name: "",
-          description: "",
-          color: DEFAULT_COLORS[0],
-        });
-      }
-      onClose();
-    }
+    if (form.state.isSubmitting) return;
+    onClose();
   };
 
   if (!isOpen) return null;
@@ -171,8 +157,9 @@ export default function LocationDialog({
           >
             {(field) => (
               <div className="space-y-2 px-px">
-                <Label>Name</Label>
+                <Label htmlFor="location-name">Name</Label>
                 <Input
+                  id="location-name"
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
                   onBlur={field.handleBlur}
@@ -190,8 +177,9 @@ export default function LocationDialog({
           <form.Field name="description">
             {(field) => (
               <div className="space-y-2 px-px">
-                <Label>Description</Label>
+                <Label htmlFor="location-name">Description</Label>
                 <textarea
+                  id="location-name"
                   rows={3}
                   className="flex h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   value={field.state.value}
@@ -207,12 +195,11 @@ export default function LocationDialog({
           <form.Field name="color">
             {(field) => (
               <div className="space-y-2 px-px">
-                <label className="text-sm font-medium">Color</label>
                 <ColorPicker
                   selectedColor={field.state.value}
                   onColorChange={(color) => field.handleChange(color)}
                   disabled={form.state.isSubmitting}
-                  label=""
+                  label="Location Color"
                 />
               </div>
             )}
@@ -241,5 +228,3 @@ export default function LocationDialog({
     </FormDialog>
   );
 }
-
-// Loading skeleton retained in git history if needed

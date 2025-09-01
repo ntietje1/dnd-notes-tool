@@ -9,7 +9,7 @@ export function UrlPreview({ url, label = "Your campaign will be available at:" 
       <span className="font-medium block">
         {label}
       </span>
-      <div className="font-mono bg-slate-50 p-2 rounded border break-all text-slate-700 max-w-full overflow-hidden text-xs">
+      <div className="font-mono bg-slate-50 p-2 rounded border break-all text-slate-700 max-w-full overflow-hidden text-xs" title={url} aria-live="polite" data-testid="url-preview">
         {url}
       </div>
     </div>
