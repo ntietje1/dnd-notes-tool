@@ -1,0 +1,117 @@
+Current features
+- Authentication (Clerk)
+    - OAuth, username/email + password
+- Campaign creation
+    - Custom join link
+    - Request-based access control (users click link to send a request for access, DM approval needed)
+    - Player management
+- Role-based access
+    - Players vs DMs
+- Note creation/editing
+    - Blocknote.js editor with live sync
+    - Custom blocks and menus for feature-specific integrations like tags
+- Virtual file system
+    - File tree sidebar with draggable elements
+    - Sortable
+    - Custom right-click context menus
+- Note tagging system
+    - Block-level tagging
+    - All tagged content viewable as a read-only document
+- Character/location creation
+    - Tags created automatically, with automatic pages to view all tags for a specific character/location
+
+Dev to-do list:
+- Tag system schema/backend re-work to accomodate custom tag types and sessions
+- File upload (including sidebar integration)
+- Linking system ("#" syntax, allowing "mentioning" a note or note section by header)
+
+Planned user features road map
+- Sessions
+    - Is a type of tag (system tag?)
+    - Automatically tag all blocks made during a session
+    - Need to figure out how the DM controls look like for this
+        - Alert if no session is active
+        - Give the campaign a specific "state" so players know a session is active or not
+- Custom tag creation (category of tag like character/location)
+    - Where will the user create tags under these custom categories?
+- "Cover art" for campaigns, characters, locations, etc.
+    - Shows on cards on relevant pages
+    - Shows on hover cards
+    - Also includes other customization features
+    - Requires file upload
+- Character/Location note hover elements
+    - DM customizable element that shows up on tag hover
+    - What shows up for session tag hover?
+- Character sheet attachment to character
+    - Just PDF for full character sheet, custom UI for hover-card content
+    - Add this to character specific page
+    - Custom character sheet creator is extension feature
+    - Requires file upload
+- Player attachment to character
+    - Potentially allow the user to create their own character?
+    - Give the user a space to add backstory, etc.
+- Scenery
+    - Where will this show from the player's POV?
+    - Custom block for DM view (use share button to share scenery?)
+    - Requires file upload
+- Music integration (spotify, youtube, etc.)
+    - Custom block for DM view
+    - Sound effects?
+- Campaign settings
+    - DM settings:
+        - Archive / delete campaigns (remove delete button from campaigns index page)
+        - Rename / change slug
+    - Player settings:
+        - Leave campaign
+- Dice roller
+    - Integrate with notes and character sheets
+        - Clickable rolls integrated into character sheet/character hover card for attack/damage rolls and ability checks
+        - Ability to add rolls into DM notes for quick access
+- Maps
+    - Ability to tie notes/sections to specific points on the map
+    - Requires file upload
+    - Requires sub-note linking
+- DM "presentation" mode
+    - A view-only DM mode to be used during an active session
+- Player notes
+    - Player notes for each tag page notes
+    - Standalone notes with personal file tree in sidebar
+    - Extension: interweaving of player-notes into DM-notes
+- Fine-grained sharing control
+    - DM can share notes to specific players
+    - Players can share notes amongst other players or maybe even the DM
+- Robust keyboard controls
+    - Standard controls like undo/redo, copy/cut/paste where appropriate
+    - File tree controls (copy keybinds from popular tools)
+    - Editor controls
+    - Note navigation controls (go to previous note, see previously viewed notes, like vscode features)
+- Comments on notes
+    - Sharable like blocks
+    - Able to reply to comments (non-threaded)
+- Custom UI themes
+- User presence
+    - Live cursors
+    - Active avatars per campaign and per note page
+    - Last edited, last viewed, etc.
+- DM-made campaign invites (enter email to auto-accept new player)
+    - Requires email integration
+- Email notifications (for invites/requests, etc.)
+- Import/export
+    - Markdown/PDF/other export
+    - Notion/Obsidian import
+    - Asset manager/media library for bulk asset operations
+
+Extension features:
+- Initiative/combat tracker
+    - Integrates with character sheets and notes
+    - Custom block to initiate combat
+- Character sheet creator
+- Obsidian-like knowledge graph
+- Discord integration
+- Virtual table top (like roll20, foundry)
+- Desktop app using electron
+- Better mobile support
+- Offline editing
+
+
+
