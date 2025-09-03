@@ -1,5 +1,4 @@
 import { Id } from "../_generated/dataModel";
-import { TAG_TYPES } from "../tags/types";
 
 export type Location = {
   _id: Id<"locations">;
@@ -18,6 +17,6 @@ export type LocationWithTag = Location & {
     _id: Id<"tags">;
     name: string;
     color: string;
-    type: typeof TAG_TYPES.Location;
+    type: "Location";
   };
 };

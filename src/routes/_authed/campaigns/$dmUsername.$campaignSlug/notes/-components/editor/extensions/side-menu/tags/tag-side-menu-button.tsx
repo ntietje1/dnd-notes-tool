@@ -30,7 +30,7 @@ export default function TagSideMenuButton({
   block,
 }: TagSideMenuButtonProps) {
   const { tags } = useTags();
-  const nonSystemTags = tags?.filter((tag) => tag.type !== "System") || [];
+  const nonSystemTags = tags || [];
   const { note } = useNotes();
   const addTagToBlock = useMutation({mutationFn: useConvexMutation(api.notes.mutations.addTagToBlockMutation)});
   const removeTagFromBlock = useMutation({mutationFn: useConvexMutation(

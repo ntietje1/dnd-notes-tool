@@ -1,4 +1,4 @@
-import type { TagType } from "convex/tags/types";
+import type { TagCategory } from "convex/tags/types";
 import { SystemFolderButton } from "./system-folder-button";
 import { useCallback, useState } from "react";
 import type { Id } from "convex/_generated/dataModel";
@@ -14,9 +14,9 @@ export const SystemFolders = ({
   renamingId,
   setRenamingId,
 }: SystemFoldersProps) => {
-    const [expandedSystemFolders, setExpandedSystemFolders] = useState<Set<TagType>>(new Set());
+    const [expandedSystemFolders, setExpandedSystemFolders] = useState<Set<string>>(new Set());
 
-  const toggleSystemFolder = useCallback((tagType: TagType) => {
+  const toggleSystemFolder = useCallback((tagType: string) => {
     setExpandedSystemFolders((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(tagType)) {

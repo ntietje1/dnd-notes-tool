@@ -1,14 +1,15 @@
 import { v } from "convex/values";
 import { mutation } from "../_generated/server";
 import {
-  insertUserCreatedTag,
   updateTagAndContent,
   deleteTagAndCleanupContent,
+  getTagCategoryByName,
+  insertTagAndNote,
 } from "../tags/tags";
-import { TAG_TYPES } from "../tags/types";
 import { CAMPAIGN_MEMBER_ROLE } from "../campaigns/types";
 import { requireCampaignMembership } from "../campaigns/campaigns";
 import { Id } from "../_generated/dataModel";
+import { CATEGORY_KIND } from "../tags/types";
 
 export const createCharacter = mutation({
   args: {
@@ -23,11 +24,16 @@ export const createCharacter = mutation({
     );
     const { profile } = identityWithProfile;
 
-    const { tagId, noteId } = await insertUserCreatedTag(ctx, {
+    const characterCategory = await getTagCategoryByName(ctx, args.campaignId, CATEGORY_KIND.Core, "Character");
+    if (!characterCategory) {
+      throw new Error("Character category not found");
+    }
+    const tagId = await insertTagAndNote(ctx, {
       name: args.name,
-      type: TAG_TYPES.Character,
+      categoryId: characterCategory._id,
       color: args.color,
       campaignId: args.campaignId,
+      description: args.description,
     });
 
     const characterId = await ctx.db.insert("characters", {
@@ -39,6 +45,11 @@ export const createCharacter = mutation({
       createdBy: profile.userId,
       updatedAt: Date.now(),
     });
+
+    const noteId = (await ctx.db.get(tagId))?.noteId;
+    if (!noteId) {
+      throw new Error("Failed to create note for character");
+    }
 
     return { characterId, tagId, noteId };
   },
@@ -97,14 +108,14 @@ export const updateCharacter = mutation({
 
       // Also update the associated note name if character name changed
       if (args.name !== undefined) {
-        const associatedNote = await ctx.db
-          .query("notes")
-          .withIndex("by_campaign_tag", (q) =>
-            q
-              .eq("campaignId", character.campaignId)
-              .eq("tagId", character.tagId),
-          )
-          .unique();
+        const tag = await ctx.db.get(character.tagId);
+        if (!tag) {
+          throw new Error("Character tag not found");
+        }
+        if (!tag.noteId) {
+          throw new Error("Character note not found");
+        }
+        const associatedNote = await ctx.db.get(tag.noteId);
 
         if (associatedNote) {
           await ctx.db.patch(associatedNote._id, {

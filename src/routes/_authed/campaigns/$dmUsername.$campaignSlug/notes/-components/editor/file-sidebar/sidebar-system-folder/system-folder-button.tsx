@@ -1,11 +1,10 @@
-import type { TagType } from "convex/tags/types";
 import { CharacterSystemFolder } from "./character-system-folder/character-system-folder";
 import { LocationSystemFolder } from "./location-system-folder/location-system-folder";
 import { SessionSystemFolder } from "./session-system-folder/session-system-folder";
 import type { Id } from "convex/_generated/dataModel";
 
 interface SystemFolderButtonProps {
-  tagType: TagType;
+  tagType: string;
   isExpanded: boolean;
   onToggleExpanded: () => void;
   renamingId: Id<"folders"> | Id<"notes"> | null;

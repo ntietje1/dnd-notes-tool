@@ -1,15 +1,26 @@
 import { Id } from "../_generated/dataModel";
 import { Note } from "../notes/types";
 
-export const TAG_TYPES = {
-  Character: "Character",
-  Location: "Location",
-  Session: "Session",
-  System: "System",
-  Other: "Other",
+export const CATEGORY_KIND = {
+  // Core categories: immutable category metadata, but tags under them are user-manageable.
+  Core: "core",
+  // Managed categories: both category and tags under it are system-managed and immutable to users.
+  SystemManaged: "system_managed",
+  // User-created categories.
+  User: "user",
 } as const;
 
-export type TagType = (typeof TAG_TYPES)[keyof typeof TAG_TYPES];
+export type CategoryKind = (typeof CATEGORY_KIND)[keyof typeof CATEGORY_KIND];
+
+export type TagCategory = {
+  _id: Id<"tagCategories">;
+  _creationTime: number;
+
+  name: string;
+  kind: CategoryKind;
+  campaignId: Id<"campaigns">;
+  updatedAt: number;
+};
 
 export type Tag = {
   _id: Id<"tags">;
@@ -17,8 +28,11 @@ export type Tag = {
 
   name: string;
   color: string;
+  description?: string;
   campaignId: Id<"campaigns">;
-  type: TagType;
+  noteId?: Id<"notes">;
+  categoryId: Id<"tagCategories">;
+  createdBy: string;
   updatedAt: number;
 };
 
@@ -29,6 +43,8 @@ export const SYSTEM_TAGS = {
 export interface TagNote extends Omit<Note, "tagId"> {
   tagName: string;
   tagColor: string;
-  tagType: TagType;
+  categoryId: Id<"tagCategories">;
+  // Optional convenience field when denormalized
+  categoryName?: string;
   tagId: Id<"tags">;
 }

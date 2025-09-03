@@ -1,7 +1,6 @@
 import { v } from "convex/values";
 import { query } from "../_generated/server";
 import { LocationWithTag } from "./types";
-import { TAG_TYPES } from "../tags/types";
 import { CAMPAIGN_MEMBER_ROLE } from "../campaigns/types";
 import { requireCampaignMembership } from "../campaigns/campaigns";
 
@@ -26,15 +25,16 @@ export const getLocationsByCampaign = query({
           throw new Error(`Tag not found for location ${location._id}`);
         }
 
-        return {
+        const result: LocationWithTag = {
           ...location,
           tag: {
             _id: tag._id,
             name: tag.name,
             color: tag.color,
-            type: tag.type as typeof TAG_TYPES.Location,
+            type: "Location",
           },
         };
+        return result;
       }),
     );
 
@@ -61,14 +61,15 @@ export const getLocationById = query({
       throw new Error(`Tag not found for location ${location._id}`);
     }
 
-    return {
+    const result: LocationWithTag = {
       ...location,
       tag: {
         _id: tag._id,
         name: tag.name,
         color: tag.color,
-        type: tag.type as typeof TAG_TYPES.Location,
+        type: "Location",
       },
     };
+    return result;
   },
 });

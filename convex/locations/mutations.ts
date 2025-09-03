@@ -2,13 +2,14 @@ import { v } from "convex/values";
 import { mutation } from "../_generated/server";
 import { requireCampaignMembership } from "../campaigns/campaigns";
 import {
-  insertUserCreatedTag,
   updateTagAndContent,
   deleteTagAndCleanupContent,
+  getTagCategoryByName,
+  insertTagAndNote,
 } from "../tags/tags";
-import { TAG_TYPES } from "../tags/types";
 import { CAMPAIGN_MEMBER_ROLE } from "../campaigns/types";
 import { Id } from "../_generated/dataModel";
+import { CATEGORY_KIND } from "../tags/types";
 
 export const createLocation = mutation({
   args: {
@@ -23,11 +24,16 @@ export const createLocation = mutation({
     );
     const { profile } = identityWithProfile;
 
-    const { tagId, noteId } = await insertUserCreatedTag(ctx, {
+    const locationCategory = await getTagCategoryByName(ctx, args.campaignId, CATEGORY_KIND.Core, "Location");
+    if (!locationCategory) {
+      throw new Error("Location category not found");
+    }
+    const tagId = await insertTagAndNote(ctx, {
       name: args.name,
-      type: TAG_TYPES.Location,
+      categoryId: locationCategory._id,
       color: args.color,
       campaignId: args.campaignId,
+      description: args.description,
     });
 
     const locationId = await ctx.db.insert("locations", {
@@ -39,6 +45,11 @@ export const createLocation = mutation({
       createdBy: profile.userId,
       updatedAt: Date.now(),
     });
+
+    const noteId = (await ctx.db.get(tagId))?.noteId;
+    if (!noteId) {
+      throw new Error("Failed to create note for location");
+    }
 
     return { locationId, tagId, noteId };
   },
@@ -97,12 +108,14 @@ export const updateLocation = mutation({
 
       // Also update the associated note name if location name changed
       if (args.name !== undefined) {
-        const associatedNote = await ctx.db
-          .query("notes")
-          .withIndex("by_campaign_tag", (q) =>
-            q.eq("campaignId", location.campaignId).eq("tagId", location.tagId),
-          )
-          .unique();
+        const tag = await ctx.db.get(location.tagId);
+        if (!tag) {
+          throw new Error("Location tag not found");
+        }
+        if (!tag.noteId) {
+          throw new Error("Location note not found");
+        }
+        const associatedNote = await ctx.db.get(tag.noteId);
 
         if (associatedNote) {
           await ctx.db.patch(associatedNote._id, {

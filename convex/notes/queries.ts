@@ -120,7 +120,17 @@ export const getSidebarData = query({
     ]);
 
     // Filter out notes that are associated with tags (they appear in system folders)
-    const regularNotes = notes.filter((note) => !note.tagId);
+    const tagLinkedNoteIds = new Set(
+      (
+        await ctx.db
+          .query("tags")
+          .withIndex("by_campaign_name", (q) => q.eq("campaignId", args.campaignId!))
+          .collect()
+      )
+        .map((t) => t.noteId)
+        .filter((nid): nid is Id<"notes"> => Boolean(nid)),
+    );
+    const regularNotes = notes.filter((note) => !tagLinkedNoteIds.has(note._id));
 
     const folderMap = new Map<Id<"folders">, FolderNode>();
 
@@ -176,21 +186,22 @@ export const getBlocksByTags = query({
       { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM, CAMPAIGN_MEMBER_ROLE.Player] }
     );
 
-    const sharedTag = await ctx.db
-      .query("tags")
-      .withIndex("by_campaign_name", (q) =>
-        q.eq("campaignId", args.campaignId!).eq("name", SYSTEM_TAGS.shared),
+    // Ensure the managed "Shared" category exists and select all tags under it
+    const sharedCategory = await ctx.db
+      .query("tagCategories")
+      .withIndex("by_campaign_kind_name", (q) =>
+        q.eq("campaignId", args.campaignId!).eq("kind", "system_managed").eq("name", SYSTEM_TAGS.shared),
       )
       .unique();
 
-    if (!sharedTag) {
-      throw new Error("Shared tag not found, this should be impossible");
+    if (!sharedCategory) {
+      // If no Shared category exists yet, no blocks can be shared
+      return [];
     }
 
     const allBlockTags = await ctx.db.query("blockTags").collect();
 
     const blockTagsMap = new Map<Id<"blocks">, Id<"tags">[]>();
-    const sharedTagCreationMap = new Map<Id<"blocks">, number>();
 
     allBlockTags.forEach((bt) => {
       if (!blockTagsMap.has(bt.blockId)) {
@@ -198,9 +209,7 @@ export const getBlocksByTags = query({
       }
       blockTagsMap.get(bt.blockId)!.push(bt.tagId);
 
-      if (bt.tagId === sharedTag._id) {
-        sharedTagCreationMap.set(bt.blockId, bt.createdAt);
-      }
+      // No special sort by shared tag creation; we can add later if needed
     });
 
     const allBlocks = await ctx.db
@@ -210,10 +219,19 @@ export const getBlocksByTags = query({
       )
       .collect();
 
-    const requiredTagIds = [sharedTag._id, ...args.tagIds];
+    // All managed shared tags under the Shared category qualify as "shared" markers
+    const sharedTags = await ctx.db
+      .query("tags")
+      .withIndex("by_campaign_categoryId", (q) =>
+        q.eq("campaignId", args.campaignId!).eq("categoryId", sharedCategory._id),
+      )
+      .collect();
+
+    const requiredTagIds = [...args.tagIds];
     const matchingBlocks = allBlocks.filter((block) => {
       const blockTagIds = blockTagsMap.get(block._id) || [];
-      return requiredTagIds.every((tagId) => blockTagIds.includes(tagId));
+      const hasShared = sharedTags.some((t) => blockTagIds.includes(t._id));
+      return hasShared && requiredTagIds.every((tagId) => blockTagIds.includes(tagId));
     });
 
     const noteGroups = new Map<Id<"notes">, Block[]>();
@@ -244,11 +262,7 @@ export const getBlocksByTags = query({
       filteredResults.push(...filtered);
     }
 
-    return filteredResults.sort((a, b) => {
-      const aCreatedAt = sharedTagCreationMap.get(a._id) || 0;
-      const bCreatedAt = sharedTagCreationMap.get(b._id) || 0;
-      return bCreatedAt - aCreatedAt;
-    });
+    return filteredResults;
   },
 });
 
@@ -280,20 +294,25 @@ export const getBlockTagState = query({
     const blockTagIds = await getBlockTags(ctx, block._id);
     const inlineTagIds = extractTagIdsFromBlockContent(block.content);
 
+    const noteLevelTag = await ctx.db
+      .query("tags")
+      .withIndex("by_campaign_noteId", (q) =>
+        q.eq("campaignId", note.campaignId).eq("noteId", note._id),
+      )
+      .unique();
+
     const manualTagIds = blockTagIds.filter(
-      (tagId) => !inlineTagIds.includes(tagId) && note.tagId !== tagId,
+      (tagId) => !inlineTagIds.includes(tagId) && noteLevelTag?._id !== tagId,
     );
 
-    const noteTagIdList = note.tagId ? [note.tagId] : [];
-    const allTagIds = [
-      ...new Set([...blockTagIds, ...inlineTagIds, ...noteTagIdList]),
-    ];
+    const noteTagIdList = noteLevelTag ? [noteLevelTag._id] : [];
+    const allTagIds = [...new Set([...blockTagIds, ...inlineTagIds, ...noteTagIdList])];
 
     return {
       allTagIds,
       inlineTagIds,
       blockTagIds: manualTagIds,
-      noteTagId: note.tagId || null,
+      noteTagId: noteLevelTag?._id || null,
     };
   },
 });
@@ -316,27 +335,20 @@ export const getTagNotePages = query({
 
     const tags = await ctx.db
       .query("tags")
-      .withIndex("by_campaign_type", (q) =>
-        q.eq("campaignId", args.campaignId).eq("type", args.tagType),
-      )
+      .withIndex("by_campaign_name", (q) => q.eq("campaignId", args.campaignId))
       .collect();
 
     const tagNotePages = [];
     for (const tag of tags) {
-      const notes = await ctx.db
-        .query("notes")
-        .withIndex("by_campaign_tag", (q) =>
-          q.eq("campaignId", args.campaignId).eq("tagId", tag._id),
-        )
-        .collect();
+      const note = tag.noteId ? await ctx.db.get(tag.noteId) : null;
 
-      for (const note of notes) {
+      if (note) {
         tagNotePages.push({
           ...note,
           type: SIDEBAR_ITEM_TYPES.notes,
           tagName: tag.name,
           tagColor: tag.color,
-          tagType: tag.type,
+          tagType: args.tagType,
         });
       }
     }

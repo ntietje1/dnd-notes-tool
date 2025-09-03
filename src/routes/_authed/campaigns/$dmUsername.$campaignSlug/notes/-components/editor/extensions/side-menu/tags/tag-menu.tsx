@@ -27,7 +27,7 @@ export default function TagMenu({
 }) {
   const { tags } = useTags();
 
-  const nonSystemTags = tags?.filter((tag: Tag) => tag.type !== "System") || [];
+  const nonSystemTags = tags || [];
 
   const onAddTag = (tag: Tag) => {
     if (!editor) return;

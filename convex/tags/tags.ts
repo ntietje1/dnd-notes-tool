@@ -1,77 +1,181 @@
 import { CustomBlock } from "../notes/editorSpecs";
 import { Id } from "../_generated/dataModel";
 import { MutationCtx } from "../_generated/server";
-import { Tag, TAG_TYPES } from "./types";
+import { Tag, CATEGORY_KIND, CategoryKind, TagCategory } from "./types";
 import { Block } from "../notes/types";
 import { CAMPAIGN_MEMBER_ROLE } from "../campaigns/types";
 import { requireCampaignMembership } from "../campaigns/campaigns";
 import { Ctx } from "../common/types";
 
-//TODO: make some of these internal mutations/queries
-//TODO: look into WithoutSystemFields
+
+export const insertTagAndNote = async (
+  ctx: MutationCtx,
+  tag: Omit<Tag, "_id" | "_creationTime" | "updatedAt" | "createdBy">,
+): Promise<Id<"tags">> => {
+  return await insertTag(ctx, tag, true);
+};
 
 export const insertTag = async (
   ctx: MutationCtx,
-  tag: Omit<Tag, "_id" | "_creationTime" | "updatedAt">,
+  tag: Omit<Tag, "_id" | "_creationTime" | "updatedAt" | "createdBy">,
+  createNote: boolean = false,
+  allowManaged: boolean = false,
 ): Promise<Id<"tags">> => {
-  await requireCampaignMembership(ctx, { campaignId: tag.campaignId },
+  const category = await ctx.db.get(tag.categoryId);
+  if (!category) {
+    throw new Error("Category not found");
+  }
+  if (!allowManaged && category.kind === CATEGORY_KIND.SystemManaged) {
+    throw new Error("Managed-category tags cannot be created by users");
+  }
+  const { identityWithProfile } = await requireCampaignMembership(ctx, { campaignId: tag.campaignId },
     { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
   );
+  const { profile } = identityWithProfile;
+
+
+  let noteId: Id<"notes"> | undefined;
+  if (createNote) {
+    noteId = await ctx.db.insert("notes", {
+      userId: profile.userId,
+      name: tag.name,
+      campaignId: tag.campaignId,
+      updatedAt: Date.now(),
+    });
+  
+    const initialBlockId = crypto.randomUUID();
+    await ctx.db.insert("blocks", {
+      noteId,
+      blockId: initialBlockId,
+      position: 0,
+      content: {
+        type: "paragraph",
+        id: initialBlockId,
+        content: [],
+      },
+      isTopLevel: true,
+      campaignId: tag.campaignId,
+      updatedAt: Date.now(),
+    });
+  }
 
   const tagId = await ctx.db.insert("tags", {
     name: tag.name,
-    type: tag.type,
+    categoryId: tag.categoryId,
     color: tag.color,
+    description: tag.description,
     campaignId: tag.campaignId,
+    noteId,
+    createdBy: profile.userId,
     updatedAt: Date.now(),
   });
 
   return tagId;
 };
 
-export const insertUserCreatedTag = async (
+export async function ensureManagedSharedTag(
   ctx: MutationCtx,
-  tag: Omit<Tag, "_id" | "_creationTime" | "updatedAt">,
-): Promise<{ tagId: Id<"tags">, noteId: Id<"notes"> }> => {
-  if (tag.type === TAG_TYPES.System) {
-    throw new Error("User cannot create system tags");
+  campaignId: Id<"campaigns">
+): Promise<Id<"tags">> {
+  // Ensure categories exist first
+  await ensureDefaultTagCategories(ctx, campaignId);
+
+  const sharedCategory = await ctx.db
+    .query("tagCategories")
+    .withIndex("by_campaign_kind_name", (q) =>
+      q.eq("campaignId", campaignId).eq("kind", CATEGORY_KIND.SystemManaged).eq("name", "Shared"),
+    )
+    .unique();
+
+  if (!sharedCategory) {
+    throw new Error("Shared category should exist but was not found");
   }
 
-  const { identityWithProfile } = await requireCampaignMembership(ctx, { campaignId: tag.campaignId },
+  const existingTag = await ctx.db
+    .query("tags")
+    .withIndex("by_campaign_name", (q) =>
+      q.eq("campaignId", campaignId).eq("name", "Shared: All"),
+    )
+    .unique();
+  if (existingTag) return existingTag._id;
+
+  return await insertTag(
+    ctx,
+    {
+      name: "Shared: All",
+      color: "#F59E0B",
+      description: "Visible to all players",
+      campaignId,
+      categoryId: sharedCategory._id,
+    },
+    false,
+    true,
+  );
+}
+ 
+export async function ensureDefaultTagCategories(
+  ctx: MutationCtx,
+  campaignId: Id<"campaigns">
+): Promise<Id<"tagCategories">[]> {
+  const defaults = [
+    { name: "Character", kind: CATEGORY_KIND.Core },
+    { name: "Location", kind: CATEGORY_KIND.Core },
+    { name: "Session", kind: CATEGORY_KIND.Core },
+    { name: "Shared", kind: CATEGORY_KIND.SystemManaged },
+  ];
+
+  const existing = await ctx.db
+    .query("tagCategories")
+    .withIndex("by_campaign_kind_name", (q) => q.eq("campaignId", campaignId))
+    .collect();
+
+  const existingByName = new Map(existing.map((c) => [c.name, c]));
+  const ids: Id<"tagCategories">[] = [];
+  for (const d of defaults) {
+    const found = existingByName.get(d.name);
+    if (found) {
+      ids.push(found._id);
+    } else {
+      const id = await insertTagCategory(ctx, { campaignId, kind: d.kind, name: d.name });
+      ids.push(id);
+    }
+  }
+  return ids;
+}
+
+export async function getTagCategoryByName(
+  ctx: MutationCtx,
+  campaignId: Id<"campaigns">,
+  kind: CategoryKind,
+  name: string,
+): Promise<TagCategory | null> {
+  await ensureDefaultTagCategories(ctx, campaignId);
+  const existing = await ctx.db
+    .query("tagCategories")
+    .withIndex("by_campaign_kind_name", (q) =>
+      q.eq("campaignId", campaignId).eq("kind", kind).eq("name", name),
+    )
+    .unique();
+
+  return existing;
+}
+
+export async function insertTagCategory(
+  ctx: MutationCtx,
+  input: { campaignId: Id<"campaigns">; kind: CategoryKind; name: string }
+): Promise<Id<"tagCategories">> {
+  await requireCampaignMembership(ctx, { campaignId: input.campaignId },
     { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
   );
-  const { profile } = identityWithProfile;
 
-  const tagId = await insertTag(ctx, tag);
-
-  // Create associated note page for user-created tags
-  const noteId = await ctx.db.insert("notes", {
-    userId: profile.userId,
-    name: tag.name,
-    campaignId: tag.campaignId,
-    tagId: tagId,
+  const id = await ctx.db.insert("tagCategories", {
+    name: input.name,
+    kind: input.kind,
+    campaignId: input.campaignId,
     updatedAt: Date.now(),
   });
-
-  // Create initial block for the note
-  const initialBlockId = crypto.randomUUID();
-  await ctx.db.insert("blocks", {
-    noteId,
-    blockId: initialBlockId,
-    position: 0,
-    content: {
-      type: "paragraph",
-      id: initialBlockId,
-      content: [],
-    },
-    isTopLevel: true,
-    campaignId: tag.campaignId,
-    updatedAt: Date.now(),
-  });
-  
-
-  return { tagId, noteId };
-};
+  return id;
+}
 
 export const updateTagAndContent = async (
   ctx: MutationCtx,
@@ -403,9 +507,16 @@ export async function saveTopLevelBlocks(
   const note = await ctx.db.get(noteId);
   if (!note) return;
 
+  const noteLevelTag = await ctx.db
+    .query("tags")
+    .withIndex("by_campaign_noteId", (q) =>
+      q.eq("campaignId", note.campaignId).eq("noteId", noteId),
+    )
+    .unique();
+
   const allBlocksWithTags = extractAllBlocksWithTags(
     content,
-    note.tagId || null,
+    noteLevelTag?._id || null,
   );
 
   const existingBlocks = await ctx.db
@@ -469,9 +580,9 @@ export async function saveTopLevelBlocks(
         (tagId) => !oldInlineTagIds.includes(tagId),
       );
 
-      const noteLevelTag = note.tagId ? [note.tagId] : [];
+      const noteLevelTagId = noteLevelTag ? [noteLevelTag._id] : [];
       const finalTagIds = [
-        ...new Set([...inlineTagIds, ...manualTags, ...noteLevelTag]),
+        ...new Set([...inlineTagIds, ...manualTags, ...noteLevelTagId]),
       ];
 
       const tagsToRemove = currentTagIds.filter(
@@ -505,8 +616,8 @@ export async function saveTopLevelBlocks(
         });
       }
     } else {
-      const noteLevelTag = note.tagId ? [note.tagId] : [];
-      const finalTagIds = [...new Set([...inlineTagIds, ...noteLevelTag])];
+      const noteLevelTagId = noteLevelTag ? [noteLevelTag._id] : [];
+      const finalTagIds = [...new Set([...inlineTagIds, ...noteLevelTagId])];
 
       for (const tagId of finalTagIds) {
         await ctx.db.insert("blockTags", {
