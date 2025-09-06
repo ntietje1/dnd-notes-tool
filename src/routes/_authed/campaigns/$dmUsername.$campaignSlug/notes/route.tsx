@@ -3,6 +3,7 @@ import { NotesProvider } from '~/contexts/NotesContext'
 import { SidebarLayout } from './-components/layout/sidebar-layout'
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/shadcn/style.css";
+import { NotesPageLayout } from './-components/page/index'
 
 export const Route = createFileRoute('/_authed/campaigns/$dmUsername/$campaignSlug/notes')({
   component: NotesLayout,
@@ -13,7 +14,9 @@ function NotesLayout() {
     <NotesProvider>
       <div className="flex-1">
         <SidebarLayout>
-          <Outlet />
+          <NotesPageLayout>
+            <Outlet />
+          </NotesPageLayout>
         </SidebarLayout>
       </div>
     </NotesProvider>

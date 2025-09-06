@@ -168,6 +168,8 @@ export function NotesProvider({ children }: NotesProviderProps) {
     (campaignLoaded && noteId) ? { noteId: noteId as Id<"notes"> } : "skip",
   ));
 
+  console.log("note", note.data?.content);
+
   const sortOptions: SortOptions = useMemo(
     () => ({
       order: editor?.data?.sortOrder ?? SORT_ORDERS.DateCreated,

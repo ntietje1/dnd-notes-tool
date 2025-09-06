@@ -27,7 +27,6 @@ import type * as notes_editorSpecs from "../notes/editorSpecs.js";
 import type * as notes_mutations from "../notes/mutations.js";
 import type * as notes_queries from "../notes/queries.js";
 import type * as notes_types from "../notes/types.js";
-import type * as prosemirrorSync from "../prosemirrorSync.js";
 import type * as tags_editorSpecs from "../tags/editorSpecs.js";
 import type * as tags_mutations from "../tags/mutations.js";
 import type * as tags_queries from "../tags/queries.js";
@@ -73,7 +72,6 @@ declare const fullApi: ApiFromModules<{
   "notes/mutations": typeof notes_mutations;
   "notes/queries": typeof notes_queries;
   "notes/types": typeof notes_types;
-  prosemirrorSync: typeof prosemirrorSync;
   "tags/editorSpecs": typeof tags_editorSpecs;
   "tags/mutations": typeof tags_mutations;
   "tags/queries": typeof tags_queries;
@@ -96,81 +94,4 @@ export declare const internal: FilterApi<
   FunctionReference<any, "internal">
 >;
 
-export declare const components: {
-  prosemirrorSync: {
-    lib: {
-      deleteDocument: FunctionReference<
-        "mutation",
-        "internal",
-        { id: string },
-        null
-      >;
-      deleteSnapshots: FunctionReference<
-        "mutation",
-        "internal",
-        { afterVersion?: number; beforeVersion?: number; id: string },
-        null
-      >;
-      deleteSteps: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          afterVersion?: number;
-          beforeTs: number;
-          deleteNewerThanLatestSnapshot?: boolean;
-          id: string;
-        },
-        null
-      >;
-      getSnapshot: FunctionReference<
-        "query",
-        "internal",
-        { id: string; version?: number },
-        { content: null } | { content: string; version: number }
-      >;
-      getSteps: FunctionReference<
-        "query",
-        "internal",
-        { id: string; version: number },
-        {
-          clientIds: Array<string | number>;
-          steps: Array<string>;
-          version: number;
-        }
-      >;
-      latestVersion: FunctionReference<
-        "query",
-        "internal",
-        { id: string },
-        null | number
-      >;
-      submitSnapshot: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          content: string;
-          id: string;
-          pruneSnapshots?: boolean;
-          version: number;
-        },
-        null
-      >;
-      submitSteps: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          clientId: string | number;
-          id: string;
-          steps: Array<string>;
-          version: number;
-        },
-        | {
-            clientIds: Array<string | number>;
-            status: "needs-rebase";
-            steps: Array<string>;
-          }
-        | { status: "synced" }
-      >;
-    };
-  };
-};
+export declare const components: {};
