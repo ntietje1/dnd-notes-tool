@@ -21,7 +21,7 @@ export function NotesEditor() {
 
   const sync = useBlockNoteSync<CustomBlockNoteEditor>(
     api.prosemirrorSync,
-    note?._id ?? "",
+    noteId ?? "",
     {
       editorOptions: {
         schema,
