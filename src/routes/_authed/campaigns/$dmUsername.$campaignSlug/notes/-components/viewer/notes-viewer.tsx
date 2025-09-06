@@ -74,22 +74,24 @@ export function NotesViewer() {
         ))}
       </div>
 
-      <div className="flex-1">
-        {editor && (
-          <BlockNoteView
-            className="h-full overflow-y-auto pt-4"
-            editor={editor as any} //TODO: fix this
-            theme="light"
-            editable={false}
-          />
-        )}
-        {!editor && (
-          <div className="h-full flex items-center justify-center text-muted-foreground">
-            {selectedTagIds.length === 0
-              ? "Select tags to view blocks."
-              : "No blocks found for selected tags."}
-          </div>
-        )}
+      <div className="flex-1 overflow-y-auto">
+        <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-8 py-6">
+          {editor && (
+            <BlockNoteView
+              className="pt-0"
+              editor={editor as any} //TODO: fix this
+              theme="light"
+              editable={false}
+            />
+          )}
+          {!editor && (
+            <div className="h-full flex items-center justify-center text-muted-foreground">
+              {selectedTagIds.length === 0
+                ? "Select tags to view blocks."
+                : "No blocks found for selected tags."}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

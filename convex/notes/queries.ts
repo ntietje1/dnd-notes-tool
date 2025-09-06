@@ -264,14 +264,24 @@ export const getBlockTagState = query({
     noteTagId: Id<"tags"> | null;
   }> => {
     const note = await ctx.db.get(args.noteId);
-    if (!note) throw new Error("Note not found");
+    if (!note) return {
+      allTagIds: [],
+      inlineTagIds: [],
+      blockTagIds: [],
+      noteTagId: null,
+    };
     
     await requireCampaignMembership(ctx, { campaignId: note.campaignId },
       { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM, CAMPAIGN_MEMBER_ROLE.Player] }
     );
 
     const block = await findBlock(ctx, args.noteId, args.blockId);
-    if (!block) throw new Error("Block not found");
+    if (!block) return {
+      allTagIds: [],
+      inlineTagIds: [],
+      blockTagIds: [],
+      noteTagId: null,
+    };
     
 
     const blockTagIds = await getBlockLevelTags(ctx, block._id);

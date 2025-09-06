@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { useNotes } from "~/contexts/NotesContext";
 import { Button } from "~/components/shadcn/ui/button";
 import { BlockNoteView } from "@blocknote/shadcn";
@@ -27,11 +27,6 @@ export function NotesEditor() {
         schema,
       },
     },
-  );
-
-  const sideMenuRenderer = useMemo(
-    () => SideMenuRenderer(sync.editor),
-    [sync.editor],
   );
 
   React.useEffect(() => {
@@ -71,27 +66,21 @@ export function NotesEditor() {
   return (
     <div className="h-full flex flex-col bg-white">
       {sync.editor && (
-        <BlockNoteView
-          className="h-full overflow-y-auto pt-4"
-          editor={sync.editor as any} //TODO: fix this
-          onChange={() => debouncedUpdateNoteContent(sync.editor.document)}
-          theme="light"
-          sideMenu={false}
-          formattingToolbar={false}
-        >
-          <TagMenu editor={sync.editor} />
-          <SideMenuController
-            floatingOptions={{
-              onOpenChange: (open) => {
-                if (!open) {
-                  sync.editor?.sideMenu?.unfreezeMenu();
-                }
-              },
-            }}
-            sideMenu={sideMenuRenderer}
-          />
-          <SelectionToolbar />
-        </BlockNoteView>
+        <div className="h-full overflow-y-auto">
+          <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-8 py-6">
+            <BlockNoteView
+              editor={sync.editor as any} //TODO: fix this
+              onChange={() => debouncedUpdateNoteContent(sync.editor.document)}
+              theme="light"
+              sideMenu={false}
+              formattingToolbar={false}
+            >
+              <TagMenu editor={sync.editor} />
+              <SideMenuController sideMenu={SideMenuRenderer} />
+              <SelectionToolbar />
+            </BlockNoteView>
+          </div>
+        </div>
       )}
     </div>
   );
