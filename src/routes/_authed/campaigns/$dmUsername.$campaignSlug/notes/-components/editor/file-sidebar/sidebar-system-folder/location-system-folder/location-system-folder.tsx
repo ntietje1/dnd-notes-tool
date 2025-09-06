@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { type TagNote } from "convex/tags/types";
+import { SYSTEM_TAG_CATEGORY_NAMES, type TagNote } from "convex/tags/types";
 import { LocationSystemFolderContextMenu } from "./location-system-folder-context-menu";
 import { Button } from "~/components/shadcn/ui/button";
 import {
@@ -45,7 +45,7 @@ export const LocationSystemFolder = ({
   const deleteLocation = useMutation({mutationFn: useConvexMutation(api.locations.mutations.deleteLocation)});
   
   const queryResult = useQuery(convexQuery(api.notes.queries.getTagNotePages, campaign ? {
-    tagType: "Location",
+    tagCategory: SYSTEM_TAG_CATEGORY_NAMES.Location,
     campaignId: campaign._id,
   } : "skip"));
   

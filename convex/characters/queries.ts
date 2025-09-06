@@ -3,6 +3,7 @@ import { query } from "../_generated/server";
 import { CharacterWithTag } from "./types";
 import { CAMPAIGN_MEMBER_ROLE } from "../campaigns/types";
 import { requireCampaignMembership } from "../campaigns/campaigns";
+import { SYSTEM_TAG_CATEGORY_NAMES } from "../tags/types";
 
 export const getCharactersByCampaign = query({
   args: {
@@ -31,7 +32,7 @@ export const getCharactersByCampaign = query({
             _id: tag._id,
             name: tag.name,
             color: tag.color,
-            type: "Character",
+            type: SYSTEM_TAG_CATEGORY_NAMES.Character,
           },
         };
         return result;
@@ -67,7 +68,7 @@ export const getCharacterById = query({
         _id: tag._id,
         name: tag.name,
         color: tag.color,
-        type: "Character",
+        type: SYSTEM_TAG_CATEGORY_NAMES.Character,
       },
     };
     return result;

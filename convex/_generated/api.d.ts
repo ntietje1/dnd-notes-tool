@@ -31,6 +31,7 @@ import type * as prosemirrorSync from "../prosemirrorSync.js";
 import type * as tags_editorSpecs from "../tags/editorSpecs.js";
 import type * as tags_mutations from "../tags/mutations.js";
 import type * as tags_queries from "../tags/queries.js";
+import type * as tags_shared from "../tags/shared.js";
 import type * as tags_tags from "../tags/tags.js";
 import type * as tags_types from "../tags/types.js";
 import type * as users_mutations from "../users/mutations.js";
@@ -76,6 +77,7 @@ declare const fullApi: ApiFromModules<{
   "tags/editorSpecs": typeof tags_editorSpecs;
   "tags/mutations": typeof tags_mutations;
   "tags/queries": typeof tags_queries;
+  "tags/shared": typeof tags_shared;
   "tags/tags": typeof tags_tags;
   "tags/types": typeof tags_types;
   "users/mutations": typeof users_mutations;

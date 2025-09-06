@@ -9,7 +9,7 @@ import {
 } from "../tags/tags";
 import { CAMPAIGN_MEMBER_ROLE } from "../campaigns/types";
 import { Id } from "../_generated/dataModel";
-import { CATEGORY_KIND } from "../tags/types";
+import { CATEGORY_KIND, SYSTEM_TAG_CATEGORY_NAMES } from "../tags/types";
 
 export const createLocation = mutation({
   args: {
@@ -24,10 +24,8 @@ export const createLocation = mutation({
     );
     const { profile } = identityWithProfile;
 
-    const locationCategory = await getTagCategoryByName(ctx, args.campaignId, CATEGORY_KIND.Core, "Location");
-    if (!locationCategory) {
-      throw new Error("Location category not found");
-    }
+    const locationCategory = await getTagCategoryByName(ctx, args.campaignId, SYSTEM_TAG_CATEGORY_NAMES.Location);
+
     const tagId = await insertTagAndNote(ctx, {
       name: args.name,
       categoryId: locationCategory._id,

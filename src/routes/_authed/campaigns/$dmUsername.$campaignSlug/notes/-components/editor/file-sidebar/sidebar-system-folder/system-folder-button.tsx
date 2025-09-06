@@ -1,3 +1,4 @@
+import { SYSTEM_TAG_CATEGORY_NAMES } from "convex/tags/types";
 import { CharacterSystemFolder } from "./character-system-folder/character-system-folder";
 import { LocationSystemFolder } from "./location-system-folder/location-system-folder";
 import { SessionSystemFolder } from "./session-system-folder/session-system-folder";
@@ -19,7 +20,7 @@ export const SystemFolderButton = ({
   setRenamingId,
 }: SystemFolderButtonProps) => {
   switch (tagType) {
-    case "Character":
+    case SYSTEM_TAG_CATEGORY_NAMES.Character:
       return (
         <CharacterSystemFolder
           isExpanded={isExpanded}
@@ -28,7 +29,7 @@ export const SystemFolderButton = ({
           setRenamingId={setRenamingId}
         />
       );
-    case "Location":
+    case SYSTEM_TAG_CATEGORY_NAMES.Location:
       return (
         <LocationSystemFolder
           isExpanded={isExpanded}
@@ -38,7 +39,7 @@ export const SystemFolderButton = ({
 
         />
       );
-    case "Session":
+    case SYSTEM_TAG_CATEGORY_NAMES.Session:
       return (
         <SessionSystemFolder
           isExpanded={isExpanded}

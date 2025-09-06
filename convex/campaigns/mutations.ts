@@ -2,11 +2,11 @@ import { v } from "convex/values";
 import { mutation } from "../_generated/server";
 import { requireUserIdentity } from "../common/identity";
 import { CAMPAIGN_MEMBER_ROLE, CAMPAIGN_MEMBER_STATUS, CAMPAIGN_STATUS, CampaignMemberStatus } from "./types";
-import { ensureDefaultTagCategories, ensureManagedSharedTag } from "../tags/tags";
+import { ensureDefaultTagCategories } from "../tags/tags";
+import { ensureAllPlayerSharedTags, ensurePlayerSharedTag, ensureSharedAllTag } from "../tags/shared";
 import { requireCampaignMembership } from "./campaigns";
 import { Id } from "../_generated/dataModel";
 import { getUserProfileByUsernameHandler } from "../users/users";
-import { CATEGORY_KIND } from "../tags/types";
 
 export const createCampaign = mutation({
   args: {
@@ -49,7 +49,8 @@ export const createCampaign = mutation({
     });
 
     await ensureDefaultTagCategories(ctx, campaignId);
-    await ensureManagedSharedTag(ctx, campaignId);
+    await ensureSharedAllTag(ctx, campaignId);
+    await ensureAllPlayerSharedTags(ctx, campaignId);
     return campaignId;
   },
 });
@@ -88,13 +89,15 @@ export const joinCampaign = mutation({
 
     const now = Date.now();
 
-    await ctx.db.insert("campaignMembers", {
+    const memberId = await ctx.db.insert("campaignMembers", {
       userId: profile.userId,
       campaignId: campaign._id,
       role: CAMPAIGN_MEMBER_ROLE.Player,
       status: CAMPAIGN_MEMBER_STATUS.Pending,
       updatedAt: now,
     });
+    
+    await ensurePlayerSharedTag(ctx, campaign._id, memberId);
 
     return CAMPAIGN_MEMBER_STATUS.Pending;
   },
@@ -195,7 +198,7 @@ export const deleteCampaign = mutation({
 
     const campaignTags = await ctx.db
       .query("tags")
-      .withIndex("by_campaign_name", (q) => q.eq("campaignId", args.campaignId))
+      .withIndex("by_campaign_categoryId", (q) => q.eq("campaignId", args.campaignId))
       .collect();
 
     for (const tag of campaignTags) {

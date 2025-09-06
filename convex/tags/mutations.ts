@@ -164,8 +164,8 @@ export const createTagCategory = mutation({
 
     const existing = await ctx.db
       .query("tagCategories")
-      .withIndex("by_campaign_kind_name", (q) =>
-        q.eq("campaignId", args.campaignId).eq("kind", CATEGORY_KIND.User).eq("name", args.name.toLowerCase()),
+      .withIndex("by_campaign_name", (q) =>
+        q.eq("campaignId", args.campaignId).eq("name", args.name.toLowerCase()),
       )
       .unique();
 

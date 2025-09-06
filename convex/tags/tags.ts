@@ -1,11 +1,12 @@
 import { CustomBlock } from "../notes/editorSpecs";
 import { Id } from "../_generated/dataModel";
 import { MutationCtx } from "../_generated/server";
-import { Tag, CATEGORY_KIND, CategoryKind, TagCategory } from "./types";
+import { Tag, CATEGORY_KIND, CategoryKind, TagCategory, SYSTEM_TAG_CATEGORY_NAMES } from "./types";
 import { Block } from "../notes/types";
 import { CAMPAIGN_MEMBER_ROLE } from "../campaigns/types";
 import { requireCampaignMembership } from "../campaigns/campaigns";
 import { Ctx } from "../common/types";
+import { error } from "console";
 
 
 export const insertTagAndNote = async (
@@ -65,6 +66,7 @@ export const insertTag = async (
     color: tag.color,
     description: tag.description,
     campaignId: tag.campaignId,
+    memberId: tag.memberId,
     noteId,
     createdBy: profile.userId,
     updatedAt: Date.now(),
@@ -72,61 +74,21 @@ export const insertTag = async (
 
   return tagId;
 };
-
-export async function ensureManagedSharedTag(
-  ctx: MutationCtx,
-  campaignId: Id<"campaigns">
-): Promise<Id<"tags">> {
-  // Ensure categories exist first
-  await ensureDefaultTagCategories(ctx, campaignId);
-
-  const sharedCategory = await ctx.db
-    .query("tagCategories")
-    .withIndex("by_campaign_kind_name", (q) =>
-      q.eq("campaignId", campaignId).eq("kind", CATEGORY_KIND.SystemManaged).eq("name", "Shared"),
-    )
-    .unique();
-
-  if (!sharedCategory) {
-    throw new Error("Shared category should exist but was not found");
-  }
-
-  const existingTag = await ctx.db
-    .query("tags")
-    .withIndex("by_campaign_name", (q) =>
-      q.eq("campaignId", campaignId).eq("name", "Shared: All"),
-    )
-    .unique();
-  if (existingTag) return existingTag._id;
-
-  return await insertTag(
-    ctx,
-    {
-      name: "Shared: All",
-      color: "#F59E0B",
-      description: "Visible to all players",
-      campaignId,
-      categoryId: sharedCategory._id,
-    },
-    false,
-    true,
-  );
-}
  
 export async function ensureDefaultTagCategories(
   ctx: MutationCtx,
   campaignId: Id<"campaigns">
 ): Promise<Id<"tagCategories">[]> {
   const defaults = [
-    { name: "Character", kind: CATEGORY_KIND.Core },
-    { name: "Location", kind: CATEGORY_KIND.Core },
-    { name: "Session", kind: CATEGORY_KIND.Core },
-    { name: "Shared", kind: CATEGORY_KIND.SystemManaged },
+    { name: SYSTEM_TAG_CATEGORY_NAMES.Character, kind: CATEGORY_KIND.SystemCore },
+    { name: SYSTEM_TAG_CATEGORY_NAMES.Location, kind: CATEGORY_KIND.SystemCore },
+    { name: SYSTEM_TAG_CATEGORY_NAMES.Session, kind: CATEGORY_KIND.SystemCore },
+    { name: SYSTEM_TAG_CATEGORY_NAMES.SharedAll, kind: CATEGORY_KIND.SystemManaged },
   ];
 
   const existing = await ctx.db
     .query("tagCategories")
-    .withIndex("by_campaign_kind_name", (q) => q.eq("campaignId", campaignId))
+    .withIndex("by_campaign_name", (q) => q.eq("campaignId", campaignId))
     .collect();
 
   const existingByName = new Map(existing.map((c) => [c.name, c]));
@@ -144,18 +106,20 @@ export async function ensureDefaultTagCategories(
 }
 
 export async function getTagCategoryByName(
-  ctx: MutationCtx,
+  ctx: Ctx,
   campaignId: Id<"campaigns">,
-  kind: CategoryKind,
   name: string,
-): Promise<TagCategory | null> {
-  await ensureDefaultTagCategories(ctx, campaignId);
+): Promise<TagCategory> {
   const existing = await ctx.db
     .query("tagCategories")
-    .withIndex("by_campaign_kind_name", (q) =>
-      q.eq("campaignId", campaignId).eq("kind", kind).eq("name", name),
+    .withIndex("by_campaign_name", (q) =>
+      q.eq("campaignId", campaignId).eq("name", name),
     )
     .unique();
+
+  if (!existing) {
+    throw new Error("Category not found");
+  }
 
   return existing;
 }
@@ -311,23 +275,99 @@ export async function findBlock(
     .unique();
 }
 
-export async function getBlockTags(
+export async function getNoteLevelTag(
+  ctx: Ctx,
+  noteId: Id<"notes">,
+): Promise<Tag | null> {
+  const note = await ctx.db.get(noteId);
+  if (!note) {
+    throw new Error("Note not found");
+  }
+
+  return await ctx.db.query("tags").withIndex("by_campaign_noteId", (q) => q.eq("campaignId", note.campaignId).eq("noteId", noteId)).unique();
+}
+
+export async function getBlockNoteLevelTag(
+  ctx: Ctx,
+  blockDbId: Id<"blocks">,
+): Promise<Tag | null> {
+  const block = await ctx.db.get(blockDbId);
+  if (!block) {
+    throw new Error("Block not found");
+  }
+
+  const note = await ctx.db.get(block.noteId);
+  if (!note) {
+    throw new Error("Note not found");
+  }
+
+  return await ctx.db.query("tags").withIndex("by_campaign_noteId", (q) => q.eq("campaignId", note.campaignId).eq("noteId", note._id)).unique();
+}
+
+export async function getBlockLevelTags(
   ctx: Ctx,
   blockDbId: Id<"blocks">,
 ): Promise<Id<"tags">[]> {
   const block = await ctx.db.get(blockDbId);
   if (!block) {
-    return [];
+    throw new Error("Block not found");
   }
 
-  const blockTags = await ctx.db
+  const blockTagIds = await ctx.db
     .query("blockTags")
     .withIndex("by_campaign_block_tag", (q) =>
       q.eq("campaignId", block.campaignId).eq("blockId", blockDbId),
     )
-    .collect();
+    .collect()
+    .then((bt) => bt.map((b) => b.tagId));
 
-  return blockTags.map((bt) => bt.tagId);
+  return blockTagIds;
+}
+
+export async function getInlineTagIdsForBlock(
+  ctx: Ctx,
+  blockDbId: Id<"blocks">
+): Promise<Id<"tags">[]> {
+  const block = await ctx.db.get(blockDbId);
+  if (!block) {
+    throw new Error("Block not found");
+  }
+  return extractTagIdsFromBlockContent(block.content);
+}
+
+export async function getNoteLevelTagIdForBlock(
+  ctx: Ctx,
+  blockDbId: Id<"blocks">
+): Promise<Id<"tags"> | null> {
+  const noteTag = await getBlockNoteLevelTag(ctx, blockDbId);
+  return noteTag?._id ?? null;
+}
+
+export async function getEffectiveTagIdsForBlock(
+  ctx: Ctx,
+  blockDbId: Id<"blocks">
+): Promise<Id<"tags">[]> {
+  const [blockLevelTagIds, inlineTagIds, noteLevelTagId] = await Promise.all([
+    getBlockLevelTags(ctx, blockDbId),
+    getInlineTagIdsForBlock(ctx, blockDbId),
+    getNoteLevelTagIdForBlock(ctx, blockDbId),
+  ]);
+
+  const combined = noteLevelTagId
+    ? [...blockLevelTagIds, ...inlineTagIds, noteLevelTagId]
+    : [...blockLevelTagIds, ...inlineTagIds];
+
+  return [...new Set(combined)];
+}
+
+export async function doesBlockMatchRequiredTags(
+  ctx: Ctx,
+  blockDbId: Id<"blocks">,
+  requiredTagIds: Id<"tags">[],
+): Promise<boolean> {
+  if (!requiredTagIds || requiredTagIds.length === 0) return true;
+  const effectiveTagIds = await getEffectiveTagIdsForBlock(ctx, blockDbId);
+  return requiredTagIds.every((tagId) => effectiveTagIds.includes(tagId));
 }
 
 export async function addTagToBlock(
@@ -337,7 +377,7 @@ export async function addTagToBlock(
 ) {
   const block = await ctx.db.get(blockDbId);
   if (!block) {
-    return [];
+    throw new Error("Block not found");
   }
 
   const existing = await ctx.db
@@ -390,7 +430,8 @@ export async function removeTagFromBlock(
     await ctx.db.delete(blockTag._id);
   }
 
-  const remainingTags = await getBlockTags(ctx, blockDbId);
+  // remove from the database if there are no remaining tags and the block is not a top level block
+  const remainingTags = await getBlockLevelTags(ctx, blockDbId);
 
   if (remainingTags.length === 0 && !isTopLevel) {
     await ctx.db.delete(blockDbId);
@@ -401,26 +442,6 @@ export async function removeTagFromBlock(
     });
     return blockDbId;
   }
-}
-
-export async function getTopLevelBlocks(
-  ctx: Ctx,
-  noteId: Id<"notes">,
-): Promise<Block[]> {
-  const note = await ctx.db.get(noteId);
-  if (!note) return [];
-
-  const blocks = await ctx.db
-    .query("blocks")
-    .withIndex("by_campaign_note_toplevel_pos", (q) =>
-      q
-        .eq("campaignId", note.campaignId)
-        .eq("noteId", noteId)
-        .eq("isTopLevel", true),
-    )
-    .collect();
-
-  return blocks;
 }
 
 export function extractAllBlocksWithTags(
@@ -445,7 +466,7 @@ export function extractAllBlocksWithTags(
         if (isTopLevel || tagIds.length > 0 || noteTagId) {
           blocksMap.set(block.id, {
             block: block,
-            tagIds: [...tagIds, ...(noteTagId ? [noteTagId] : [])],
+            tagIds,
             isTopLevel: isTopLevel,
           });
         }
@@ -570,7 +591,7 @@ export async function saveTopLevelBlocks(
     }
 
     if (existingBlock) {
-      const currentTagIds = await getBlockTags(ctx, finalBlockDbId);
+      const currentTagIds = await getBlockLevelTags(ctx, finalBlockDbId);
 
       const oldInlineTagIds = existingBlock.content
         ? extractTagIdsFromBlockContent(existingBlock.content)
@@ -580,9 +601,8 @@ export async function saveTopLevelBlocks(
         (tagId) => !oldInlineTagIds.includes(tagId),
       );
 
-      const noteLevelTagId = noteLevelTag ? [noteLevelTag._id] : [];
       const finalTagIds = [
-        ...new Set([...inlineTagIds, ...manualTags, ...noteLevelTagId]),
+        ...new Set([...inlineTagIds, ...manualTags]),
       ];
 
       const tagsToRemove = currentTagIds.filter(
@@ -616,8 +636,7 @@ export async function saveTopLevelBlocks(
         });
       }
     } else {
-      const noteLevelTagId = noteLevelTag ? [noteLevelTag._id] : [];
-      const finalTagIds = [...new Set([...inlineTagIds, ...noteLevelTagId])];
+      const finalTagIds = [...new Set([...inlineTagIds])];
 
       for (const tagId of finalTagIds) {
         await ctx.db.insert("blockTags", {
@@ -632,7 +651,7 @@ export async function saveTopLevelBlocks(
 
   for (const existingBlock of existingBlocks) {
     if (!processedBlockIds.has(existingBlock.blockId)) {
-      const currentTagIds = await getBlockTags(ctx, existingBlock._id);
+      const currentTagIds = await getBlockLevelTags(ctx, existingBlock._id);
 
       if (currentTagIds.length === 0) {
         await ctx.db.delete(existingBlock._id);
@@ -661,29 +680,6 @@ export function findBlockById(content: any, blockId: string): any | null {
     }
   }
   return null;
-}
-
-export function extractAllBlockIds(content: any): string[] {
-  const blockIds: string[] = [];
-
-  function traverse(items: any) {
-    if (!items) return;
-
-    if (Array.isArray(items)) {
-      items.forEach(traverse);
-    } else if (typeof items === "object" && items.id) {
-      blockIds.push(items.id);
-
-      if (items.children) {
-        traverse(items.children);
-      }
-    } else if (typeof items === "object") {
-      Object.values(items).forEach(traverse);
-    }
-  }
-
-  traverse(content);
-  return blockIds;
 }
 
 export function isBlockChildOf(

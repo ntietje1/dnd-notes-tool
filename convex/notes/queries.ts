@@ -13,11 +13,15 @@ import {
   findBlock,
   filterOutChildBlocks,
   extractTagIdsFromBlockContent,
-  getBlockTags,
+  getBlockLevelTags,
+  getNoteLevelTag,
+  getTagCategoryByName,
+  doesBlockMatchRequiredTags,
 } from "../tags/tags";
-import { SYSTEM_TAGS } from "../tags/types";
 import { CAMPAIGN_MEMBER_ROLE } from "../campaigns/types";
 import { requireCampaignMembership } from "../campaigns/campaigns";
+import { SYSTEM_TAG_CATEGORY_NAMES } from "../tags/types";
+import { hasAccessToBlock } from "../tags/shared";
 
 export const getNote = query({
   args: {
@@ -124,7 +128,7 @@ export const getSidebarData = query({
       (
         await ctx.db
           .query("tags")
-          .withIndex("by_campaign_name", (q) => q.eq("campaignId", args.campaignId!))
+          .withIndex("by_campaign_categoryId", (q) => q.eq("campaignId", args.campaignId!))
           .collect()
       )
         .map((t) => t.noteId)
@@ -182,35 +186,10 @@ export const getBlocksByTags = query({
     tagIds: v.array(v.id("tags")),
   },
   handler: async (ctx, args): Promise<Block[]> => {
-    await requireCampaignMembership(ctx, { campaignId: args.campaignId },
+    const { campaignWithMembership } = await requireCampaignMembership(ctx, { campaignId: args.campaignId },
       { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM, CAMPAIGN_MEMBER_ROLE.Player] }
     );
 
-    // Ensure the managed "Shared" category exists and select all tags under it
-    const sharedCategory = await ctx.db
-      .query("tagCategories")
-      .withIndex("by_campaign_kind_name", (q) =>
-        q.eq("campaignId", args.campaignId!).eq("kind", "system_managed").eq("name", SYSTEM_TAGS.shared),
-      )
-      .unique();
-
-    if (!sharedCategory) {
-      // If no Shared category exists yet, no blocks can be shared
-      return [];
-    }
-
-    const allBlockTags = await ctx.db.query("blockTags").collect();
-
-    const blockTagsMap = new Map<Id<"blocks">, Id<"tags">[]>();
-
-    allBlockTags.forEach((bt) => {
-      if (!blockTagsMap.has(bt.blockId)) {
-        blockTagsMap.set(bt.blockId, []);
-      }
-      blockTagsMap.get(bt.blockId)!.push(bt.tagId);
-
-      // No special sort by shared tag creation; we can add later if needed
-    });
 
     const allBlocks = await ctx.db
       .query("blocks")
@@ -219,20 +198,24 @@ export const getBlocksByTags = query({
       )
       .collect();
 
-    // All managed shared tags under the Shared category qualify as "shared" markers
-    const sharedTags = await ctx.db
-      .query("tags")
-      .withIndex("by_campaign_categoryId", (q) =>
-        q.eq("campaignId", args.campaignId!).eq("categoryId", sharedCategory._id),
-      )
-      .collect();
-
-    const requiredTagIds = [...args.tagIds];
-    const matchingBlocks = allBlocks.filter((block) => {
-      const blockTagIds = blockTagsMap.get(block._id) || [];
-      const hasShared = sharedTags.some((t) => blockTagIds.includes(t._id));
-      return hasShared && requiredTagIds.every((tagId) => blockTagIds.includes(tagId));
-    });
+    const matchingBlocks: Block[] = [];
+    for (const block of allBlocks) {
+      let hasSharedTag = false;
+      try {
+        hasSharedTag = await hasAccessToBlock(
+          ctx,
+          args.campaignId!,
+          campaignWithMembership.member._id,
+          block._id,
+        );
+      } catch (_err) {
+        hasSharedTag = false;
+      }
+      const matchesRequired = await doesBlockMatchRequiredTags(ctx, block._id, args.tagIds);
+      if (hasSharedTag && matchesRequired) {
+        matchingBlocks.push(block);
+      }
+    }
 
     const noteGroups = new Map<Id<"notes">, Block[]>();
     matchingBlocks.forEach((block) => {
@@ -291,19 +274,10 @@ export const getBlockTagState = query({
     if (!block) throw new Error("Block not found");
     
 
-    const blockTagIds = await getBlockTags(ctx, block._id);
+    const blockTagIds = await getBlockLevelTags(ctx, block._id);
     const inlineTagIds = extractTagIdsFromBlockContent(block.content);
+    const noteLevelTag = await getNoteLevelTag(ctx, note._id);
 
-    const noteLevelTag = await ctx.db
-      .query("tags")
-      .withIndex("by_campaign_noteId", (q) =>
-        q.eq("campaignId", note.campaignId).eq("noteId", note._id),
-      )
-      .unique();
-
-    const manualTagIds = blockTagIds.filter(
-      (tagId) => !inlineTagIds.includes(tagId) && noteLevelTag?._id !== tagId,
-    );
 
     const noteTagIdList = noteLevelTag ? [noteLevelTag._id] : [];
     const allTagIds = [...new Set([...blockTagIds, ...inlineTagIds, ...noteTagIdList])];
@@ -311,7 +285,7 @@ export const getBlockTagState = query({
     return {
       allTagIds,
       inlineTagIds,
-      blockTagIds: manualTagIds,
+      blockTagIds,
       noteTagId: noteLevelTag?._id || null,
     };
   },
@@ -320,12 +294,11 @@ export const getBlockTagState = query({
 export const getTagNotePages = query({
   args: {
     campaignId: v.id("campaigns"),
-    tagType: v.union(
-      v.literal("Character"),
-      v.literal("Location"),
-      v.literal("Session"),
-      v.literal("System"),
-      v.literal("Other"),
+    tagCategory: v.union(
+      v.literal(SYSTEM_TAG_CATEGORY_NAMES.Character),
+      v.literal(SYSTEM_TAG_CATEGORY_NAMES.Location),
+      v.literal(SYSTEM_TAG_CATEGORY_NAMES.Session),
+      v.literal(SYSTEM_TAG_CATEGORY_NAMES.SharedAll),
     ),
   },
   handler: async (ctx, args): Promise<Note[]> => {
@@ -333,9 +306,11 @@ export const getTagNotePages = query({
       { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM, CAMPAIGN_MEMBER_ROLE.Player] }
     );
 
+    const category = await getTagCategoryByName(ctx, args.campaignId, args.tagCategory);
+
     const tags = await ctx.db
       .query("tags")
-      .withIndex("by_campaign_name", (q) => q.eq("campaignId", args.campaignId))
+      .withIndex("by_campaign_categoryId", (q) => q.eq("campaignId", args.campaignId).eq("categoryId", category._id))
       .collect();
 
     const tagNotePages = [];
@@ -348,7 +323,7 @@ export const getTagNotePages = query({
           type: SIDEBAR_ITEM_TYPES.notes,
           tagName: tag.name,
           tagColor: tag.color,
-          tagType: args.tagType,
+          tagCategory: args.tagCategory,
         });
       }
     }

@@ -10,9 +10,10 @@ import { useQuery } from "@tanstack/react-query";
 import { convexQuery } from "@convex-dev/react-query";
 import { useCampaign } from "~/contexts/CampaignContext";
 import { Skeleton } from "~/components/shadcn/ui/skeleton";
+import type { Tag } from "convex/tags/types";
 
 export function NotesViewer() {
-  const { tags } = useTags();
+  const { nonSystemManagedTags } = useTags();
   const { campaignWithMembership } = useCampaign();
   const campaign = campaignWithMembership?.data?.campaign;
   const { status } = useNotes();
@@ -51,7 +52,7 @@ export function NotesViewer() {
   return (
     <div className="h-full flex flex-col bg-white">
       <div className="mb-4 flex flex-wrap gap-2">
-        {tags?.map((tag) => (
+        {nonSystemManagedTags?.map((tag: Tag) => (
           <button
             key={tag._id}
             className={`px-2 py-1 rounded border ${

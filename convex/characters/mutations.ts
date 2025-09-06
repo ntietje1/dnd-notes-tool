@@ -9,7 +9,7 @@ import {
 import { CAMPAIGN_MEMBER_ROLE } from "../campaigns/types";
 import { requireCampaignMembership } from "../campaigns/campaigns";
 import { Id } from "../_generated/dataModel";
-import { CATEGORY_KIND } from "../tags/types";
+import { SYSTEM_TAG_CATEGORY_NAMES } from "../tags/types";
 
 export const createCharacter = mutation({
   args: {
@@ -24,10 +24,8 @@ export const createCharacter = mutation({
     );
     const { profile } = identityWithProfile;
 
-    const characterCategory = await getTagCategoryByName(ctx, args.campaignId, CATEGORY_KIND.Core, "Character");
-    if (!characterCategory) {
-      throw new Error("Character category not found");
-    }
+    const characterCategory = await getTagCategoryByName(ctx, args.campaignId, SYSTEM_TAG_CATEGORY_NAMES.Character);
+
     const tagId = await insertTagAndNote(ctx, {
       name: args.name,
       categoryId: characterCategory._id,

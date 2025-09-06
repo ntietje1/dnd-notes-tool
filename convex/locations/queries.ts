@@ -3,6 +3,7 @@ import { query } from "../_generated/server";
 import { LocationWithTag } from "./types";
 import { CAMPAIGN_MEMBER_ROLE } from "../campaigns/types";
 import { requireCampaignMembership } from "../campaigns/campaigns";
+import { SYSTEM_TAG_CATEGORY_NAMES } from "../tags/types";
 
 export const getLocationsByCampaign = query({
   args: {
@@ -31,7 +32,7 @@ export const getLocationsByCampaign = query({
             _id: tag._id,
             name: tag.name,
             color: tag.color,
-            type: "Location",
+            type: SYSTEM_TAG_CATEGORY_NAMES.Location,
           },
         };
         return result;
@@ -67,7 +68,7 @@ export const getLocationById = query({
         _id: tag._id,
         name: tag.name,
         color: tag.color,
-        type: "Location",
+        type: SYSTEM_TAG_CATEGORY_NAMES.Location,
       },
     };
     return result;

@@ -1,4 +1,5 @@
 import { Id } from "../_generated/dataModel";
+import { SYSTEM_TAG_CATEGORY_NAMES } from "../tags/types";
 
 export type Character = {
   _id: Id<"characters">;
@@ -17,7 +18,6 @@ export type CharacterWithTag = Character & {
     _id: Id<"tags">;
     name: string;
     color: string;
-    // kept for UI convenience; derived in queries
-    type: "Character";
+    type: typeof SYSTEM_TAG_CATEGORY_NAMES.Character;
   };
 };

@@ -1,25 +1,30 @@
 import { v } from "convex/values";
-import { SYSTEM_TAGS, Tag, TagCategory, CATEGORY_KIND } from "./types";
+import { Tag, TagCategory, TagWithCategory } from "./types";
 import { Id } from "../_generated/dataModel";
 import { query } from "../_generated/server";
 import { requireCampaignMembership } from "../campaigns/campaigns";
 import { CAMPAIGN_MEMBER_ROLE } from "../campaigns/types";
+import { getPlayerSharedTag, getSharedAllTag, getSharedCategory } from "./shared";
 
-export const getTag = query({
+export const getSharedTags = query({
   args: {
-    tagId: v.id("tags"),
+    campaignId: v.id("campaigns"),
   },
-  handler: async (ctx, args): Promise<Tag> => {
-    const tag = await ctx.db.get(args.tagId);
-    if (!tag) {
-      throw new Error("Tag not found");
-    }
-
-    await requireCampaignMembership(ctx, { campaignId: tag.campaignId },
-      { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM, CAMPAIGN_MEMBER_ROLE.Player] }
-    );
-
-    return tag;
+  handler: async (ctx, args): Promise<{
+    sharedAllTag: Tag;
+    playerSharedTags: Tag[];
+  }> => {
+    const campaignMembers = await ctx.db.query("campaignMembers").withIndex("by_campaign", (q) => q.eq("campaignId", args.campaignId)).collect();
+    const sharedAllTag = await getSharedAllTag(ctx, args.campaignId);
+    const playerSharedTags = await Promise.all(
+      campaignMembers.map(async (member) => {
+        return await getPlayerSharedTag(ctx, args.campaignId, member._id);
+      })
+    )
+    return {
+      sharedAllTag,
+      playerSharedTags,
+    };
   },
 });
 
@@ -28,10 +33,15 @@ export const getTags = query({
     campaignId: v.id("campaigns"),
     categoryId: v.optional(v.id("tagCategories")),
   },
-  handler: async (ctx, args): Promise<Tag[]> => {
+  handler: async (ctx, args): Promise<TagWithCategory[]> => {
     await requireCampaignMembership(ctx, { campaignId: args.campaignId },
       { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM, CAMPAIGN_MEMBER_ROLE.Player] }
     );
+    
+    const categories = await ctx.db
+      .query("tagCategories")
+      .withIndex("by_campaign_name", (q) => q.eq("campaignId", args.campaignId))
+      .collect();
 
     const q = ctx.db.query("tags");
     const tags = args.categoryId
@@ -40,25 +50,18 @@ export const getTags = query({
             qi.eq("campaignId", args.campaignId).eq("categoryId", args.categoryId as Id<"tagCategories">),
           )
           .collect()
+          .then((t) => t.map((t) => ({
+            ...t,
+            category: categories.find((c) => c._id === t.categoryId)!,
+          })))
       : await q
-          .withIndex("by_campaign_name", (qi) => qi.eq("campaignId", args.campaignId))
-          .collect();
+          .withIndex("by_campaign_categoryId", (qi) => qi.eq("campaignId", args.campaignId))
+          .collect()
+          .then((t) => t.map((t) => ({
+            ...t,
+            category: categories.find((c) => c._id === t.categoryId)!,
+          })));
 
     return tags;
-  },
-});
-
-export const getTagCategories = query({
-  args: {
-    campaignId: v.id("campaigns"),
-  },
-  handler: async (ctx, args): Promise<TagCategory[]> => {
-    await requireCampaignMembership(ctx, { campaignId: args.campaignId },
-      { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM, CAMPAIGN_MEMBER_ROLE.Player] }
-    );
-    return await ctx.db
-      .query("tagCategories")
-      .withIndex("by_campaign_kind_name", (q) => q.eq("campaignId", args.campaignId))
-      .collect();
   },
 });

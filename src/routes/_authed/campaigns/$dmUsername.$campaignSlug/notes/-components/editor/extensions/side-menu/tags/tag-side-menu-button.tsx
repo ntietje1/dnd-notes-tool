@@ -29,8 +29,7 @@ export default function TagSideMenuButton({
   editor,
   block,
 }: TagSideMenuButtonProps) {
-  const { tags } = useTags();
-  const nonSystemTags = tags || [];
+  const { tags, nonSystemManagedTags } = useTags();
   const { note } = useNotes();
   const addTagToBlock = useMutation({mutationFn: useConvexMutation(api.notes.mutations.addTagToBlockMutation)});
   const removeTagFromBlock = useMutation({mutationFn: useConvexMutation(
@@ -95,12 +94,12 @@ export default function TagSideMenuButton({
   const noteTagId = blockTagState.data?.noteTagId || null;
   const allBlockTagIds = blockTagState.data?.allTagIds || [];
 
-  // Tags that are unavailable (locked) include inline tags and the note tag
+  // Tags that are unavailable (locked) include inline tags and the note level tag
   const lockedTagIds = [...inlineTagIds, ...(noteTagId ? [noteTagId] : [])];
-  const unavailableTags = nonSystemTags?.filter((tag) => lockedTagIds.includes(tag._id)) || [];
+  const unavailableTags = nonSystemManagedTags?.filter((tag) => lockedTagIds.includes(tag._id)) || [];
   
   // Available tags are those not already applied to the block
-  const availableTags = nonSystemTags?.filter((tag) => !allBlockTagIds.includes(tag._id)) || [];
+  const availableTags = nonSystemManagedTags?.filter((tag) => !allBlockTagIds.includes(tag._id)) || [];
   const filteredAvailableTags = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return availableTags;

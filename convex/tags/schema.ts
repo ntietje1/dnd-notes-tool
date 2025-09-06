@@ -6,13 +6,13 @@ export const tagTables = {
   tagCategories: defineTable({
     name: v.string(),
     kind: v.union(
-      v.literal(CATEGORY_KIND.Core),
+      v.literal(CATEGORY_KIND.SystemCore),
       v.literal(CATEGORY_KIND.SystemManaged),
       v.literal(CATEGORY_KIND.User),
     ),
     campaignId: v.id("campaigns"),
     updatedAt: v.number(),
-  }).index("by_campaign_kind_name", ["campaignId", "kind", "name"]),
+  }).index("by_campaign_name", ["campaignId", "name"]),
 
   tags: defineTable({
     name: v.string(),
@@ -21,10 +21,10 @@ export const tagTables = {
     campaignId: v.id("campaigns"),
     noteId: v.optional(v.id("notes")),
     categoryId: v.id("tagCategories"),
+    memberId: v.optional(v.id("campaignMembers")),
     createdBy: v.string(),
     updatedAt: v.number(),
   })
-    .index("by_campaign_name", ["campaignId", "name"])
     .index("by_campaign_categoryId", ["campaignId", "categoryId"])
     .index("by_campaign_noteId", ["campaignId", "noteId"]),
 };

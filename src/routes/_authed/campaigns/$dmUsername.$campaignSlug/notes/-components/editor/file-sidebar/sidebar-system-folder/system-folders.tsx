@@ -1,9 +1,13 @@
-import type { TagCategory } from "convex/tags/types";
 import { SystemFolderButton } from "./system-folder-button";
 import { useCallback, useState } from "react";
 import type { Id } from "convex/_generated/dataModel";
+import { SYSTEM_TAG_CATEGORY_NAMES } from "convex/tags/types";
 
-const SIDEBAR_FOLDER_TYPES = ["Character", "Location", "Session"] as const;
+const SIDEBAR_FOLDER_TYPES = [
+  SYSTEM_TAG_CATEGORY_NAMES.Character,
+  SYSTEM_TAG_CATEGORY_NAMES.Location,
+  SYSTEM_TAG_CATEGORY_NAMES.Session,
+] as const;
 
 interface SystemFoldersProps {
   renamingId: Id<"folders"> | Id<"notes"> | null;
