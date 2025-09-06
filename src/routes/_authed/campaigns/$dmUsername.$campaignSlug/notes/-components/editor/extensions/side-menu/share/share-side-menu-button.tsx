@@ -11,6 +11,7 @@ import { useCampaign } from "~/contexts/CampaignContext";
 import type { Tag } from "convex/tags/types";
 import type { CampaignMember } from "convex/campaigns/types";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuCheckboxItem } from "~/components/shadcn/ui/dropdown-menu";
+import { LoadingSpinner } from "~/components/loading/loading-spinner";
 
 interface ShareSideMenuButtonProps {
   block: CustomBlock;
@@ -43,6 +44,7 @@ export default function ShareSideMenuButton({ block, freezeMenu, unfreezeMenu }:
   const removeTagFromBlock = useMutation({
     mutationFn: useConvexMutation(api.notes.mutations.removeTagFromBlockMutation),
   });
+  const isMutating = addTagToBlock.isPending || removeTagFromBlock.isPending;
 
   const sharedTagQueryResult = useQuery(
     convexQuery(
@@ -93,6 +95,7 @@ export default function ShareSideMenuButton({ block, freezeMenu, unfreezeMenu }:
   };
 
   const handleButtonClick = async (e: React.MouseEvent) => {
+    if (isMutating) return;
     if (e.ctrlKey) {
       if (sharedAllTag) {
         await toggleShareTag(sharedAllTag);
@@ -151,9 +154,12 @@ export default function ShareSideMenuButton({ block, freezeMenu, unfreezeMenu }:
           <DropdownMenuCheckboxItem
             key={it.key}
             checked={it.applied}
-            className="pl-2"
+            disabled={isMutating}
+            indicatorAlign="right"
+            className="pl-2 pr-8 py-1.5"
             onSelect={async (e) => {
               e.preventDefault();
+              if (isMutating) return;
               await toggleShareTag(it.tag);
             }}
           >

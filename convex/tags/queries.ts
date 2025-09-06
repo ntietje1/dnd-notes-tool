@@ -4,7 +4,7 @@ import { Id } from "../_generated/dataModel";
 import { query } from "../_generated/server";
 import { requireCampaignMembership } from "../campaigns/campaigns";
 import { CAMPAIGN_MEMBER_ROLE } from "../campaigns/types";
-import { getPlayerSharedTag, getSharedAllTag, getSharedCategory } from "./shared";
+import { getPlayerSharedTag, getSharedAllTag } from "./shared";
 
 export const getSharedTags = query({
   args: {
@@ -25,6 +25,26 @@ export const getSharedTags = query({
       sharedAllTag,
       playerSharedTags,
     };
+  },
+});
+
+export const getTag = query({
+  args: {
+    campaignId: v.id("campaigns"),
+    tagId: v.id("tags"),
+  },
+  handler: async (ctx, args): Promise<Tag> => {
+    const tag = await ctx.db.get(args.tagId);
+    if (!tag) {
+      throw new Error("Tag not found");
+    }
+    await requireCampaignMembership(ctx, { campaignId: args.campaignId },
+      { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM, CAMPAIGN_MEMBER_ROLE.Player] }
+    );
+    if (tag.campaignId !== args.campaignId) {
+      throw new Error("Tag not found");
+    }
+    return tag;
   },
 });
 

@@ -33,6 +33,7 @@ export default function TagSideMenuButton({
   const removeTagFromBlock = useMutation({mutationFn: useConvexMutation(
     api.notes.mutations.removeTagFromBlockMutation,
   )});
+  const isMutating = addTagToBlock.isPending || removeTagFromBlock.isPending;
   const [query, setQuery] = useState("");
 
   const Components = useComponentsContext()!;
@@ -143,9 +144,11 @@ export default function TagSideMenuButton({
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
+                    if (isMutating) return;
                     handleRemoveTag(tag._id);
                   }}
-                  className="group inline-block focus-visible:outline-none cursor-pointer"
+                  disabled={isMutating}
+                  className="group inline-block focus-visible:outline-none cursor-pointer disabled:opacity-60"
                 >
                   <Badge
                     variant="secondary"
@@ -195,9 +198,11 @@ export default function TagSideMenuButton({
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
+                    if (isMutating) return;
                     handleAddTag(tag._id);
                   }}
-                  className={`group inline-block focus-visible:outline-none`}
+                  disabled={isMutating}
+                  className={`group inline-block focus-visible:outline-none disabled:opacity-60`}
                   style={{
                     // @ts-ignore
                     "--tag-bg": `${tag.color}20`,
