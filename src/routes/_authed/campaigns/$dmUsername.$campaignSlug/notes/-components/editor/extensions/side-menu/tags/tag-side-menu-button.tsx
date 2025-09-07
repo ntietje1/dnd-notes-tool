@@ -27,7 +27,7 @@ export default function TagSideMenuButton({
   freezeMenu,
   unfreezeMenu,
 }: TagSideMenuButtonProps) {
-  const { tags, nonSystemManagedTags } = useTags();
+  const { nonSystemManagedTags } = useTags();
   const { note } = useNotes();
   const addTagToBlock = useMutation({mutationFn: useConvexMutation(api.notes.mutations.addTagToBlockMutation)});
   const removeTagFromBlock = useMutation({mutationFn: useConvexMutation(
@@ -92,9 +92,8 @@ export default function TagSideMenuButton({
   }, [availableTags, query]);
 
 
-
   const manualTagObjects = manualTagIds
-    .map((tagId: Id<"tags">) => tags?.find((t) => t._id === tagId))
+    .map((tagId: Id<"tags">) => nonSystemManagedTags?.find((t) => t._id === tagId))
     .filter((t): t is NonNullable<typeof t> => Boolean(t));
 
   return (
