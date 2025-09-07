@@ -12,7 +12,7 @@ export const Route = createFileRoute('/_authed/campaigns/$dmUsername/$campaignSl
 function NotesLayout() {
   return (
     <NotesProvider>
-      <div className="flex-1">
+      <div className="flex-1 min-h-0">
         <SidebarLayout>
           <NotesPageLayout>
             <Outlet />

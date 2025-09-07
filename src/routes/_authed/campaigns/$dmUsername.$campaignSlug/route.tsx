@@ -13,7 +13,7 @@ function RouteComponent() {
   return (
     <CampaignProvider>
       <CampaignNotFoundWrapper>
-        <div className="flex flex-1">
+        <div className="flex flex-1 min-h-0 overflow-hidden">
           <NavigationSidebar />
           <Outlet />
         </div>

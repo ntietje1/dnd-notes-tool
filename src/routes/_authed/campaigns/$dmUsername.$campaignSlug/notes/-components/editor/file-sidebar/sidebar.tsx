@@ -170,7 +170,7 @@ export function FileSidebar() {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="h-full bg-background flex flex-col min-h-0">
+      <div className="h-full bg-background flex flex-1 flex-col min-h-0">
         <div className="flex-1 min-h-0 relative">
           <DroppableRoot
             className="absolute inset-0 p-1 transition-colors overflow-y-auto"
