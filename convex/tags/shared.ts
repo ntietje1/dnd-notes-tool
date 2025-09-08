@@ -32,6 +32,7 @@ export async function getSharedAllTag(
         .collect();
     const sharedAllTag = sharedTags.find((t) => t.name === SYSTEM_TAG_CATEGORY_NAMES.SharedAll);
     if (!sharedAllTag) {
+        console.error("All shared tag should exist but was not found");
         throw new Error("All shared tag should exist but was not found");
     }
     return sharedAllTag;
@@ -70,8 +71,9 @@ export async function getPlayerSharedTags(
         .withIndex("by_campaign_categoryId", (q) =>
         q.eq("campaignId", campaignId).eq("categoryId", sharedCategory._id),
         )
-        .collect();
-    return sharedTags.filter((t) => t.memberId !== null);
+        .collect()
+        .then((tags) => tags.filter((t) => !!t.memberId));
+    return sharedTags;
 }
 
 
@@ -89,6 +91,7 @@ export async function getPlayerSharedTag(
         .collect();
     const playerSharedTag = sharedTags.find((t) => t.memberId === memberId);
     if (!playerSharedTag) {
+        console.error("Player shared tag should exist but was not found");
         throw new Error("Player shared tag should exist but was not found");
     }
     return playerSharedTag;

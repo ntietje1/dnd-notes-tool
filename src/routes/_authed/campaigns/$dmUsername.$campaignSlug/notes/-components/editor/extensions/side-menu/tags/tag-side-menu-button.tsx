@@ -46,6 +46,7 @@ export default function TagSideMenuButton({
 
   const handleAddTag = async (tagId: Id<"tags">) => {
     if (!note) return;
+    if (isMutating) return;
 
     try {
       await addTagToBlock.mutateAsync({
@@ -61,6 +62,7 @@ export default function TagSideMenuButton({
 
   const handleRemoveTag = async (tagId: Id<"tags">) => {
     if (!note) return;
+    if (isMutating) return;
 
     try {
       await removeTagFromBlock.mutateAsync({
@@ -111,7 +113,11 @@ export default function TagSideMenuButton({
           icon={<TagIcon size={18} />}
         />
       </DropdownMenuTrigger>
-      <DropdownMenuContent side="bottom" align="start" className="w-72 max-h-(--radix-dropdown-menu-content-available-height) overflow-y-auto">
+      <DropdownMenuContent
+        side="bottom"
+        align="start"
+        className="w-72 overflow-y-auto"
+      >
         {(unavailableTags.length > 0 || manualTagObjects.length > 0) && (
           <div className="px-2 pt-1 pb-2">
             <div className="text-xs text-muted-foreground mb-1.5">Current tags</div>
@@ -143,7 +149,6 @@ export default function TagSideMenuButton({
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    if (isMutating) return;
                     handleRemoveTag(tag._id);
                   }}
                   disabled={isMutating}
@@ -197,7 +202,6 @@ export default function TagSideMenuButton({
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    if (isMutating) return;
                     handleAddTag(tag._id);
                   }}
                   disabled={isMutating}

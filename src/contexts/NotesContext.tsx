@@ -23,7 +23,7 @@ import { SORT_DIRECTIONS, SORT_ORDERS, type SortOptions } from "convex/editors/t
 import { useCampaign } from "./CampaignContext";
 import { useMutation, useQuery, type QueryStatus } from "@tanstack/react-query";
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
-import { useNavigate, useLocation } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { combineStatus } from "~/utils/combineStatus";
 
 type NotesContextType = {
@@ -34,6 +34,7 @@ type NotesContextType = {
   status: QueryStatus;
   sortOptions: SortOptions;
 
+  setNoteId: (noteId: Id<"notes"> | null) => void;
   selectNote: (noteId: Id<"notes"> | null) => void;
   updateNoteContent: (content: CustomBlock[]) => Promise<void>;
   debouncedUpdateNoteContent: (content: CustomBlock[]) => void;
@@ -139,17 +140,13 @@ interface NotesProviderProps {
 
 export function NotesProvider({ children }: NotesProviderProps) {
   const { dmUsername, campaignSlug, campaignWithMembership } = useCampaign();
+  const [noteId, setNoteId] = useState<Id<"notes"> | null>(null);
   const campaign = campaignWithMembership?.data?.campaign;
 
   const [expandedFolders, setExpandedFolders] = useState<Set<Id<"folders">>>(
     new Set(),
   );
   const navigate = useNavigate();
-  
-  const location = useLocation();
-  const noteId = location.pathname.includes('/notes/') && !location.pathname.endsWith('/notes') 
-    ? location.pathname.split('/notes/')[1] 
-    : undefined;
   
   const campaignLoaded = campaignWithMembership?.status === "success" && campaign?._id !== undefined;
 
@@ -167,8 +164,6 @@ export function NotesProvider({ children }: NotesProviderProps) {
     api.notes.queries.getNote,
     (campaignLoaded && noteId) ? { noteId: noteId as Id<"notes"> } : "skip",
   ));
-
-  console.log("note", note.data?.content);
 
   const sortOptions: SortOptions = useMemo(
     () => ({
@@ -486,6 +481,7 @@ export function NotesProvider({ children }: NotesProviderProps) {
     sortOptions,
 
     // Actions
+    setNoteId,
     selectNote,
     updateNoteContent,
     debouncedUpdateNoteContent,

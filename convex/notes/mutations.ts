@@ -263,21 +263,6 @@ export const createNote = mutation({
       campaignId: args.campaignId,
     });
 
-    const initialBlockId = crypto.randomUUID();
-    await ctx.db.insert("blocks", {
-      noteId,
-      blockId: initialBlockId,
-      position: 0,
-      content: {
-        type: "paragraph",
-        id: initialBlockId,
-        content: [],
-      },
-      isTopLevel: true,
-      campaignId: args.campaignId,
-      updatedAt: Date.now(),
-    });
-
     return noteId;
   },
 });

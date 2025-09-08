@@ -11,7 +11,6 @@ import { useCampaign } from "~/contexts/CampaignContext";
 import type { Tag } from "convex/tags/types";
 import type { CampaignMember } from "convex/campaigns/types";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuCheckboxItem } from "~/components/shadcn/ui/dropdown-menu";
-import { LoadingSpinner } from "~/components/loading/loading-spinner";
 
 interface ShareSideMenuButtonProps {
   block: CustomBlock;
@@ -24,7 +23,6 @@ export default function ShareSideMenuButton({ block, freezeMenu, unfreezeMenu }:
   const { campaignWithMembership } = useCampaign();
   const campaign = campaignWithMembership?.data?.campaign;
   const Components = useComponentsContext()!;
-
 
   const blockTagState = useQuery(
     convexQuery(
@@ -74,6 +72,7 @@ export default function ShareSideMenuButton({ block, freezeMenu, unfreezeMenu }:
 
   const toggleShareTag = async (tag: Tag) => {
     if (!note) return;
+    if (isMutating) return;
     const isApplied = appliedTagIds.includes(tag._id);
     try {
       if (isApplied) {
@@ -157,9 +156,9 @@ export default function ShareSideMenuButton({ block, freezeMenu, unfreezeMenu }:
             disabled={isMutating}
             indicatorAlign="right"
             className="pl-2 pr-8 py-1.5"
+            aria-label={`Share with ${it.name || it.username || 'Player'}`}
             onSelect={async (e) => {
               e.preventDefault();
-              if (isMutating) return;
               await toggleShareTag(it.tag);
             }}
           >

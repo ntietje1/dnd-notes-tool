@@ -13,19 +13,25 @@ interface NotesEditorProps {
   noteId: string;
 }
 
+const schema = BlockNoteSchema.create({ inlineContentSpecs: customInlineContentSpecs });
+
 export function NotesEditor({ noteId }: NotesEditorProps) {
-  const { note, debouncedUpdateNoteContent, status } = useNotes();
+  const { note, debouncedUpdateNoteContent } = useNotes();
+
+  const hasContent = note?.content && note?.content.length > 0;
 
   const editor = useCreateBlockNote(
-    {
-      initialContent: note?.content,
-      schema: BlockNoteSchema.create({ inlineContentSpecs: customInlineContentSpecs })
+    hasContent ? {
+      initialContent: note.content,
+      schema
+    } : {
+      schema
     },
     [noteId]
   );
 
   if (note?._id !== noteId) {
-    return <></>
+    return <></>;
   }
 
   if (status === "pending") {

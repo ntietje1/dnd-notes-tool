@@ -11,7 +11,7 @@ import { UNTITLED_NOTE_TITLE } from "convex/notes/types";
 import { Skeleton } from "~/components/shadcn/ui/skeleton";
 
 export function FileTopbar() {
-  const { noteId, note, updateNoteName, selectNote, status } = useNotes();
+  const { note, updateNoteName, selectNote, status } = useNotes();
   const [title, setTitle] = useState(note?.name ?? "");
   const [isEditing, setIsEditing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -34,7 +34,7 @@ export function FileTopbar() {
     }
   }, [isEditing]);
 
-  if (status === "pending" && noteId) {
+  if (status === "pending") {
     return <TopbarLoading />;
   }
 
