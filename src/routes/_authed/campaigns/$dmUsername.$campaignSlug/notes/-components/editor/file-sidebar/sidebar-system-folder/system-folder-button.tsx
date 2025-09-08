@@ -5,7 +5,7 @@ import { SessionSystemFolder } from "./session-system-folder/session-system-fold
 import type { Id } from "convex/_generated/dataModel";
 
 interface SystemFolderButtonProps {
-  tagType: string;
+  tagCategory: string;
   isExpanded: boolean;
   onToggleExpanded: () => void;
   renamingId: Id<"folders"> | Id<"notes"> | null;
@@ -13,13 +13,13 @@ interface SystemFolderButtonProps {
 }
 
 export const SystemFolderButton = ({
-  tagType,
+  tagCategory,
   isExpanded,
   onToggleExpanded,
   renamingId,
   setRenamingId,
 }: SystemFolderButtonProps) => {
-  switch (tagType) {
+  switch (tagCategory) {
     case SYSTEM_TAG_CATEGORY_NAMES.Character:
       return (
         <CharacterSystemFolder
@@ -46,10 +46,9 @@ export const SystemFolderButton = ({
           onToggleExpanded={onToggleExpanded}
           renamingId={renamingId}
           setRenamingId={setRenamingId}
-
         />
       );
     default:
-      throw new Error(`Unknown tag type attempted to render: ${tagType}`);
+      throw new Error(`Unknown tag type attempted to render: ${tagCategory}`);
   }
 };

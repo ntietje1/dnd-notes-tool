@@ -20,13 +20,13 @@ export const SystemFolders = ({
 }: SystemFoldersProps) => {
     const [expandedSystemFolders, setExpandedSystemFolders] = useState<Set<string>>(new Set());
 
-  const toggleSystemFolder = useCallback((tagType: string) => {
+  const toggleSystemFolder = useCallback((tagCategory: string) => {
     setExpandedSystemFolders((prev) => {
       const newSet = new Set(prev);
-      if (newSet.has(tagType)) {
-        newSet.delete(tagType);
+      if (newSet.has(tagCategory)) {
+        newSet.delete(tagCategory);
       } else {
-        newSet.add(tagType);
+        newSet.add(tagCategory);
       }
       return newSet;
     });
@@ -34,14 +34,14 @@ export const SystemFolders = ({
   
   return (
     <>
-    {SIDEBAR_FOLDER_TYPES.map((tagType) => (
+    {SIDEBAR_FOLDER_TYPES.map((tagCategory) => (
         <SystemFolderButton
-          key={tagType}
-          tagType={tagType}
+          key={tagCategory}
+          tagCategory={tagCategory}
           renamingId={renamingId}
           setRenamingId={setRenamingId}
-          isExpanded={expandedSystemFolders.has(tagType)}
-          onToggleExpanded={() => toggleSystemFolder(tagType)}
+          isExpanded={expandedSystemFolders.has(tagCategory)}
+          onToggleExpanded={() => toggleSystemFolder(tagCategory)}
         />
       ))}
     </>

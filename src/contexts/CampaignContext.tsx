@@ -3,7 +3,7 @@ import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
 import { api } from "convex/_generated/api";
 import { type CampaignWithMembership } from "convex/campaigns/types";
-import { createContext, useContext  } from "react";
+import { createContext, useContext } from "react";
 
 
 

@@ -26,16 +26,10 @@ export const getCharactersByCampaign = query({
           throw new Error(`Tag not found for character ${character._id}`);
         }
 
-        const result: CharacterWithTag = {
+        return {
           ...character,
-          tag: {
-            _id: tag._id,
-            name: tag.name,
-            color: tag.color,
-            type: SYSTEM_TAG_CATEGORY_NAMES.Character,
-          },
+          tag: tag,
         };
-        return result;
       }),
     );
 
@@ -62,15 +56,9 @@ export const getCharacterById = query({
       throw new Error(`Tag not found for character ${character._id}`);
     }
 
-    const result: CharacterWithTag = {
+    return {
       ...character,
-      tag: {
-        _id: tag._id,
-        name: tag.name,
-        color: tag.color,
-        type: SYSTEM_TAG_CATEGORY_NAMES.Character,
-      },
+      tag: tag,
     };
-    return result;
   },
 });

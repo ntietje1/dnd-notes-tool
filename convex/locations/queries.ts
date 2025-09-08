@@ -28,12 +28,7 @@ export const getLocationsByCampaign = query({
 
         const result: LocationWithTag = {
           ...location,
-          tag: {
-            _id: tag._id,
-            name: tag.name,
-            color: tag.color,
-            type: SYSTEM_TAG_CATEGORY_NAMES.Location,
-          },
+          tag: tag,
         };
         return result;
       }),
@@ -64,12 +59,7 @@ export const getLocationById = query({
 
     const result: LocationWithTag = {
       ...location,
-      tag: {
-        _id: tag._id,
-        name: tag.name,
-        color: tag.color,
-        type: SYSTEM_TAG_CATEGORY_NAMES.Location,
-      },
+      tag: tag
     };
     return result;
   },

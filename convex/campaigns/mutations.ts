@@ -196,6 +196,15 @@ export const deleteCampaign = mutation({
       await ctx.db.delete(folder._id);
     }
 
+    const tagCategories = await ctx.db
+      .query("tagCategories")
+      .withIndex("by_campaign_name", (q) => q.eq("campaignId", args.campaignId))
+      .collect();
+
+    for (const category of tagCategories) {
+      await ctx.db.delete(category._id);
+    }
+
     const campaignTags = await ctx.db
       .query("tags")
       .withIndex("by_campaign_categoryId", (q) => q.eq("campaignId", args.campaignId))

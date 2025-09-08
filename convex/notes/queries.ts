@@ -190,7 +190,6 @@ export const getBlocksByTags = query({
       { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM, CAMPAIGN_MEMBER_ROLE.Player] }
     );
 
-
     const allBlocks = await ctx.db
       .query("blocks")
       .withIndex("by_campaign_note_toplevel_pos", (q) =>
@@ -198,24 +197,20 @@ export const getBlocksByTags = query({
       )
       .collect();
 
-    const matchingBlocks: Block[] = [];
-    for (const block of allBlocks) {
-      let hasSharedTag = false;
-      try {
-        hasSharedTag = await hasAccessToBlock(
-          ctx,
-          args.campaignId!,
-          campaignWithMembership.member._id,
-          block._id,
-        );
-      } catch (_err) {
-        hasSharedTag = false;
-      }
-      const matchesRequired = await doesBlockMatchRequiredTags(ctx, block._id, args.tagIds);
-      if (hasSharedTag && matchesRequired) {
-        matchingBlocks.push(block);
-      }
-    }
+    const checks = await Promise.all(
+      allBlocks.map(async (block) => {
+        try {
+          const [hasSharedTag, matchesRequired] = await Promise.all([
+            hasAccessToBlock(ctx, args.campaignId!, campaignWithMembership.member._id, block._id),
+            doesBlockMatchRequiredTags(ctx, block._id, args.tagIds),
+          ]);
+          return hasSharedTag && matchesRequired ? block : null;
+        } catch {
+          return null;
+        }
+      })
+    );
+    const matchingBlocks: Block[] = checks.filter(Boolean) as Block[];
 
     const noteGroups = new Map<Id<"notes">, Block[]>();
     matchingBlocks.forEach((block) => {
@@ -226,19 +221,26 @@ export const getBlocksByTags = query({
     });
 
     const filteredResults: Block[] = [];
+    const matchedNoteIds = Array.from(noteGroups.keys());
+    const allTopLevel = await ctx.db
+      .query("blocks")
+      .withIndex("by_campaign_note_toplevel_pos", (q) =>
+        q.eq("campaignId", args.campaignId!)
+      )
+      .collect();
+    const topByNote = new Map<Id<"notes">, Block[]>();
+    for (const b of allTopLevel) {
+      if (b.isTopLevel && matchedNoteIds.includes(b.noteId)) {
+        const arr = topByNote.get(b.noteId) ?? [];
+        arr.push(b);
+        topByNote.set(b.noteId, arr);
+      }
+    }
     for (const [noteId, noteBlocks] of noteGroups) {
-      const topLevelBlocks = await ctx.db
-        .query("blocks")
-        .withIndex("by_campaign_note_toplevel_pos", (q) =>
-          q
-            .eq("campaignId", args.campaignId!)
-            .eq("noteId", noteId)
-            .eq("isTopLevel", true),
-        )
-        .collect();
+      const topLevelBlocks = (topByNote.get(noteId) ?? [])
+        .sort((a, b) => (a.position || 0) - (b.position || 0));
 
       const topLevelContent = topLevelBlocks
-        .sort((a, b) => (a.position || 0) - (b.position || 0))
         .map((block) => block.content);
 
       const filtered = filterOutChildBlocks(noteBlocks, topLevelContent);
@@ -331,9 +333,6 @@ export const getTagNotePages = query({
         tagNotePages.push({
           ...note,
           type: SIDEBAR_ITEM_TYPES.notes,
-          tagName: tag.name,
-          tagColor: tag.color,
-          tagCategory: args.tagCategory,
         });
       }
     }

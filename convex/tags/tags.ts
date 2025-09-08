@@ -6,20 +6,40 @@ import { Block } from "../notes/types";
 import { CAMPAIGN_MEMBER_ROLE } from "../campaigns/types";
 import { requireCampaignMembership } from "../campaigns/campaigns";
 import { Ctx } from "../common/types";
-import { error } from "console";
 
 
 export const insertTagAndNote = async (
   ctx: MutationCtx,
-  tag: Omit<Tag, "_id" | "_creationTime" | "updatedAt" | "createdBy">,
-): Promise<Id<"tags">> => {
-  return await insertTag(ctx, tag, true);
+  tag: Omit<Tag, "_id" | "_creationTime" | "updatedAt" | "createdBy" | "noteId">,
+): Promise<{tagId: Id<"tags">, noteId: Id<"notes">}> => {
+  const { identityWithProfile } = await requireCampaignMembership(ctx, { campaignId: tag.campaignId },
+    { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
+  );
+  const { profile } = identityWithProfile;
+
+  const noteId = await ctx.db.insert("notes", {
+    userId: profile.userId,
+    name: tag.name,
+    campaignId: tag.campaignId,
+    updatedAt: Date.now(),
+  });
+
+  const tags = await ctx.db
+   .query("tags")
+   .withIndex("by_campaign_noteId", (q) => q.eq("campaignId", tag.campaignId).eq("noteId", noteId))
+   .collect();
+
+  if (tags.length > 1) throw new Error(
+    `Invariant: multiple tags found for note ${noteId}`
+  );
+
+  const tagId = await insertTag(ctx, { ...tag, noteId });
+  return { tagId, noteId };
 };
 
 export const insertTag = async (
   ctx: MutationCtx,
   tag: Omit<Tag, "_id" | "_creationTime" | "updatedAt" | "createdBy">,
-  createNote: boolean = false,
   allowManaged: boolean = false,
 ): Promise<Id<"tags">> => {
   const category = await ctx.db.get(tag.categoryId);
@@ -34,40 +54,23 @@ export const insertTag = async (
   );
   const { profile } = identityWithProfile;
 
-
-  let noteId: Id<"notes"> | undefined;
-  if (createNote) {
-    noteId = await ctx.db.insert("notes", {
-      userId: profile.userId,
-      name: tag.name,
-      campaignId: tag.campaignId,
-      updatedAt: Date.now(),
-    });
-  
-    const initialBlockId = crypto.randomUUID();
-    await ctx.db.insert("blocks", {
-      noteId,
-      blockId: initialBlockId,
-      position: 0,
-      content: {
-        type: "paragraph",
-        id: initialBlockId,
-        content: [],
-      },
-      isTopLevel: true,
-      campaignId: tag.campaignId,
-      updatedAt: Date.now(),
-    });
+  const existing = await ctx.db
+    .query("tags")
+    .withIndex("by_campaign_name", (q) => q.eq("campaignId", tag.campaignId).eq("name", tag.name.toLowerCase()))
+    .unique();
+  if (existing) {
+    throw new Error("Tag already exists");
   }
 
   const tagId = await ctx.db.insert("tags", {
-    name: tag.name,
+    displayName: tag.name,
+    name: tag.name.toLowerCase(),
     categoryId: tag.categoryId,
     color: tag.color,
     description: tag.description,
     campaignId: tag.campaignId,
     memberId: tag.memberId,
-    noteId,
+    noteId: tag.noteId,
     createdBy: profile.userId,
     updatedAt: Date.now(),
   });
@@ -132,8 +135,19 @@ export async function insertTagCategory(
     { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
   );
 
+  const existing = await ctx.db
+    .query("tagCategories")
+    .withIndex("by_campaign_name", (q) =>
+      q.eq("campaignId", input.campaignId).eq("name", input.name.toLowerCase()),
+    )
+    .unique();
+  if (existing) {
+    throw new Error("Category already exists");
+  }
+
   const id = await ctx.db.insert("tagCategories", {
-    name: input.name,
+    displayName: input.name,
+    name: input.name.toLowerCase(),
     kind: input.kind,
     campaignId: input.campaignId,
     updatedAt: Date.now(),
@@ -159,6 +173,7 @@ export const updateTagAndContent = async (
   const tagUpdates: {
     name?: string;
     color?: string;
+    description?: string;
     updatedAt: number;
   } = {
     updatedAt: Date.now(),

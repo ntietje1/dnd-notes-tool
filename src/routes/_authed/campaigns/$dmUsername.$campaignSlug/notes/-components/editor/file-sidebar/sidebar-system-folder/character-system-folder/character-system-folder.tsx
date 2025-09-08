@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { SYSTEM_TAG_CATEGORY_NAMES, type TagNote } from "convex/tags/types";
+import { SYSTEM_TAG_CATEGORY_NAMES } from "convex/tags/types";
 import { CharacterSystemFolderContextMenu } from "./character-system-folder-context-menu";
 import { Button } from "~/components/shadcn/ui/button";
 import {
@@ -38,7 +38,7 @@ export const CharacterSystemFolder = ({
 }: CharacterSystemFolderProps) => {
   const { campaignWithMembership } = useCampaign();
   const campaign = campaignWithMembership?.data?.campaign;
-  const { updateNoteName, selectNote, note } = useNotes();
+  const { updateNoteName, selectNote, note: selectedNote } = useNotes();
   const [deletingCharacter, setDeletingCharacter] = useState<CharacterWithTag | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   
@@ -57,15 +57,11 @@ export const CharacterSystemFolder = ({
     campaignId: campaign._id,
   } : "skip"));
 
-  const findCharacterByTagId = (tagId: Id<"tags">) => {
-    return allCharacters.data?.find(char => char.tagId === tagId);
-  };
-
-  const handleCharacterNoteRename = async (note: TagNote, newName: string) => {
+  const handleCharacterNoteRename = async (note: Note, newName: string) => {
     if (!campaign) return;
     
     try {
-      const character = findCharacterByTagId(note.tagId);
+      const character = allCharacters.data?.find(char => char.tag.noteId === note._id);
       if (!character) {
         toast.error("Character not found");
         return;
@@ -86,10 +82,10 @@ export const CharacterSystemFolder = ({
     }
   };
 
-  const handleCharacterNoteDelete = (note: TagNote) => {
+  const handleCharacterNoteDelete = (note: Note) => {
     if (!campaign) return;
     
-    const character = findCharacterByTagId(note.tagId);
+    const character = allCharacters.data?.find(char => char.tag.noteId === note._id);
     if (character) {
       setDeletingCharacter(character);
     } else {
@@ -149,16 +145,16 @@ export const CharacterSystemFolder = ({
             <div className="absolute left-2 top-0 bottom-0 w-0.5 bg-muted-foreground/10" />
           )}
           {/* Render non-draggable notes */}
-          {tagNotePages.map((tagNote) => (
-            <div key={tagNote._id} className="flex w-full min-w-0">
-                <CharacterNoteContextMenu onEdit={() => setRenamingId(tagNote._id)} onDelete={() => handleCharacterNoteDelete(tagNote as TagNote)}>
-                    <NoteButton
-                        note={tagNote as Note}
-                        isRenaming={renamingId === tagNote._id}
-                        onFinishRename={(name) => handleCharacterNoteRename(tagNote as TagNote, name)}
-                        isSelected={note?._id === tagNote._id}
-                        onNoteSelected={() => selectNote(tagNote._id)}
-                    />
+          {tagNotePages.map((note) => (
+            <div key={note._id} className="flex w-full min-w-0">
+              <CharacterNoteContextMenu onEdit={() => setRenamingId(note._id)} onDelete={() => handleCharacterNoteDelete(note)}>
+                <NoteButton
+                  note={note}
+                  isRenaming={renamingId === note._id}
+                  onFinishRename={(name) => handleCharacterNoteRename(note, name)}
+                  isSelected={note?._id === selectedNote?._id}
+                  onNoteSelected={() => selectNote(note._id)}
+                />
               </CharacterNoteContextMenu>
             </div>
           ))}

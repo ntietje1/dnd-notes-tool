@@ -48,17 +48,32 @@ export async function ensureSharedAllTag(
         return await insertTag(
             ctx,
             {
+                displayName: SYSTEM_TAG_CATEGORY_NAMES.SharedAll,
                 name: SYSTEM_TAG_CATEGORY_NAMES.SharedAll,
                 color: "#F59E0B",
                 description: "Visible to all players",
                 campaignId,
                 categoryId: sharedCategory._id,
             },
-            false,
             true,
         );
     }
 }
+
+export async function getPlayerSharedTags(
+    ctx: Ctx,
+    campaignId: Id<"campaigns">,
+): Promise<Tag[]> {
+    const sharedCategory = await getSharedCategory(ctx, campaignId);
+    const sharedTags = await ctx.db
+        .query("tags")
+        .withIndex("by_campaign_categoryId", (q) =>
+        q.eq("campaignId", campaignId).eq("categoryId", sharedCategory._id),
+        )
+        .collect();
+    return sharedTags.filter((t) => t.memberId !== null);
+}
+
 
 export async function getPlayerSharedTag(
     ctx: Ctx,
@@ -97,14 +112,14 @@ export async function ensurePlayerSharedTag(
         return await insertTag(
             ctx,
             {
-                name: "Shared: " + memberId,
+                displayName: "Shared: (Player)",
+                name: "Shared: (Player)",
                 color: "#F59E0B",
-                description: "Visible to player " + memberId,
+                description: "Visible to a specific player",
                 campaignId,
                 memberId,
                 categoryId: sharedCategory._id,
             },
-            false,
             true,
         );
     }

@@ -20,6 +20,7 @@ export type TagCategory = {
   _id: Id<"tagCategories">;
   _creationTime: number;
 
+  displayName: string;
   name: string;
   kind: CategoryKind;
   campaignId: Id<"campaigns">;
@@ -30,6 +31,7 @@ export type Tag = {
   _id: Id<"tags">;
   _creationTime: number;
 
+  displayName: string;
   name: string;
   color: string;
   description?: string;
@@ -45,10 +47,3 @@ export type TagWithCategory = Tag & {
   category: TagCategory;
 };
 
-export interface TagNote extends Omit<Note, "tagId"> {
-  tagName: string;
-  tagColor: string;
-  categoryId: Id<"tagCategories">;
-  categoryName?: string;
-  tagId: Id<"tags">;
-}

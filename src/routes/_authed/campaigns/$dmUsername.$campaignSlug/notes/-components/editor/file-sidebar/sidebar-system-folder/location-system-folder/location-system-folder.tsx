@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { SYSTEM_TAG_CATEGORY_NAMES, type TagNote } from "convex/tags/types";
+import { SYSTEM_TAG_CATEGORY_NAMES } from "convex/tags/types";
 import { LocationSystemFolderContextMenu } from "./location-system-folder-context-menu";
 import { Button } from "~/components/shadcn/ui/button";
 import {
@@ -35,7 +35,7 @@ export const LocationSystemFolder = ({
   renamingId,
   setRenamingId,
 }: LocationSystemFolderProps) => {
-  const { updateNoteName, selectNote, note } = useNotes();
+  const { updateNoteName, selectNote, note: selectedNote } = useNotes();
   const { campaignWithMembership } = useCampaign();
   const campaign = campaignWithMembership?.data?.campaign;
   const [deletingLocation, setDeletingLocation] = useState<LocationWithTag | null>(null);
@@ -56,15 +56,11 @@ export const LocationSystemFolder = ({
     campaignId: campaign._id,
   } : "skip"));
 
-  const findLocationByTagId = (tagId: Id<"tags">) => {
-    return allLocations.data?.find(loc => loc.tagId === tagId);
-  };
-
-  const handleLocationNoteRename = async (note: TagNote, newName: string) => {
+  const handleLocationNoteRename = async (note: Note, newName: string) => {
     if (!campaign) return;
     
     try {
-      const location = findLocationByTagId(note.tagId);
+      const location = allLocations.data?.find(loc => loc.tag.noteId === note._id);
       if (!location) {
         toast.error("Location not found");
         return;
@@ -85,10 +81,10 @@ export const LocationSystemFolder = ({
     }
   };
 
-  const handleLocationNoteDelete = (note: TagNote) => {
+  const handleLocationNoteDelete = (note: Note) => {
     if (!campaign) return;
     
-    const location = findLocationByTagId(note.tagId);
+    const location = allLocations.data?.find(loc => loc.tag.noteId === note._id);
     if (location) {
       setDeletingLocation(location);
     } else {
@@ -145,16 +141,16 @@ export const LocationSystemFolder = ({
           {hasItems && (
             <div className="absolute left-2 top-0 bottom-0 w-0.5 bg-muted-foreground/10" />
           )}
-          {tagNotePages.map((tagNote) => (
-            <div key={tagNote._id} className="flex w-full min-w-0">
-                <LocationNoteContextMenu onEdit={() => setRenamingId(tagNote._id)} onDelete={() => handleLocationNoteDelete(tagNote as TagNote)}>
-                    <NoteButton
-                        note={tagNote as Note}
-                        isRenaming={renamingId === tagNote._id}
-                        onFinishRename={(name) => handleLocationNoteRename(tagNote as TagNote, name)}
-                        isSelected={note?._id === tagNote._id}
-                        onNoteSelected={() => selectNote(tagNote._id)}
-                    />
+          {tagNotePages.map((note) => (
+            <div key={note._id} className="flex w-full min-w-0">
+              <LocationNoteContextMenu onEdit={() => setRenamingId(note._id)} onDelete={() => handleLocationNoteDelete(note)}>
+                <NoteButton
+                  note={note}
+                  isRenaming={renamingId === note._id}
+                  onFinishRename={(name) => handleLocationNoteRename(note, name)}
+                  isSelected={note?._id === selectedNote?._id}
+                  onNoteSelected={() => selectNote(note._id)}
+                />
               </LocationNoteContextMenu>
             </div>
           ))}

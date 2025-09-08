@@ -1,5 +1,5 @@
 import { ClientOnly, createFileRoute, useParams } from '@tanstack/react-router'
-import { NotesEditor, NotesEditorSkeleton } from './-components/editor/notes-editor';
+import { NotesEditor, NotesEditorEmptyContent, NotesEditorSkeleton } from './-components/editor/notes-editor';
 
 
 export const Route = createFileRoute('/_authed/campaigns/$dmUsername/$campaignSlug/notes/$noteId')({
@@ -13,7 +13,7 @@ function NotesDetailPage() {
 
     return (
         <ClientOnly fallback={<NotesEditorSkeleton />}>
-            <NotesEditor noteId={noteId} />
+            {noteId ? <NotesEditor noteId={noteId} /> : <NotesEditorEmptyContent />}
         </ClientOnly>
     );
 }

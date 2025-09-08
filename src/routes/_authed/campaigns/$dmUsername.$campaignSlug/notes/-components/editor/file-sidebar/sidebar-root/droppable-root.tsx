@@ -25,7 +25,7 @@ export function DroppableRoot({
 
   return (
     <div ref={setNodeRef} className={cn(className, isOver && "bg-muted")}>
-      <RootContextMenu className="flex-1" onNewPage={onNewPage} onNewFolder={onNewFolder}>
+      <RootContextMenu className="h-full flex-1" onNewPage={onNewPage} onNewFolder={onNewFolder}>
         {children}
       </RootContextMenu>
     </div>

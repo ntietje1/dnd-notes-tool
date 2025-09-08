@@ -6,6 +6,8 @@ import { CAMPAIGN_MEMBER_ROLE } from "../campaigns/types";
 import { Id } from "../_generated/dataModel";
 import { insertTagAndNote, insertTagCategory } from "./tags";
 
+// note: these aren't used yet, will use them eventually
+
 export const createTag = mutation({
   args: {
     name: v.string(),
@@ -15,13 +17,29 @@ export const createTag = mutation({
     campaignId: v.id("campaigns"),
   },
   handler: async (ctx, args): Promise<Id<"tags">> => {
-    return await insertTagAndNote(ctx, {
+    const { campaignWithMembership } = await requireCampaignMembership(ctx, { campaignId: args.campaignId },
+      { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
+    );
+
+    const category = await ctx.db.get(args.categoryId);
+    if (!category) {
+      throw new Error("Category not found");
+    }
+
+    if (campaignWithMembership.campaign._id !== args.campaignId || category.campaignId !== args.campaignId) {
+      throw new Error("Campaign not found");
+    }
+
+    const { tagId } = await insertTagAndNote(ctx, {
+      displayName: args.name,
       name: args.name,
       categoryId: args.categoryId,
       color: args.color,
       description: args.description,
       campaignId: args.campaignId,
     });
+
+    return tagId;
   },
 });
 
@@ -173,7 +191,7 @@ export const createTagCategory = mutation({
       throw new Error("Category already exists");
     }
 
-    return await insertTagCategory(ctx, { campaignId: args.campaignId, kind: CATEGORY_KIND.User, name: args.name });
+    return await insertTagCategory(ctx, { campaignId: args.campaignId, kind: CATEGORY_KIND.User, name: args.name.toLowerCase() });
   },
 });
 
@@ -194,7 +212,17 @@ export const updateTagCategory = mutation({
       throw new Error("Only user categories can be renamed");
     }
 
-    await ctx.db.patch(args.categoryId, { name: args.name, updatedAt: Date.now() });
+    const next = args.name.toLowerCase();
+    const existing = await ctx.db
+      .query("tagCategories")
+      .withIndex("by_campaign_name", (q) =>
+        q.eq("campaignId", category.campaignId).eq("name", next),
+      )
+      .unique();
+    if (existing && existing._id !== args.categoryId) {
+      throw new Error("Category already exists");
+    }
+    await ctx.db.patch(args.categoryId, { name: next, displayName: args.name, updatedAt: Date.now() });
     return args.categoryId;
   },
 });

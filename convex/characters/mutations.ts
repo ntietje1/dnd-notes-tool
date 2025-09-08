@@ -26,8 +26,9 @@ export const createCharacter = mutation({
 
     const characterCategory = await getTagCategoryByName(ctx, args.campaignId, SYSTEM_TAG_CATEGORY_NAMES.Character);
 
-    const tagId = await insertTagAndNote(ctx, {
+    const { tagId, noteId } = await insertTagAndNote(ctx, {
       name: args.name,
+      displayName: args.name,
       categoryId: characterCategory._id,
       color: args.color,
       campaignId: args.campaignId,
@@ -43,11 +44,6 @@ export const createCharacter = mutation({
       createdBy: profile.userId,
       updatedAt: Date.now(),
     });
-
-    const noteId = (await ctx.db.get(tagId))?.noteId;
-    if (!noteId) {
-      throw new Error("Failed to create note for character");
-    }
 
     return { characterId, tagId, noteId };
   },

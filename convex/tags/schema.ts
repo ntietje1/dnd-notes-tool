@@ -4,6 +4,7 @@ import { CATEGORY_KIND } from "./types";
 
 export const tagTables = {
   tagCategories: defineTable({
+    displayName: v.string(),
     name: v.string(),
     kind: v.union(
       v.literal(CATEGORY_KIND.SystemCore),
@@ -15,6 +16,7 @@ export const tagTables = {
   }).index("by_campaign_name", ["campaignId", "name"]),
 
   tags: defineTable({
+    displayName: v.string(),
     name: v.string(),
     color: v.string(),
     description: v.optional(v.string()),
@@ -26,5 +28,6 @@ export const tagTables = {
     updatedAt: v.number(),
   })
     .index("by_campaign_categoryId", ["campaignId", "categoryId"])
-    .index("by_campaign_noteId", ["campaignId", "noteId"]),
+    .index("by_campaign_noteId", ["campaignId", "noteId"])
+    .index("by_campaign_name", ["campaignId", "name"]),
 };

@@ -1,10 +1,9 @@
 import { v } from "convex/values";
-import { Tag, TagCategory, TagWithCategory } from "./types";
-import { Id } from "../_generated/dataModel";
+import { Tag, TagWithCategory } from "./types";
 import { query } from "../_generated/server";
 import { requireCampaignMembership } from "../campaigns/campaigns";
 import { CAMPAIGN_MEMBER_ROLE } from "../campaigns/types";
-import { getPlayerSharedTag, getSharedAllTag } from "./shared";
+import { getPlayerSharedTags, getSharedAllTag } from "./shared";
 
 export const getSharedTags = query({
   args: {
@@ -14,13 +13,8 @@ export const getSharedTags = query({
     sharedAllTag: Tag;
     playerSharedTags: Tag[];
   }> => {
-    const campaignMembers = await ctx.db.query("campaignMembers").withIndex("by_campaign", (q) => q.eq("campaignId", args.campaignId)).collect();
     const sharedAllTag = await getSharedAllTag(ctx, args.campaignId);
-    const playerSharedTags = await Promise.all(
-      campaignMembers.map(async (member) => {
-        return await getPlayerSharedTag(ctx, args.campaignId, member._id);
-      })
-    )
+    const playerSharedTags = await getPlayerSharedTags(ctx, args.campaignId);
     return {
       sharedAllTag,
       playerSharedTags,
@@ -63,25 +57,22 @@ export const getTags = query({
       .withIndex("by_campaign_name", (q) => q.eq("campaignId", args.campaignId))
       .collect();
 
-    const q = ctx.db.query("tags");
-    const tags = args.categoryId
-      ? await q
-          .withIndex("by_campaign_categoryId", (qi) =>
-            qi.eq("campaignId", args.campaignId).eq("categoryId", args.categoryId as Id<"tagCategories">),
-          )
-          .collect()
-          .then((t) => t.map((t) => ({
-            ...t,
-            category: categories.find((c) => c._id === t.categoryId)!,
-          })))
-      : await q
-          .withIndex("by_campaign_categoryId", (qi) => qi.eq("campaignId", args.campaignId))
-          .collect()
-          .then((t) => t.map((t) => ({
-            ...t,
-            category: categories.find((c) => c._id === t.categoryId)!,
-          })));
+    const baseTags = await ctx.db
+      .query("tags")
+      .withIndex("by_campaign_categoryId", (q) => {
+        const baseQuery = q.eq("campaignId", args.campaignId);
+        return args.categoryId 
+          ? baseQuery.eq("categoryId", args.categoryId)
+          : baseQuery;
+      })
+      .collect();
 
-    return tags;
+      return baseTags.map((tag) => {
+        const category = categories.find((c) => c._id === tag.categoryId);
+        if (!category) {
+          throw new Error(`Category not found for tag ${tag._id}`);
+        }
+      return { ...tag, category };
+    });
   },
 });

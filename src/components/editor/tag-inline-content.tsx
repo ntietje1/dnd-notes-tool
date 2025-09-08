@@ -12,10 +12,16 @@ export const TagInlineContent = createReactInlineContentSpec(
     render: (props) => {
       const { campaignWithMembership } = useCampaign();
       const campaign = campaignWithMembership?.data?.campaign;
-      const tag = useQuery(convexQuery(api.tags.queries.getTag, campaign?._id ? {
-        campaignId: campaign._id,
-        tagId: props.inlineContent.props.tagId,
-      } : "skip"));
+      const hasCampaign = !!campaign?._id;
+      const hasTagId = !!props.inlineContent.props.tagId;
+      const tag = useQuery(
+        convexQuery(
+          api.tags.queries.getTag,
+          hasCampaign && hasTagId
+            ? { campaignId: campaign!._id, tagId: props.inlineContent.props.tagId }
+            : "skip"
+        )
+      );
 
       const name = tag.data?.name ?? props.inlineContent.props.tagName;
       const color = tag.data?.color ?? props.inlineContent.props.tagColor;

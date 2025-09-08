@@ -9,7 +9,7 @@ import {
 } from "../tags/tags";
 import { CAMPAIGN_MEMBER_ROLE } from "../campaigns/types";
 import { Id } from "../_generated/dataModel";
-import { CATEGORY_KIND, SYSTEM_TAG_CATEGORY_NAMES } from "../tags/types";
+import { SYSTEM_TAG_CATEGORY_NAMES } from "../tags/types";
 
 export const createLocation = mutation({
   args: {
@@ -26,7 +26,8 @@ export const createLocation = mutation({
 
     const locationCategory = await getTagCategoryByName(ctx, args.campaignId, SYSTEM_TAG_CATEGORY_NAMES.Location);
 
-    const tagId = await insertTagAndNote(ctx, {
+    const { tagId, noteId } = await insertTagAndNote(ctx, {
+      displayName: args.name,
       name: args.name,
       categoryId: locationCategory._id,
       color: args.color,
@@ -43,11 +44,6 @@ export const createLocation = mutation({
       createdBy: profile.userId,
       updatedAt: Date.now(),
     });
-
-    const noteId = (await ctx.db.get(tagId))?.noteId;
-    if (!noteId) {
-      throw new Error("Failed to create note for location");
-    }
 
     return { locationId, tagId, noteId };
   },
