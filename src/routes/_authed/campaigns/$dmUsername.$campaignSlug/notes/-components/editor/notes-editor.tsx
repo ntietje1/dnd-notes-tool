@@ -16,7 +16,7 @@ interface NotesEditorProps {
 const schema = BlockNoteSchema.create({ inlineContentSpecs: customInlineContentSpecs });
 
 export function NotesEditor({ noteId }: NotesEditorProps) {
-  const { note, debouncedUpdateNoteContent } = useNotes();
+  const { note, debouncedUpdateNoteContent, status } = useNotes();
 
   const hasContent = note?.content && note?.content.length > 0;
 
