@@ -1,24 +1,27 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "~/components/shadcn/ui/resizable";
-import { NotesEditor } from "./-components/editor/notes-editor";
-import { NotesViewer } from "./-components/viewer/notes-viewer";
-import { FileTopbar } from "./-components/editor/file-topbar/topbar";
+import { ClientOnly, createFileRoute, useParams } from '@tanstack/react-router'
+import { NotesEditor, NotesEditorEmptyContent, NotesEditorSkeleton } from './-components/editor/notes-editor';
+import { useNotes } from '~/contexts/NotesContext';
+import type { Id } from 'convex/_generated/dataModel';
+import { useEffect } from 'react';
+
 
 export const Route = createFileRoute('/_authed/campaigns/$dmUsername/$campaignSlug/notes/$noteId')({
-  component: NoteDetailPage,
+  component: NotesDetailPage,
 })
 
-function NoteDetailPage() {
+function NotesDetailPage() {
+    const { noteId } = useParams({
+        from: '/_authed/campaigns/$dmUsername/$campaignSlug/notes/$noteId'
+    });
+    const { setNoteId } = useNotes();
+    useEffect(() => {
+        setNoteId(noteId as Id<"notes">);
+    }, [noteId, setNoteId]);
+
     return (
-        <ResizablePanelGroup direction="horizontal" className="flex-1">
-        <ResizablePanel defaultSize={50} minSize={25} className="flex flex-col">
-            <FileTopbar />
-            <NotesEditor />
-        </ResizablePanel>
-        <ResizableHandle />
-        <ResizablePanel defaultSize={50} minSize={25} className="flex flex-col">
-            <NotesViewer />
-        </ResizablePanel>
-        </ResizablePanelGroup>
-    )
+        <ClientOnly fallback={<NotesEditorSkeleton />}>
+            {noteId ? <NotesEditor noteId={noteId} /> : <NotesEditorEmptyContent />}
+        </ClientOnly>
+    );
 }
+    

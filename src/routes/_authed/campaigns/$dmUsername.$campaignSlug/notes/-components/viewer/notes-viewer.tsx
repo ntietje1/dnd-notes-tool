@@ -4,45 +4,41 @@ import { useNotes } from "~/contexts/NotesContext";
 import { api } from "convex/_generated/api";
 import { BlockNoteView } from "@blocknote/shadcn";
 import { BlockNoteSchema, BlockNoteEditor } from "@blocknote/core";
-import { customInlineContentSpecs } from "~/lib/editor-schema";
+import { customInlineContentSpecs, type CustomBlockNoteEditor } from "~/lib/editor-schema";
 import type { Id } from "convex/_generated/dataModel";
 import { useQuery } from "@tanstack/react-query";
 import { convexQuery } from "@convex-dev/react-query";
 import { useCampaign } from "~/contexts/CampaignContext";
 import { Skeleton } from "~/components/shadcn/ui/skeleton";
+import type { Tag } from "convex/tags/types";
+
+const schema = BlockNoteSchema.create({ inlineContentSpecs: customInlineContentSpecs });
 
 export function NotesViewer() {
-  const { tags } = useTags();
+  const { nonSystemManagedTags } = useTags();
   const { campaignWithMembership } = useCampaign();
   const campaign = campaignWithMembership?.data?.campaign;
   const { status } = useNotes();
-  const [selectedTagIds, setSelectedTagIds] = React.useState<string[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = React.useState<Id<"tags">[]>([]);
 
-  // Fetch blocks that have all selected tags
   const blocks = useQuery(convexQuery(
     api.notes.queries.getBlocksByTags,
     selectedTagIds.length > 0 && campaign?._id
       ? {
           campaignId: campaign._id,
-          tagIds: selectedTagIds as Id<"tags">[],
+          tagIds: selectedTagIds,
         }
       : "skip",
   ));
 
-  // Create a read-only BlockNoteEditor instance with the fetched blocks
-  const schema = React.useMemo(
-    () =>
-      BlockNoteSchema.create({ inlineContentSpecs: customInlineContentSpecs }),
-    [],
-  );
-  const editor = React.useMemo(() => {
+  const editor = React.useMemo<CustomBlockNoteEditor | null>(() => {
     if (!blocks.data) return null;
     return BlockNoteEditor.create({
       schema,
       initialContent:
         blocks.data.length > 0 ? blocks.data.map((block) => block.content) : undefined,
     });
-  }, [blocks, schema]);
+  }, [blocks]);
 
   if (status === "pending") {
     return <NotesViewerLoading />;
@@ -51,7 +47,7 @@ export function NotesViewer() {
   return (
     <div className="h-full flex flex-col bg-white">
       <div className="mb-4 flex flex-wrap gap-2">
-        {tags?.map((tag) => (
+        {nonSystemManagedTags?.map((tag: Tag) => (
           <button
             key={tag._id}
             className={`px-2 py-1 rounded border ${
@@ -59,6 +55,7 @@ export function NotesViewer() {
                 ? "bg-blue-200 border-blue-400"
                 : "bg-gray-100 border-gray-300"
             }`}
+            aria-pressed={selectedTagIds.includes(tag._id)}
             onClick={() => {
               setSelectedTagIds((ids) =>
                 ids.includes(tag._id)
@@ -73,22 +70,24 @@ export function NotesViewer() {
         ))}
       </div>
 
-      <div className="flex-1">
-        {editor && (
-          <BlockNoteView
-            className="h-full overflow-y-auto pt-4"
-            editor={editor as any} //TODO: fix this
-            theme="light"
-            editable={false}
-          />
-        )}
-        {!editor && (
-          <div className="h-full flex items-center justify-center text-muted-foreground">
-            {selectedTagIds.length === 0
-              ? "Select tags to view blocks."
-              : "No blocks found for selected tags."}
-          </div>
-        )}
+      <div className="flex-1 overflow-y-auto">
+        <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-8 py-6">
+          {editor && (
+            <BlockNoteView
+              className="pt-0"
+              editor={editor}
+              theme="light"
+              editable={false}
+            />
+          )}
+          {!editor && (
+            <div className="h-full flex items-center justify-center text-muted-foreground">
+              {selectedTagIds.length === 0
+                ? "Select tags to view blocks."
+                : "No blocks found for selected tags."}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

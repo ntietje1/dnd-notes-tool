@@ -1,9 +1,9 @@
 import { v } from "convex/values";
 import { query } from "../_generated/server";
 import { CharacterWithTag } from "./types";
-import { TAG_TYPES } from "../tags/types";
 import { CAMPAIGN_MEMBER_ROLE } from "../campaigns/types";
 import { requireCampaignMembership } from "../campaigns/campaigns";
+import { SYSTEM_TAG_CATEGORY_NAMES } from "../tags/types";
 
 export const getCharactersByCampaign = query({
   args: {
@@ -28,12 +28,7 @@ export const getCharactersByCampaign = query({
 
         return {
           ...character,
-          tag: {
-            _id: tag._id,
-            name: tag.name,
-            color: tag.color,
-            type: tag.type as typeof TAG_TYPES.Character,
-          },
+          tag: tag,
         };
       }),
     );
@@ -63,12 +58,7 @@ export const getCharacterById = query({
 
     return {
       ...character,
-      tag: {
-        _id: tag._id,
-        name: tag.name,
-        color: tag.color,
-        type: tag.type as typeof TAG_TYPES.Character,
-      },
+      tag: tag,
     };
   },
 });

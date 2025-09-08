@@ -5,7 +5,6 @@ import { getUserIdentity, requireUserIdentity } from "../common/identity";
 import { Note, SIDEBAR_ITEM_TYPES } from "../notes/types";
 import { getCampaign, requireCampaignMembership } from "./campaigns";
 import { getUserProfileByUsernameHandler } from "../users/users";
-import { WithoutSystemFields } from "convex/server";
 
 export const getUserCampaigns = query({
   handler: async (ctx): Promise<CampaignWithMembership[]> => {

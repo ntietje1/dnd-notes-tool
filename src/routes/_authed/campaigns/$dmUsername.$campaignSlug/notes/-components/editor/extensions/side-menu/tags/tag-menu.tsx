@@ -25,9 +25,7 @@ export default function TagMenu({
 }: {
   editor?: CustomBlockNoteEditor;
 }) {
-  const { tags } = useTags();
-
-  const nonSystemTags = tags?.filter((tag: Tag) => tag.type !== "System") || [];
+  const { nonSystemManagedTags } = useTags();
 
   const onAddTag = (tag: Tag) => {
     if (!editor) return;
@@ -56,7 +54,7 @@ export default function TagMenu({
     <SuggestionMenuController
       triggerCharacter={"@"}
       getItems={async (query) =>
-        filterSuggestionItems(getTagMenuItems(onAddTag, nonSystemTags), query)
+        filterSuggestionItems(getTagMenuItems(onAddTag, nonSystemManagedTags), query)
       }
     />
   );

@@ -14,6 +14,7 @@ import type { Note } from "convex/notes/types";
 import { useNotes } from "~/contexts/NotesContext";
 import { convexQuery } from "@convex-dev/react-query";
 import { useCampaign } from "~/contexts/CampaignContext";
+import { SYSTEM_TAG_CATEGORY_NAMES } from "convex/tags/types";
 
 interface SessionSystemFolderProps {
   isExpanded: boolean;
@@ -33,7 +34,7 @@ export const SessionSystemFolder = ({
   const campaign = campaignWithMembership?.data?.campaign;
   
   const queryResult = useQuery(convexQuery(api.notes.queries.getTagNotePages, campaign ? {
-    tagType: "Session",
+    tagCategory: SYSTEM_TAG_CATEGORY_NAMES.Session,
     campaignId: campaign._id,
   } : "skip"));
   

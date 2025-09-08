@@ -43,11 +43,14 @@ export const updateNote = mutation({
     if (args.name !== undefined) {
       updates.name = args.name;
 
-      if (note.tagId) {
-        const tag = await ctx.db.get(note.tagId);
-        if (tag) {
-          await updateTagAndContent(ctx, note.tagId, note.campaignId, tag.name, tag.color, { name: args.name });
-        }
+      const tag = await ctx.db
+        .query("tags")
+        .withIndex("by_campaign_noteId", (q) =>
+          q.eq("campaignId", note.campaignId).eq("noteId", args.noteId),
+        )
+        .unique();
+      if (tag) {
+        await updateTagAndContent(ctx, tag._id, note.campaignId, tag.name, tag.color, { name: args.name });
       }
     }
 
@@ -258,21 +261,6 @@ export const createNote = mutation({
       parentFolderId: args.parentFolderId,
       updatedAt: Date.now(),
       campaignId: args.campaignId,
-    });
-
-    const initialBlockId = crypto.randomUUID();
-    await ctx.db.insert("blocks", {
-      noteId,
-      blockId: initialBlockId,
-      position: 0,
-      content: {
-        type: "paragraph",
-        id: initialBlockId,
-        content: [],
-      },
-      isTopLevel: true,
-      campaignId: args.campaignId,
-      updatedAt: Date.now(),
     });
 
     return noteId;

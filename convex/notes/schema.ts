@@ -7,11 +7,9 @@ export const notesTables = {
     campaignId: v.id("campaigns"),
     name: v.optional(v.string()),
     parentFolderId: v.optional(v.id("folders")),
-    tagId: v.optional(v.id("tags")),
     updatedAt: v.number(),
   })
-    .index("by_campaign_parent", ["campaignId", "parentFolderId"])
-    .index("by_campaign_tag", ["campaignId", "tagId"]),
+    .index("by_campaign_parent", ["campaignId", "parentFolderId"]),
 
   folders: defineTable({
     userId: v.string(),

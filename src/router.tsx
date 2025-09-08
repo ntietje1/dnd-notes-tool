@@ -1,7 +1,7 @@
 import { createRouter as createTanStackRouter } from '@tanstack/react-router'
 import { routeTree } from './routeTree.gen'
 import { routerWithQueryClient } from '@tanstack/react-router-with-query'
-import { ConvexProvider, ConvexReactClient } from 'convex/react'
+import { ConvexReactClient } from 'convex/react'
 import { ConvexQueryClient } from '@convex-dev/react-query'
 import { QueryClient } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
@@ -39,10 +39,10 @@ export function createRouter() {
       defaultNotFoundComponent: () => <NotFoundPage />,
       context: { queryClient, convexClient: convex, convexQueryClient },
       Wrap: ({ children }) => (
-        <ConvexProvider client={convexQueryClient.convexClient}>
+        <>
           <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
           {children}
-        </ConvexProvider>
+        </>
       ),
     }),
     queryClient,

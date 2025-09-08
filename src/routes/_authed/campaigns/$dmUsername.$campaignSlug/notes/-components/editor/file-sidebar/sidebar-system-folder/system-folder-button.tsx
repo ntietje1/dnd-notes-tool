@@ -1,11 +1,11 @@
-import type { TagType } from "convex/tags/types";
+import { SYSTEM_TAG_CATEGORY_NAMES } from "convex/tags/types";
 import { CharacterSystemFolder } from "./character-system-folder/character-system-folder";
 import { LocationSystemFolder } from "./location-system-folder/location-system-folder";
 import { SessionSystemFolder } from "./session-system-folder/session-system-folder";
 import type { Id } from "convex/_generated/dataModel";
 
 interface SystemFolderButtonProps {
-  tagType: TagType;
+  tagCategory: string;
   isExpanded: boolean;
   onToggleExpanded: () => void;
   renamingId: Id<"folders"> | Id<"notes"> | null;
@@ -13,14 +13,14 @@ interface SystemFolderButtonProps {
 }
 
 export const SystemFolderButton = ({
-  tagType,
+  tagCategory,
   isExpanded,
   onToggleExpanded,
   renamingId,
   setRenamingId,
 }: SystemFolderButtonProps) => {
-  switch (tagType) {
-    case "Character":
+  switch (tagCategory) {
+    case SYSTEM_TAG_CATEGORY_NAMES.Character:
       return (
         <CharacterSystemFolder
           isExpanded={isExpanded}
@@ -29,7 +29,7 @@ export const SystemFolderButton = ({
           setRenamingId={setRenamingId}
         />
       );
-    case "Location":
+    case SYSTEM_TAG_CATEGORY_NAMES.Location:
       return (
         <LocationSystemFolder
           isExpanded={isExpanded}
@@ -39,17 +39,16 @@ export const SystemFolderButton = ({
 
         />
       );
-    case "Session":
+    case SYSTEM_TAG_CATEGORY_NAMES.Session:
       return (
         <SessionSystemFolder
           isExpanded={isExpanded}
           onToggleExpanded={onToggleExpanded}
           renamingId={renamingId}
           setRenamingId={setRenamingId}
-
         />
       );
     default:
-      throw new Error(`Unknown tag type attempted to render: ${tagType}`);
+      throw new Error(`Unknown tag type attempted to render: ${tagCategory}`);
   }
 };

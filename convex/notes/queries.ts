@@ -13,11 +13,15 @@ import {
   findBlock,
   filterOutChildBlocks,
   extractTagIdsFromBlockContent,
-  getBlockTags,
+  getBlockLevelTags,
+  getNoteLevelTag,
+  getTagCategoryByName,
+  doesBlockMatchRequiredTags,
 } from "../tags/tags";
-import { SYSTEM_TAGS } from "../tags/types";
 import { CAMPAIGN_MEMBER_ROLE } from "../campaigns/types";
 import { requireCampaignMembership } from "../campaigns/campaigns";
+import { SYSTEM_TAG_CATEGORY_NAMES } from "../tags/types";
+import { hasAccessToBlock } from "../tags/shared";
 
 export const getNote = query({
   args: {
@@ -120,7 +124,17 @@ export const getSidebarData = query({
     ]);
 
     // Filter out notes that are associated with tags (they appear in system folders)
-    const regularNotes = notes.filter((note) => !note.tagId);
+    const tagLinkedNoteIds = new Set(
+      (
+        await ctx.db
+          .query("tags")
+          .withIndex("by_campaign_categoryId", (q) => q.eq("campaignId", args.campaignId!))
+          .collect()
+      )
+        .map((t) => t.noteId)
+        .filter((nid): nid is Id<"notes"> => Boolean(nid)),
+    );
+    const regularNotes = notes.filter((note) => !tagLinkedNoteIds.has(note._id));
 
     const folderMap = new Map<Id<"folders">, FolderNode>();
 
@@ -172,36 +186,9 @@ export const getBlocksByTags = query({
     tagIds: v.array(v.id("tags")),
   },
   handler: async (ctx, args): Promise<Block[]> => {
-    await requireCampaignMembership(ctx, { campaignId: args.campaignId },
+    const { campaignWithMembership } = await requireCampaignMembership(ctx, { campaignId: args.campaignId },
       { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM, CAMPAIGN_MEMBER_ROLE.Player] }
     );
-
-    const sharedTag = await ctx.db
-      .query("tags")
-      .withIndex("by_campaign_name", (q) =>
-        q.eq("campaignId", args.campaignId!).eq("name", SYSTEM_TAGS.shared),
-      )
-      .unique();
-
-    if (!sharedTag) {
-      throw new Error("Shared tag not found, this should be impossible");
-    }
-
-    const allBlockTags = await ctx.db.query("blockTags").collect();
-
-    const blockTagsMap = new Map<Id<"blocks">, Id<"tags">[]>();
-    const sharedTagCreationMap = new Map<Id<"blocks">, number>();
-
-    allBlockTags.forEach((bt) => {
-      if (!blockTagsMap.has(bt.blockId)) {
-        blockTagsMap.set(bt.blockId, []);
-      }
-      blockTagsMap.get(bt.blockId)!.push(bt.tagId);
-
-      if (bt.tagId === sharedTag._id) {
-        sharedTagCreationMap.set(bt.blockId, bt.createdAt);
-      }
-    });
 
     const allBlocks = await ctx.db
       .query("blocks")
@@ -210,11 +197,20 @@ export const getBlocksByTags = query({
       )
       .collect();
 
-    const requiredTagIds = [sharedTag._id, ...args.tagIds];
-    const matchingBlocks = allBlocks.filter((block) => {
-      const blockTagIds = blockTagsMap.get(block._id) || [];
-      return requiredTagIds.every((tagId) => blockTagIds.includes(tagId));
-    });
+    const checks = await Promise.all(
+      allBlocks.map(async (block) => {
+        try {
+          const [hasSharedTag, matchesRequired] = await Promise.all([
+            hasAccessToBlock(ctx, args.campaignId!, campaignWithMembership.member._id, block._id),
+            doesBlockMatchRequiredTags(ctx, block._id, args.tagIds),
+          ]);
+          return hasSharedTag && matchesRequired ? block : null;
+        } catch {
+          return null;
+        }
+      })
+    );
+    const matchingBlocks: Block[] = checks.filter(Boolean) as Block[];
 
     const noteGroups = new Map<Id<"notes">, Block[]>();
     matchingBlocks.forEach((block) => {
@@ -225,30 +221,33 @@ export const getBlocksByTags = query({
     });
 
     const filteredResults: Block[] = [];
+    const matchedNoteIds = Array.from(noteGroups.keys());
+    const allTopLevel = await ctx.db
+      .query("blocks")
+      .withIndex("by_campaign_note_toplevel_pos", (q) =>
+        q.eq("campaignId", args.campaignId!)
+      )
+      .collect();
+    const topByNote = new Map<Id<"notes">, Block[]>();
+    for (const b of allTopLevel) {
+      if (b.isTopLevel && matchedNoteIds.includes(b.noteId)) {
+        const arr = topByNote.get(b.noteId) ?? [];
+        arr.push(b);
+        topByNote.set(b.noteId, arr);
+      }
+    }
     for (const [noteId, noteBlocks] of noteGroups) {
-      const topLevelBlocks = await ctx.db
-        .query("blocks")
-        .withIndex("by_campaign_note_toplevel_pos", (q) =>
-          q
-            .eq("campaignId", args.campaignId!)
-            .eq("noteId", noteId)
-            .eq("isTopLevel", true),
-        )
-        .collect();
+      const topLevelBlocks = (topByNote.get(noteId) ?? [])
+        .sort((a, b) => (a.position || 0) - (b.position || 0));
 
       const topLevelContent = topLevelBlocks
-        .sort((a, b) => (a.position || 0) - (b.position || 0))
         .map((block) => block.content);
 
       const filtered = filterOutChildBlocks(noteBlocks, topLevelContent);
       filteredResults.push(...filtered);
     }
 
-    return filteredResults.sort((a, b) => {
-      const aCreatedAt = sharedTagCreationMap.get(a._id) || 0;
-      const bCreatedAt = sharedTagCreationMap.get(b._id) || 0;
-      return bCreatedAt - aCreatedAt;
-    });
+    return filteredResults;
   },
 });
 
@@ -267,33 +266,39 @@ export const getBlockTagState = query({
     noteTagId: Id<"tags"> | null;
   }> => {
     const note = await ctx.db.get(args.noteId);
-    if (!note) throw new Error("Note not found");
+    if (!note) return {
+      allTagIds: [],
+      inlineTagIds: [],
+      blockTagIds: [],
+      noteTagId: null,
+    };
     
     await requireCampaignMembership(ctx, { campaignId: note.campaignId },
       { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM, CAMPAIGN_MEMBER_ROLE.Player] }
     );
 
     const block = await findBlock(ctx, args.noteId, args.blockId);
-    if (!block) throw new Error("Block not found");
+    if (!block) return {
+      allTagIds: [],
+      inlineTagIds: [],
+      blockTagIds: [],
+      noteTagId: null,
+    };
     
 
-    const blockTagIds = await getBlockTags(ctx, block._id);
+    const blockTagIds = await getBlockLevelTags(ctx, block._id);
     const inlineTagIds = extractTagIdsFromBlockContent(block.content);
+    const noteLevelTag = await getNoteLevelTag(ctx, note._id);
 
-    const manualTagIds = blockTagIds.filter(
-      (tagId) => !inlineTagIds.includes(tagId) && note.tagId !== tagId,
-    );
 
-    const noteTagIdList = note.tagId ? [note.tagId] : [];
-    const allTagIds = [
-      ...new Set([...blockTagIds, ...inlineTagIds, ...noteTagIdList]),
-    ];
+    const noteTagIdList = noteLevelTag ? [noteLevelTag._id] : [];
+    const allTagIds = [...new Set([...blockTagIds, ...inlineTagIds, ...noteTagIdList])];
 
     return {
       allTagIds,
       inlineTagIds,
-      blockTagIds: manualTagIds,
-      noteTagId: note.tagId || null,
+      blockTagIds,
+      noteTagId: noteLevelTag?._id || null,
     };
   },
 });
@@ -301,12 +306,11 @@ export const getBlockTagState = query({
 export const getTagNotePages = query({
   args: {
     campaignId: v.id("campaigns"),
-    tagType: v.union(
-      v.literal("Character"),
-      v.literal("Location"),
-      v.literal("Session"),
-      v.literal("System"),
-      v.literal("Other"),
+    tagCategory: v.union(
+      v.literal(SYSTEM_TAG_CATEGORY_NAMES.Character),
+      v.literal(SYSTEM_TAG_CATEGORY_NAMES.Location),
+      v.literal(SYSTEM_TAG_CATEGORY_NAMES.Session),
+      v.literal(SYSTEM_TAG_CATEGORY_NAMES.SharedAll),
     ),
   },
   handler: async (ctx, args): Promise<Note[]> => {
@@ -314,29 +318,21 @@ export const getTagNotePages = query({
       { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM, CAMPAIGN_MEMBER_ROLE.Player] }
     );
 
+    const category = await getTagCategoryByName(ctx, args.campaignId, args.tagCategory);
+
     const tags = await ctx.db
       .query("tags")
-      .withIndex("by_campaign_type", (q) =>
-        q.eq("campaignId", args.campaignId).eq("type", args.tagType),
-      )
+      .withIndex("by_campaign_categoryId", (q) => q.eq("campaignId", args.campaignId).eq("categoryId", category._id))
       .collect();
 
     const tagNotePages = [];
     for (const tag of tags) {
-      const notes = await ctx.db
-        .query("notes")
-        .withIndex("by_campaign_tag", (q) =>
-          q.eq("campaignId", args.campaignId).eq("tagId", tag._id),
-        )
-        .collect();
+      const note = tag.noteId ? await ctx.db.get(tag.noteId) : null;
 
-      for (const note of notes) {
+      if (note) {
         tagNotePages.push({
           ...note,
           type: SIDEBAR_ITEM_TYPES.notes,
-          tagName: tag.name,
-          tagColor: tag.color,
-          tagType: tag.type,
         });
       }
     }

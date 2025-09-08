@@ -3,15 +3,13 @@ import ShareSideMenuButton from "./share/share-side-menu-button";
 import TagSideMenuButton from "./tags/tag-side-menu-button";
 import { CustomDragHandleMenu } from "../drag-handle/drag-handle";
 
-export const SideMenuRenderer = (editor: any) => {
-    return (props: any) => (
+export const SideMenuRenderer = (props: any) => (
       <SideMenu {...props}>
-        <ShareSideMenuButton block={props.block} />
-        <TagSideMenuButton editor={editor} block={props.block} />
+        <ShareSideMenuButton {...props} />
+        <TagSideMenuButton {...props} />
         <DragHandleButton
           {...props}
           dragHandleMenu={CustomDragHandleMenu}
         />
       </SideMenu>
-    );
-  };
+  );

@@ -1,103 +1,76 @@
-import React, { useMemo } from "react";
-import { useNotes } from "~/contexts/NotesContext";
-import { Button } from "~/components/shadcn/ui/button";
 import { BlockNoteView } from "@blocknote/shadcn";
-import TagMenu from "./extensions/side-menu/tags/tag-menu";
-import { SideMenuController } from "@blocknote/react";
-import SelectionToolbar from "./extensions/selection-toolbar/selection-toolbar";
-import { useBlockNoteSync } from "@convex-dev/prosemirror-sync/blocknote";
-import { api } from "convex/_generated/api";
 import { BlockNoteSchema } from "@blocknote/core";
-import { SideMenuRenderer } from "./extensions/side-menu/side-menu";
-import { customInlineContentSpecs, type CustomBlockNoteEditor } from "~/lib/editor-schema";
 import { Skeleton } from "~/components/shadcn/ui/skeleton";
+import { SideMenuController, useCreateBlockNote } from "@blocknote/react";
+import { Button } from "~/components/shadcn/ui/button";
+import { useNotes } from "~/contexts/NotesContext";
+import TagMenu from "./extensions/side-menu/tags/tag-menu";
+import { SideMenuRenderer } from "./extensions/side-menu/side-menu";
+import SelectionToolbar from "./extensions/selection-toolbar/selection-toolbar";
+import { customInlineContentSpecs } from "~/lib/editor-schema";
 
-const schema = BlockNoteSchema.create({
-  inlineContentSpecs: customInlineContentSpecs,
-});
+interface NotesEditorProps {
+  noteId: string;
+}
 
-export function NotesEditor() {
-  const { noteId, note, debouncedUpdateNoteContent, createNote, status } = useNotes();
+const schema = BlockNoteSchema.create({ inlineContentSpecs: customInlineContentSpecs });
 
-  const sync = useBlockNoteSync<CustomBlockNoteEditor>(
-    api.prosemirrorSync,
-    note?._id ?? "",
-    {
-      editorOptions: {
-        schema,
-      },
+export function NotesEditor({ noteId }: NotesEditorProps) {
+  const { note, debouncedUpdateNoteContent } = useNotes();
+
+  const hasContent = note?.content && note?.content.length > 0;
+
+  const editor = useCreateBlockNote(
+    hasContent ? {
+      initialContent: note.content,
+      schema
+    } : {
+      schema
     },
+    [noteId]
   );
 
-  const sideMenuRenderer = useMemo(
-    () => SideMenuRenderer(sync.editor),
-    [sync.editor],
-  );
-
-  React.useEffect(() => {
-    if (
-      note &&
-      !sync.editor &&
-      !sync.isLoading &&
-      "create" in sync &&
-      sync.create
-    ) {
-      sync.create({
-        content: note.content as any, // JSONContent[] from @tiptap/core
-        type: "doc",
-      });
-    }
-  }, [note, sync.editor, sync.isLoading, sync]);
-
-  if (status === "error") {
-    return <div>Error loading note</div>;
+  if (note?._id !== noteId) {
+    return <></>;
   }
 
   if (status === "pending") {
     return <NotesEditorSkeleton />;
   }
 
-  if (!noteId) {
-    return (
-      <div className="h-full flex flex-col items-center justify-center text-muted-foreground gap-4">
-        <p>Select a note or create a new one to get started</p>
-        <Button variant="outline" onClick={() => createNote()}>
-          Create new note
-        </Button>
-      </div>
-    );
-  }
-
   return (
-    <div className="h-full flex flex-col bg-white">
-      {sync.editor && (
+    <div className="h-full flex flex-col bg-white overflow-y-auto">
+      <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-8 py-6">
         <BlockNoteView
-          className="h-full overflow-y-auto pt-4"
-          editor={sync.editor as any} //TODO: fix this
-          onChange={() => debouncedUpdateNoteContent(sync.editor.document)}
+          editor={editor}
+          onChange={() => debouncedUpdateNoteContent(editor.document)}
           theme="light"
           sideMenu={false}
           formattingToolbar={false}
         >
-          <TagMenu editor={sync.editor} />
-          <SideMenuController
-            floatingOptions={{
-              onOpenChange: (open) => {
-                if (!open) {
-                  sync.editor?.sideMenu?.unfreezeMenu();
-                }
-              },
-            }}
-            sideMenu={sideMenuRenderer}
-          />
+          <TagMenu editor={editor} />
+          <SideMenuController sideMenu={SideMenuRenderer} />
           <SelectionToolbar />
         </BlockNoteView>
-      )}
+      </div>
     </div>
   );
 }
 
-function NotesEditorSkeleton() {
+export function NotesEditorEmptyContent() {
+  const { createNote } = useNotes();
+
+  return (
+    <div className="h-full flex flex-col items-center justify-center text-muted-foreground gap-4">
+      <p>Select a note or create a new one to get started</p>
+      <Button variant="outline" onClick={() => createNote()}>
+        Create new note
+      </Button>
+    </div>
+  );
+}
+
+export function NotesEditorSkeleton() {
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 p-4">

@@ -1,5 +1,5 @@
 import { Id } from "../_generated/dataModel";
-import { TAG_TYPES } from "../tags/types";
+import { Tag } from "../tags/types";
 
 export type Character = {
   _id: Id<"characters">;
@@ -14,10 +14,5 @@ export type Character = {
 };
 
 export type CharacterWithTag = Character & {
-  tag: {
-    _id: Id<"tags">;
-    name: string;
-    color: string;
-    type: typeof TAG_TYPES.Character;
-  };
+  tag: Tag;
 };

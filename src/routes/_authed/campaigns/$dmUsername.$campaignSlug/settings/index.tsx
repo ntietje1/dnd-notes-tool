@@ -5,7 +5,7 @@ import { LoadingPage } from '~/components/loading/loading-page'
 import { useForm } from '@tanstack/react-form'
 import { Input } from '~/components/shadcn/ui/input'
 import { Label } from '~/components/shadcn/ui/label'
-import { validateCampaignSettingsName } from './settings-form-validators'
+import { validateCampaignSettingsName } from './-components/settings-form-validators'
 
 
 export const Route = createFileRoute('/_authed/campaigns/$dmUsername/$campaignSlug/settings/')({
