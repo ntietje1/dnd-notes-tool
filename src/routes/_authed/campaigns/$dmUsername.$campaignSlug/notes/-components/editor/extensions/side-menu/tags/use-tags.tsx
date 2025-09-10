@@ -8,7 +8,7 @@ export function useTags() {
   const { campaignWithMembership } = useCampaign();
   const campaign = campaignWithMembership?.data?.campaign;
   const tags = useQuery(
-    convexQuery(api.tags.queries.getTags, campaign?._id ? { campaignId: campaign._id } : "skip"),
+    convexQuery(api.tags.queries.getTagsByCampaign, campaign?._id ? { campaignId: campaign._id } : "skip"),
   );
 
   return {

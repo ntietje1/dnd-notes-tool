@@ -1,5 +1,4 @@
 import { Id } from "../_generated/dataModel";
-import { Note } from "../notes/types";
 
 export const CATEGORY_KIND = {
   SystemManaged: "system_managed", // both category and tags under it are immutable to users.
@@ -8,11 +7,13 @@ export const CATEGORY_KIND = {
 } as const;
 
 export const SYSTEM_TAG_CATEGORY_NAMES = {
-  Character: "character",
-  Location: "location",
-  Session: "session",
-  SharedAll: "shared: all",
+  Character: "Character",
+  Location: "Location",
+  Session: "Session",
+  Shared: "Shared",
 } as const;
+
+export const SHARED_TAG_COLOR = "#F59E0B";
 
 export type CategoryKind = (typeof CATEGORY_KIND)[keyof typeof CATEGORY_KIND];
 

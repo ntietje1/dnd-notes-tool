@@ -15,12 +15,12 @@ import { NoteButton } from "../../sidebar-note/note-button";
 import type { Id } from "convex/_generated/dataModel";
 import { useNotes } from "~/contexts/NotesContext";
 import { ConfirmationDialog } from "~/components/dialogs/confirmation-dialog";
-import type { LocationWithTag } from "convex/locations/types";
 import { toast } from "sonner";
 import { LocationNoteContextMenu } from "./location-note-context-menu";
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import type { Note } from "convex/notes/types";
 import { useCampaign } from "~/contexts/CampaignContext";
+import type { Location } from "convex/locations/types";
 
 interface LocationSystemFolderProps {
   isExpanded: boolean;
@@ -38,7 +38,7 @@ export const LocationSystemFolder = ({
   const { updateNoteName, selectNote, note: selectedNote } = useNotes();
   const { campaignWithMembership } = useCampaign();
   const campaign = campaignWithMembership?.data?.campaign;
-  const [deletingLocation, setDeletingLocation] = useState<LocationWithTag | null>(null);
+  const [deletingLocation, setDeletingLocation] = useState<Location | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   
   const updateLocation = useMutation({mutationFn: useConvexMutation(api.locations.mutations.updateLocation)});
@@ -60,14 +60,14 @@ export const LocationSystemFolder = ({
     if (!campaign) return;
     
     try {
-      const location = allLocations.data?.find(loc => loc.tag.noteId === note._id);
+      const location = allLocations.data?.find(loc => loc.noteId === note._id);
       if (!location) {
         toast.error("Location not found");
         return;
       }
       
       await updateLocation.mutateAsync({
-        locationId: location._id,
+        locationId: location.locationId,
         name: newName,
       });
 
@@ -84,7 +84,7 @@ export const LocationSystemFolder = ({
   const handleLocationNoteDelete = (note: Note) => {
     if (!campaign) return;
     
-    const location = allLocations.data?.find(loc => loc.tag.noteId === note._id);
+    const location = allLocations.data?.find(loc => loc.noteId === note._id);
     if (location) {
       setDeletingLocation(location);
     } else {
@@ -98,7 +98,7 @@ export const LocationSystemFolder = ({
     setIsDeleting(true);
     try {
       await deleteLocation.mutateAsync({
-        locationId: deletingLocation._id,
+        locationId: deletingLocation.locationId,
       });
 
       toast.success("Location deleted successfully");

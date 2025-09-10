@@ -1,13 +1,8 @@
 import { v } from "convex/values";
 import { mutation } from "../_generated/server";
-import { requireCampaignMembership } from "../campaigns/campaigns";
-import {
-  updateTagAndContent,
-  deleteTagAndCleanupContent,
-  getTagCategoryByName,
-  insertTagAndNote,
-} from "../tags/tags";
+import { updateTagAndContent, deleteTagAndCleanupContent, getTagCategoryByName, insertTagAndNote, getTag } from "../tags/tags";
 import { CAMPAIGN_MEMBER_ROLE } from "../campaigns/types";
+import { requireCampaignMembership } from "../campaigns/campaigns";
 import { Id } from "../_generated/dataModel";
 import { SYSTEM_TAG_CATEGORY_NAMES } from "../tags/types";
 
@@ -19,30 +14,22 @@ export const createLocation = mutation({
     campaignId: v.id("campaigns"),
   },
   handler: async (ctx, args): Promise<{ locationId: Id<"locations">, tagId: Id<"tags">, noteId: Id<"notes"> }> => {
-    const { identityWithProfile } = await requireCampaignMembership(ctx, { campaignId: args.campaignId },
+    await requireCampaignMembership(ctx, { campaignId: args.campaignId },
       { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
     );
-    const { profile } = identityWithProfile;
 
     const locationCategory = await getTagCategoryByName(ctx, args.campaignId, SYSTEM_TAG_CATEGORY_NAMES.Location);
 
     const { tagId, noteId } = await insertTagAndNote(ctx, {
       displayName: args.name,
-      name: args.name,
       categoryId: locationCategory._id,
       color: args.color,
       campaignId: args.campaignId,
       description: args.description,
     });
-
     const locationId = await ctx.db.insert("locations", {
-      name: args.name,
-      description: args.description,
-      color: args.color,
       campaignId: args.campaignId,
       tagId,
-      createdBy: profile.userId,
-      updatedAt: Date.now(),
     });
 
     return { locationId, tagId, noteId };
@@ -66,59 +53,18 @@ export const updateLocation = mutation({
       { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
     );
 
-    const locationUpdates: {
-      name?: string;
-      description?: string;
-      color?: string;
-      updatedAt: number;
-    } = {
-      updatedAt: Date.now(),
-    };
+    const tag = await getTag(ctx, location.tagId);
 
-    if (args.name !== undefined) {
-      locationUpdates.name = args.name;
-    }
-    if (args.description !== undefined) {
-      locationUpdates.description = args.description;
-    }
-    if (args.color !== undefined) {
-      locationUpdates.color = args.color;
-    }
+    await updateTagAndContent(
+      ctx,
+      tag._id,
+      {
+        displayName: args.name,
+        color: args.color,
+        description: args.description,
+      },
+    );
 
-    await ctx.db.patch(args.locationId, locationUpdates);
-
-    if (args.name !== undefined || args.color !== undefined) {
-      await updateTagAndContent(
-        ctx,
-        location.tagId,
-        location.campaignId,
-        location.name,
-        location.color,
-        {
-          name: args.name,
-          color: args.color,
-        },
-      );
-
-      // Also update the associated note name if location name changed
-      if (args.name !== undefined) {
-        const tag = await ctx.db.get(location.tagId);
-        if (!tag) {
-          throw new Error("Location tag not found");
-        }
-        if (!tag.noteId) {
-          throw new Error("Location note not found");
-        }
-        const associatedNote = await ctx.db.get(tag.noteId);
-
-        if (associatedNote) {
-          await ctx.db.patch(associatedNote._id, {
-            name: args.name,
-            updatedAt: Date.now(),
-          });
-        }
-      }
-    }
 
     return args.locationId;
   },
@@ -131,7 +77,7 @@ export const deleteLocation = mutation({
   handler: async (ctx, args): Promise<Id<"locations">> => {
     const location = await ctx.db.get(args.locationId);
     if (!location) {
-      throw new Error("Location not found");
+      throw new Error("Character not found");
     }
 
     await requireCampaignMembership(ctx, { campaignId: location.campaignId },
@@ -139,7 +85,6 @@ export const deleteLocation = mutation({
     );
 
     await deleteTagAndCleanupContent(ctx, location.tagId);
-
     await ctx.db.delete(args.locationId);
 
     return args.locationId;

@@ -16,12 +16,12 @@ import { NoteButton } from "../../sidebar-note/note-button";
 import type { Id } from "convex/_generated/dataModel";
 import { useNotes } from "~/contexts/NotesContext";
 import { ConfirmationDialog } from "~/components/dialogs/confirmation-dialog";
-import type { CharacterWithTag } from "convex/characters/types";
 import { toast } from "sonner";
 import { CharacterNoteContextMenu } from "./character-note-context-menu";
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import type { Note } from "convex/notes/types";
 import { useCampaign } from "~/contexts/CampaignContext";
+import type { Character } from "convex/characters/types";
 
 interface CharacterSystemFolderProps {
   isExpanded: boolean;
@@ -39,7 +39,7 @@ export const CharacterSystemFolder = ({
   const { campaignWithMembership } = useCampaign();
   const campaign = campaignWithMembership?.data?.campaign;
   const { updateNoteName, selectNote, note: selectedNote } = useNotes();
-  const [deletingCharacter, setDeletingCharacter] = useState<CharacterWithTag | null>(null);
+  const [deletingCharacter, setDeletingCharacter] = useState<Character | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   
   const updateCharacter = useMutation({mutationFn: useConvexMutation(api.characters.mutations.updateCharacter)});
@@ -61,14 +61,14 @@ export const CharacterSystemFolder = ({
     if (!campaign) return;
     
     try {
-      const character = allCharacters.data?.find(char => char.tag.noteId === note._id);
+      const character = allCharacters.data?.find(char => char.noteId === note._id);
       if (!character) {
         toast.error("Character not found");
         return;
       }
       
       await updateCharacter.mutateAsync({
-        characterId: character._id,
+        characterId: character.characterId,
         name: newName,
       });
 
@@ -85,7 +85,7 @@ export const CharacterSystemFolder = ({
   const handleCharacterNoteDelete = (note: Note) => {
     if (!campaign) return;
     
-    const character = allCharacters.data?.find(char => char.tag.noteId === note._id);
+    const character = allCharacters.data?.find(char => char.noteId === note._id);
     if (character) {
       setDeletingCharacter(character);
     } else {
@@ -99,7 +99,7 @@ export const CharacterSystemFolder = ({
     setIsDeleting(true);
     try {
       await deleteCharacter.mutateAsync({
-        characterId: deletingCharacter._id,
+        characterId: deletingCharacter.characterId,
       });
 
       toast.success("Character deleted successfully");

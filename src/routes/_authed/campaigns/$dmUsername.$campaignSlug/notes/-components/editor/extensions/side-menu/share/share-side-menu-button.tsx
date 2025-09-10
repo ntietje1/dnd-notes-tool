@@ -60,7 +60,7 @@ export default function ShareSideMenuButton({ block, freezeMenu, unfreezeMenu }:
   );
 
   const getUserByMemberId = (memberId: string): CampaignMember | undefined => {
-    return playersResult.data?.find((m: any) => m._id === memberId);
+    return playersResult.data?.find((m) => m._id === memberId);
   };
 
   const appliedTagIds = blockTagState.data?.allTagIds || [];
@@ -147,7 +147,7 @@ export default function ShareSideMenuButton({ block, freezeMenu, unfreezeMenu }:
           icon={<Share2 size={18} />}
         />
       </DropdownMenuTrigger>
-      <DropdownMenuContent side="bottom" align="start" className="w-56 max-h-(--radix-dropdown-menu-content-available-height) overflow-y-auto">
+      <DropdownMenuContent side="bottom" align="start" className="w-56 max-h-[var(--radix-dropdown-menu-content-available-height)] overflow-y-auto">
         <DropdownMenuLabel>Share with</DropdownMenuLabel>
         {items.map((it) => (
           <DropdownMenuCheckboxItem

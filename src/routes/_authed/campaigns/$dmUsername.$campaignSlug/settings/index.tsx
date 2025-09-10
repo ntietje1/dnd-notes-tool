@@ -5,7 +5,8 @@ import { LoadingPage } from '~/components/loading/loading-page'
 import { useForm } from '@tanstack/react-form'
 import { Input } from '~/components/shadcn/ui/input'
 import { Label } from '~/components/shadcn/ui/label'
-import { validateCampaignSettingsName } from './-components/settings-form-validators'
+import { removeInvalidCharacters, validateCampaignName, validateCampaignSlugAsync, validateCampaignSlugSync } from '../../-components/campaign-form-validators'
+import { useConvex } from 'convex/react'
 
 
 export const Route = createFileRoute('/_authed/campaigns/$dmUsername/$campaignSlug/settings/')({
@@ -16,7 +17,8 @@ function CampaignSettingsPage() {
   const { campaignWithMembership } = useCampaign()
   const campaign = campaignWithMembership?.data?.campaign;
   const campaignStatus = campaignWithMembership?.status;
-
+  const convex = useConvex();
+  
   const form = useForm({
     defaultValues: {
       name: campaign?.name ?? '',
@@ -65,7 +67,7 @@ function CampaignSettingsPage() {
               name="name"
               validators={{
                 onChange: () => undefined,
-                onBlur: ({ value }) => validateCampaignSettingsName(value),
+                onBlur: ({ value }) => validateCampaignName(value),
               }}
             >
               {(field) => (
@@ -102,7 +104,29 @@ function CampaignSettingsPage() {
               )}
             </form.Field>
 
-            <form.Field name="slug">
+            <form.Field
+              name="slug"
+              validators={{
+                onChange: () => undefined,
+                onBlur: ({ value }) => {
+                  const trimmed = value.trim();
+                  const normalized = removeInvalidCharacters(trimmed);
+                  return validateCampaignSlugSync(normalized);
+                },
+                onChangeAsync: async ({ value }) => {
+                  const trimmed = value.trim();
+                  const normalized = removeInvalidCharacters(trimmed);
+                  const syncError = validateCampaignSlugSync(normalized);
+                  if (syncError) return syncError;
+                  return validateCampaignSlugAsync(
+                    convex,
+                    normalized,
+                    campaign?._id,
+                  );
+                },
+                onChangeAsyncDebounceMs: 300,
+              }}
+            >
               {(field) => (
                 <div>
                   <Label className="block text-sm font-medium text-gray-700 mb-1">

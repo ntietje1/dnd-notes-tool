@@ -3,7 +3,6 @@ import {
   ContextMenu,
   type ContextMenuItem,
 } from "~/components/context-menu/context-menu";
-import { useNotes } from "~/contexts/NotesContext";
 import { useState } from "react";
 import LocationDialog from "~/routes/_authed/campaigns/$dmUsername.$campaignSlug/locations/-components/location-dialog";
 import { useCampaign } from "~/contexts/CampaignContext";

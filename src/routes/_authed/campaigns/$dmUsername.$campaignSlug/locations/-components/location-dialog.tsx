@@ -13,10 +13,10 @@ import { Plus, MapPin } from "~/lib/icons";
 import { toast } from "sonner";
 import { useCampaign } from "~/contexts/CampaignContext";
 import { useMutation } from "@tanstack/react-query";
-import { useConvexMutation } from "@convex-dev/react-query";
+import { useConvex, useConvexMutation } from "@convex-dev/react-query";
 import { Input } from "~/components/shadcn/ui/input";
 import { Label } from "~/components/shadcn/ui/label";
-import { validateLocationName } from "./location-form-validators";
+import { validateLocationName, validateLocationNameAsync } from "./location-form-validators";
 
 const DEFAULT_LOCATION_FORM_VALUES: { name: string; description: string; color: string } = {
   name: "",
@@ -44,7 +44,7 @@ export default function LocationDialog({
   navigateToNote = false,
 }: LocationDialogProps) {
   const router = useRouter();
-
+  const convex = useConvex();
   const { campaignWithMembership } = useCampaign();
   const campaign = campaignWithMembership?.data?.campaign
   const createLocation = useMutation({ mutationFn: useConvexMutation(api.locations.mutations.createLocation) });
@@ -82,7 +82,7 @@ export default function LocationDialog({
           }
         } else if (mode === "edit" && location) {
           await updateLocation.mutateAsync({
-            locationId: location._id,
+            locationId: location.locationId,
             name: value.name.trim(),
             description: value.description.trim() || undefined,
             color: value.color,
@@ -153,6 +153,16 @@ export default function LocationDialog({
             validators={{
               onChange: () => undefined,
               onBlur: ({ value }) => validateLocationName(value),
+              onChangeAsync: async ({ value }) => {
+                if (!campaign) return undefined;
+                return validateLocationNameAsync(
+                  convex,
+                  campaign._id,
+                  value,
+                  mode === "edit" && location ? location._id : undefined,
+                );
+              },
+              onChangeAsyncDebounceMs: 300,
             }}
           >
             {(field) => (
@@ -177,9 +187,9 @@ export default function LocationDialog({
           <form.Field name="description">
             {(field) => (
               <div className="space-y-2 px-px">
-                <Label htmlFor="location-name">Description</Label>
+                <Label htmlFor="location-description">Description</Label>
                 <textarea
-                  id="location-name"
+                  id="location-description"
                   rows={3}
                   className="flex h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   value={field.state.value}
@@ -200,6 +210,7 @@ export default function LocationDialog({
                   onColorChange={(color) => field.handleChange(color)}
                   disabled={form.state.isSubmitting}
                   label="Location Color"
+                  aria-labelledby="color-picker-label"
                 />
               </div>
             )}

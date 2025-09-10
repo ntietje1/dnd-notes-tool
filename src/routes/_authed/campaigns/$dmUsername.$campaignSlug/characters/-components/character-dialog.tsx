@@ -13,10 +13,10 @@ import { Plus, Users } from "~/lib/icons";
 import { toast } from "sonner";
 import { useCampaign } from "~/contexts/CampaignContext";
 import { useMutation } from "@tanstack/react-query";
-import { useConvexMutation } from "@convex-dev/react-query";
+import { useConvex, useConvexMutation } from "@convex-dev/react-query";
 import { Input } from "~/components/shadcn/ui/input";
 import { Label } from "~/components/shadcn/ui/label";
-import { validateCharacterName } from "./character-form-validators";
+import { validateCharacterName, validateCharacterNameAsync } from "./character-form-validators";
 
 const DEFAULT_CHARACTER_FORM_VALUES: { name: string; description: string; color: string } = {
   name: "",
@@ -44,6 +44,7 @@ export default function CharacterDialog({
   navigateToNote = false,
 }: CharacterDialogProps) {
   const router = useRouter();
+  const convex = useConvex();
   const { campaignWithMembership } = useCampaign();
   const campaign = campaignWithMembership?.data?.campaign;
   const createCharacter = useMutation({ mutationFn: useConvexMutation(api.characters.mutations.createCharacter) });
@@ -81,7 +82,7 @@ export default function CharacterDialog({
           }
         } else if (mode === "edit" && character) {
           await updateCharacter.mutateAsync({
-            characterId: character._id,
+            characterId: character.characterId,
             name: value.name.trim(),
             description: value.description.trim() || undefined,
             color: value.color,
@@ -149,6 +150,16 @@ export default function CharacterDialog({
             validators={{
               onChange: () => undefined,
               onBlur: ({ value }) => validateCharacterName(value),
+              onChangeAsync: async ({ value }) => {
+                if (!campaign) return undefined;
+                return validateCharacterNameAsync(
+                  convex,
+                  campaign._id,
+                  value,
+                  mode === "edit" && character ? character._id : undefined,
+                );
+              },
+              onChangeAsyncDebounceMs: 300,
             }}
           >
             {(field) => (
@@ -196,6 +207,7 @@ export default function CharacterDialog({
                   onColorChange={(color) => field.handleChange(color)}
                   disabled={form.state.isSubmitting}
                   label="Character Color"
+                  aria-labelledby="color-picker-label"
                 />
               </div>
             )}

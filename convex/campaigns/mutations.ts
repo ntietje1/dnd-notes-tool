@@ -68,12 +68,12 @@ export const joinCampaign = mutation({
       throw new Error("Campaign not found");
     }
 
-      const campaign = await ctx.db
-      .query("campaigns")
-      .withIndex("by_slug_dm", (q) =>
-        q.eq("slug", args.slug).eq("dmUserId", dmUserProfile.userId),
-      )
-      .unique();
+    const campaign = await ctx.db
+    .query("campaigns")
+    .withIndex("by_slug_dm", (q) =>
+      q.eq("slug", args.slug).eq("dmUserId", dmUserProfile.userId),
+    )
+    .unique();
 
     if (!campaign) {
       throw new Error("Campaign not found");
@@ -83,6 +83,7 @@ export const joinCampaign = mutation({
       .query("campaignMembers")
       .withIndex("by_campaign", (q) => q.eq("campaignId", campaign._id))
       .collect();
+      
     if (campaignMembers.some((member) => member.userId === profile.userId)) {
       return campaignMembers.find((member) => member.userId === profile.userId)!.status
     }
@@ -216,7 +217,7 @@ export const deleteCampaign = mutation({
 
     const locations = await ctx.db
       .query("locations")
-      .withIndex("by_campaign", (q) => q.eq("campaignId", args.campaignId))
+      .withIndex("by_campaign_tag", (q) => q.eq("campaignId", args.campaignId))
       .collect();
 
     for (const location of locations) {
@@ -225,7 +226,7 @@ export const deleteCampaign = mutation({
 
     const characters = await ctx.db
       .query("characters")
-      .withIndex("by_campaign", (q) => q.eq("campaignId", args.campaignId))
+      .withIndex("by_campaign_tag", (q) => q.eq("campaignId", args.campaignId))
       .collect();
 
     for (const character of characters) {

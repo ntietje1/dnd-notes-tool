@@ -6,7 +6,7 @@ import { EmptyState } from "~/components/content-grid-page/empty-state";
 import { ConfirmationDialog } from "~/components/dialogs/confirmation-dialog";
 import { MapPin, Plus, Edit, Trash2 } from "~/lib/icons";
 import { useState } from "react";
-import type { LocationWithTag } from "convex/locations/types";
+import type { Location } from "convex/locations/types";
 import LocationDialog from "./location-dialog";
 import { toast } from "sonner";
 import { CardGridSkeleton } from "~/components/content-grid-page/card-grid-skeleton";
@@ -26,20 +26,20 @@ export default function LocationsContent() {
 
   const [creatingLocation, setCreatingLocation] = useState(false);
   const [editingLocation, setEditingLocation] =
-    useState<LocationWithTag | null>(null);
+    useState<Location | null>(null);
   const [deletingLocation, setDeletingLocation] =
-    useState<LocationWithTag | null>(null);
+    useState<Location | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const deleteLocation = useMutation({ mutationFn: useConvexMutation(api.locations.mutations.deleteLocation) });
 
-  const handleViewLocationNotes = (location: LocationWithTag) => {
+  const handleViewLocationNotes = (location: Location) => {
     router.navigate({
       to: "/campaigns/$dmUsername/$campaignSlug/locations/$locationId",
       params: {
         dmUsername,
         campaignSlug,
-        locationId: location._id,
+        locationId: location.locationId,
       },
     });
   };
@@ -51,7 +51,7 @@ export default function LocationsContent() {
 
     try {
       await deleteLocation.mutateAsync({
-        locationId: deletingLocation._id,
+        locationId: deletingLocation.locationId,
       });
 
       toast.success("Location deleted successfully");

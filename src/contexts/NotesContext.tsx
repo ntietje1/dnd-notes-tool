@@ -23,7 +23,7 @@ import { SORT_DIRECTIONS, SORT_ORDERS, type SortOptions } from "convex/editors/t
 import { useCampaign } from "./CampaignContext";
 import { useMutation, useQuery, type QueryStatus } from "@tanstack/react-query";
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { useLocation, useNavigate } from "@tanstack/react-router";
 import { combineStatus } from "~/utils/combineStatus";
 
 type NotesContextType = {
@@ -34,7 +34,6 @@ type NotesContextType = {
   status: QueryStatus;
   sortOptions: SortOptions;
 
-  setNoteId: (noteId: Id<"notes"> | null) => void;
   selectNote: (noteId: Id<"notes"> | null) => void;
   updateNoteContent: (content: CustomBlock[]) => Promise<void>;
   debouncedUpdateNoteContent: (content: CustomBlock[]) => void;
@@ -140,13 +139,17 @@ interface NotesProviderProps {
 
 export function NotesProvider({ children }: NotesProviderProps) {
   const { dmUsername, campaignSlug, campaignWithMembership } = useCampaign();
-  const [noteId, setNoteId] = useState<Id<"notes"> | null>(null);
   const campaign = campaignWithMembership?.data?.campaign;
+  const location = useLocation();
+  const routeNoteId = location.pathname.includes('/notes/') && !location.pathname.endsWith('/notes')
+    ? location.pathname.split('/notes/')[1]
+    : null;
 
   const [expandedFolders, setExpandedFolders] = useState<Set<Id<"folders">>>(
     new Set(),
   );
   const navigate = useNavigate();
+  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(routeNoteId);
   
   const campaignLoaded = campaignWithMembership?.status === "success" && campaign?._id !== undefined;
 
@@ -162,7 +165,7 @@ export function NotesProvider({ children }: NotesProviderProps) {
 
   const note = useQuery(convexQuery(
     api.notes.queries.getNote,
-    (campaignLoaded && noteId) ? { noteId: noteId as Id<"notes"> } : "skip",
+    (campaignLoaded && selectedNoteId) ? { noteId: selectedNoteId as Id<"notes"> } : "skip",
   ));
 
   const sortOptions: SortOptions = useMemo(
@@ -183,7 +186,7 @@ export function NotesProvider({ children }: NotesProviderProps) {
     return recursiveSortItemsByOptions(sidebarItems.data, sortOptions);
   }, [sidebarItems.data, sortOptions]);
 
-  const status = combineStatus([campaignWithMembership?.status, editor.status, sidebarItems.status, ...(noteId ? [note.status] : [])]);
+  const status = combineStatus([campaignWithMembership?.status, editor.status, sidebarItems.status, ...(selectedNoteId ? [note.status] : [])]);
 
   // Drag & Drop helper functions
   const findNoteRecursively = useCallback(
@@ -282,6 +285,7 @@ export function NotesProvider({ children }: NotesProviderProps) {
   const updateFolderAction = useMutation({ mutationFn: useConvexMutation(api.notes.mutations.updateFolder) });
 
   const selectNote = useCallback((noteId: Id<"notes"> | null) => {
+    setSelectedNoteId(noteId ?? null);
     if (!noteId) {
       navigate({
         to: '/campaigns/$dmUsername/$campaignSlug/notes',
@@ -294,7 +298,7 @@ export function NotesProvider({ children }: NotesProviderProps) {
       to: '/campaigns/$dmUsername/$campaignSlug/notes/$noteId',
       params: { dmUsername, campaignSlug, noteId }
     });
-  }, []);
+  }, [dmUsername, campaignSlug, navigate]);
 
   const updateNoteContent = useCallback(
     async (content: CustomBlock[]) => {
@@ -471,9 +475,13 @@ export function NotesProvider({ children }: NotesProviderProps) {
     };
   }, [debouncedUpdateNoteContent]);
 
+  useEffect(() => {
+    setSelectedNoteId(routeNoteId);
+  }, [routeNoteId]);
+
   const value: NotesContextType = {
     // State
-    noteId: noteId ?? null,
+    noteId: selectedNoteId,
     note: note.data,
     expandedFolders,
     sidebarData,
@@ -481,7 +489,6 @@ export function NotesProvider({ children }: NotesProviderProps) {
     sortOptions,
 
     // Actions
-    setNoteId,
     selectNote,
     updateNoteContent,
     debouncedUpdateNoteContent,

@@ -1,9 +1,9 @@
 import { v } from "convex/values";
 import { Tag, TagWithCategory } from "./types";
 import { query } from "../_generated/server";
-import { requireCampaignMembership } from "../campaigns/campaigns";
-import { CAMPAIGN_MEMBER_ROLE } from "../campaigns/types";
 import { getPlayerSharedTags, getSharedAllTag } from "./shared";
+import { getTag as getTagFn, getTagsByCategory as getTagsByCategoryFn, getTagsByCampaign as getTagsByCampaignFn } from "./tags";
+import type { Id } from "../_generated/dataModel";
 
 export const getSharedTags = query({
   args: {
@@ -28,51 +28,46 @@ export const getTag = query({
     tagId: v.id("tags"),
   },
   handler: async (ctx, args): Promise<Tag> => {
-    const tag = await ctx.db.get(args.tagId);
-    if (!tag) {
-      throw new Error("Tag not found");
-    }
-    await requireCampaignMembership(ctx, { campaignId: args.campaignId },
-      { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM, CAMPAIGN_MEMBER_ROLE.Player] }
-    );
-    if (tag.campaignId !== args.campaignId) {
-      throw new Error("Tag not found");
-    }
-    return tag;
+    return await getTagFn(ctx, args.tagId);
   },
 });
 
-export const getTags = query({
+export const getTagsByCampaign = query({
   args: {
     campaignId: v.id("campaigns"),
-    categoryId: v.optional(v.id("tagCategories")),
   },
   handler: async (ctx, args): Promise<TagWithCategory[]> => {
-    await requireCampaignMembership(ctx, { campaignId: args.campaignId },
-      { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM, CAMPAIGN_MEMBER_ROLE.Player] }
-    );
-    
-    const categories = await ctx.db
-      .query("tagCategories")
-      .withIndex("by_campaign_name", (q) => q.eq("campaignId", args.campaignId))
-      .collect();
+    return await getTagsByCampaignFn(ctx, args.campaignId);
+  },
+});
 
-    const baseTags = await ctx.db
+
+export const getTagsByCategory = query({
+  args: {
+    campaignId: v.id("campaigns"),
+    categoryId: v.id("tagCategories"),
+  },
+  handler: async (ctx, args): Promise<TagWithCategory[]> => {
+    return await getTagsByCategoryFn(ctx, args.categoryId);
+  },
+});
+
+export const checkTagNameExists = query({
+  args: {
+    campaignId: v.id("campaigns"),
+    displayName: v.string(),
+    excludeTagId: v.optional(v.id("tags")),
+  },
+  handler: async (ctx, args): Promise<boolean> => {
+    const existing = await ctx.db
       .query("tags")
-      .withIndex("by_campaign_categoryId", (q) => {
-        const baseQuery = q.eq("campaignId", args.campaignId);
-        return args.categoryId 
-          ? baseQuery.eq("categoryId", args.categoryId)
-          : baseQuery;
-      })
-      .collect();
+      .withIndex("by_campaign_name", (q) =>
+        q.eq("campaignId", args.campaignId).eq("name", args.displayName.toLowerCase()),
+      )
+      .unique();
 
-      return baseTags.map((tag) => {
-        const category = categories.find((c) => c._id === tag.categoryId);
-        if (!category) {
-          throw new Error(`Category not found for tag ${tag._id}`);
-        }
-      return { ...tag, category };
-    });
+    if (!existing) return false;
+    if (args.excludeTagId && existing._id === args.excludeTagId) return false;
+    return true;
   },
 });

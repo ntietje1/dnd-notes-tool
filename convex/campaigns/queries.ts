@@ -132,7 +132,7 @@ export const checkCampaignSlugExists = query({
     const existingCampaign = await ctx.db
       .query("campaigns")
       .withIndex("by_slug_dm", (q) =>
-        q.eq("slug", args.slug.toLowerCase()).eq("dmUserId", profile.userId),
+        q.eq("slug", args.slug).eq("dmUserId", profile.userId),
       )
       .unique();
 

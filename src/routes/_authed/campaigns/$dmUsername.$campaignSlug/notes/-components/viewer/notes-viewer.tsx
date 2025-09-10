@@ -32,13 +32,12 @@ export function NotesViewer() {
   ));
 
   const editor = React.useMemo<CustomBlockNoteEditor | null>(() => {
-    if (!blocks.data) return null;
+    if (!blocks.data || blocks.data.length === 0) return null;
     return BlockNoteEditor.create({
       schema,
-      initialContent:
-        blocks.data.length > 0 ? blocks.data.map((block) => block.content) : undefined,
+      initialContent: blocks.data.map((block) => block.content),
     });
-  }, [blocks]);
+  }, [blocks.data]);
 
   if (status === "pending") {
     return <NotesViewerLoading />;
@@ -65,7 +64,7 @@ export function NotesViewer() {
             }}
             type="button"
           >
-            {tag.name}
+            {tag.displayName}
           </button>
         ))}
       </div>

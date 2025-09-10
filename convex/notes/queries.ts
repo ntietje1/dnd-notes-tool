@@ -205,7 +205,8 @@ export const getBlocksByTags = query({
             doesBlockMatchRequiredTags(ctx, block._id, args.tagIds),
           ]);
           return hasSharedTag && matchesRequired ? block : null;
-        } catch {
+        } catch (error) {
+          console.warn(`Error checking block access/tags for block ${block._id}:`, error);
           return null;
         }
       })
@@ -222,14 +223,8 @@ export const getBlocksByTags = query({
 
     const filteredResults: Block[] = [];
     const matchedNoteIds = Array.from(noteGroups.keys());
-    const allTopLevel = await ctx.db
-      .query("blocks")
-      .withIndex("by_campaign_note_toplevel_pos", (q) =>
-        q.eq("campaignId", args.campaignId!)
-      )
-      .collect();
     const topByNote = new Map<Id<"notes">, Block[]>();
-    for (const b of allTopLevel) {
+    for (const b of allBlocks) {
       if (b.isTopLevel && matchedNoteIds.includes(b.noteId)) {
         const arr = topByNote.get(b.noteId) ?? [];
         arr.push(b);
@@ -266,24 +261,14 @@ export const getBlockTagState = query({
     noteTagId: Id<"tags"> | null;
   }> => {
     const note = await ctx.db.get(args.noteId);
-    if (!note) return {
-      allTagIds: [],
-      inlineTagIds: [],
-      blockTagIds: [],
-      noteTagId: null,
-    };
+    if (!note) throw new Error("Note not found");
     
     await requireCampaignMembership(ctx, { campaignId: note.campaignId },
       { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM, CAMPAIGN_MEMBER_ROLE.Player] }
     );
 
     const block = await findBlock(ctx, args.noteId, args.blockId);
-    if (!block) return {
-      allTagIds: [],
-      inlineTagIds: [],
-      blockTagIds: [],
-      noteTagId: null,
-    };
+    if (!block) throw new Error("Block not found");
     
 
     const blockTagIds = await getBlockLevelTags(ctx, block._id);
@@ -310,7 +295,7 @@ export const getTagNotePages = query({
       v.literal(SYSTEM_TAG_CATEGORY_NAMES.Character),
       v.literal(SYSTEM_TAG_CATEGORY_NAMES.Location),
       v.literal(SYSTEM_TAG_CATEGORY_NAMES.Session),
-      v.literal(SYSTEM_TAG_CATEGORY_NAMES.SharedAll),
+      v.literal(SYSTEM_TAG_CATEGORY_NAMES.Shared),
     ),
   },
   handler: async (ctx, args): Promise<Note[]> => {

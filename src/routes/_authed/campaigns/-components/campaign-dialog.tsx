@@ -180,11 +180,16 @@ export function CampaignDialog({
             name="slug"
             validators={{
               onChange: () => undefined,
-              onBlur: ({ value }) => validateCampaignSlugSync(value),
+              onBlur: ({ value }) => {
+                const trimmed = value.trim();
+                const normalized = removeInvalidCharacters(trimmed);
+                return validateCampaignSlugSync(normalized);
+              },
               onChangeAsync: async ({ value }) => {
                 const trimmed = value.trim();
                 const normalized = removeInvalidCharacters(trimmed);
-                if (validateCampaignSlugSync(normalized)) return undefined;
+                const syncError = validateCampaignSlugSync(normalized);
+                if (syncError) return syncError;
                 return validateCampaignSlugAsync(
                   convex,
                   normalized,
@@ -205,9 +210,7 @@ export function CampaignDialog({
                     id="campaign-slug"
                     value={field.state.value}
                     onChange={(e) => field.handleChange(e.target.value)}
-                    onBlur={() => {
-                      field.handleBlur();
-                    }}
+                    onBlur={() => field.handleBlur()}
                     placeholder="campaign-link"
                     minLength={3}
                     maxLength={30}

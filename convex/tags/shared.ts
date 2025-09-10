@@ -1,7 +1,7 @@
 import { Id } from "../_generated/dataModel";
 import { MutationCtx } from "../_generated/server";
 import { getEffectiveTagIdsForBlock, insertTag } from "./tags";
-import { SYSTEM_TAG_CATEGORY_NAMES, Tag, TagCategory } from "./types";
+import { SHARED_TAG_COLOR, SYSTEM_TAG_CATEGORY_NAMES, Tag, TagCategory } from "./types";
 import { Ctx } from "../common/types";
 
 export async function getSharedCategory(
@@ -10,7 +10,7 @@ export async function getSharedCategory(
 ): Promise<TagCategory> {
     const sharedCategory = await ctx.db
         .query("tagCategories")
-        .withIndex("by_campaign_name", (q) => q.eq("campaignId", campaignId).eq("name", SYSTEM_TAG_CATEGORY_NAMES.SharedAll),
+        .withIndex("by_campaign_name", (q) => q.eq("campaignId", campaignId).eq("name", SYSTEM_TAG_CATEGORY_NAMES.Shared.toLowerCase()),
         )
         .unique();
     if (!sharedCategory) {
@@ -30,7 +30,7 @@ export async function getSharedAllTag(
         q.eq("campaignId", campaignId).eq("categoryId", sharedCategory._id),
         )
         .collect();
-    const sharedAllTag = sharedTags.find((t) => t.name === SYSTEM_TAG_CATEGORY_NAMES.SharedAll);
+    const sharedAllTag = sharedTags.find((t) => t.name === SYSTEM_TAG_CATEGORY_NAMES.Shared.toLowerCase());
     if (!sharedAllTag) {
         console.error("All shared tag should exist but was not found");
         throw new Error("All shared tag should exist but was not found");
@@ -49,8 +49,7 @@ export async function ensureSharedAllTag(
         return await insertTag(
             ctx,
             {
-                displayName: SYSTEM_TAG_CATEGORY_NAMES.SharedAll,
-                name: SYSTEM_TAG_CATEGORY_NAMES.SharedAll,
+                displayName: SYSTEM_TAG_CATEGORY_NAMES.Shared,
                 color: "#F59E0B",
                 description: "Visible to all players",
                 campaignId,
@@ -116,7 +115,6 @@ export async function ensurePlayerSharedTag(
             ctx,
             {
                 displayName: "Shared: (Player)",
-                name: "Shared: (Player)",
                 color: "#F59E0B",
                 description: "Visible to a specific player",
                 campaignId,
@@ -133,10 +131,43 @@ export async function ensureAllPlayerSharedTags(
     ctx: MutationCtx,
     campaignId: Id<"campaigns">
 ): Promise<void> {
-    const campaignMembers = await ctx.db.query("campaignMembers").withIndex("by_campaign", (q) => q.eq("campaignId", campaignId)).collect();
-    await Promise.all(campaignMembers.map(async (member) => {
-        return await ensurePlayerSharedTag(ctx, campaignId, member._id);
-    }));
+    const campaignMembers = await ctx.db
+        .query("campaignMembers")
+        .withIndex("by_campaign", (q) => q.eq("campaignId", campaignId))
+        .collect();
+
+    const sharedCategory = await getSharedCategory(ctx, campaignId);
+    const existing = await ctx.db
+        .query("tags")
+        .withIndex("by_campaign_categoryId", (q) =>
+            q.eq("campaignId", campaignId).eq("categoryId", sharedCategory._id),
+        )
+        .collect();
+    const existingMemberIds = new Set(
+        existing
+            .filter((t) => !!t.memberId)
+            .map((t) => t.memberId),
+    );
+    const missingMembers = campaignMembers.filter(
+        (m) => !existingMemberIds.has(m._id),
+    );
+
+    await Promise.all(
+        missingMembers.map((member) =>
+            insertTag(
+                ctx,
+                {
+                    displayName: "Shared: (Player)",
+                    color: SHARED_TAG_COLOR,
+                    description: "Visible to a specific player",
+                    campaignId,
+                    memberId: member._id,
+                    categoryId: sharedCategory._id,
+                },
+                true,
+            ),
+        ),
+    );
 }
 
 export async function hasAccessToBlock(

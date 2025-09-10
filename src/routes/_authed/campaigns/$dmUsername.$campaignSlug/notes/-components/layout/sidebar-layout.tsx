@@ -5,8 +5,8 @@ import { SidebarHeader } from "../editor/sidebar-header/sidebar-header";
 
 export function SidebarLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ResizablePanelGroup direction="horizontal">
-        <ResizablePanel defaultSize={20} minSize={10}>
+    <ResizablePanelGroup direction="horizontal" className="h-full">
+        <ResizablePanel defaultSize={20} minSize={10} className="flex flex-col">
           <SidebarHeader />
           <FileSidebar />
         </ResizablePanel>

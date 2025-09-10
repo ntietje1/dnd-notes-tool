@@ -171,12 +171,11 @@ export function FileSidebar() {
       onDragEnd={handleDragEnd}
     >
       <div className="h-full bg-background flex flex-1 flex-col min-h-0 min-w-0">
-        <div className="flex-1 min-h-0 relative">
-          <DroppableRoot
-            className="absolute inset-0 p-1 transition-colors overflow-y-auto"
-            onNewPage={handleNewPage}
-            onNewFolder={handleNewFolder}
-          >
+        <DroppableRoot
+          className="flex-1 p-1 transition-colors overflow-y-auto"
+          onNewPage={handleNewPage}
+          onNewFolder={handleNewFolder}
+        >
             <SystemFolders
               renamingId={renamingId}
               setRenamingId={setRenamingId}
@@ -193,7 +192,6 @@ export function FileSidebar() {
               />
             ))}
           </DroppableRoot>
-        </div>
       </div>
       <DragOverlay dropAnimation={null}>
         {activeDragItem && (

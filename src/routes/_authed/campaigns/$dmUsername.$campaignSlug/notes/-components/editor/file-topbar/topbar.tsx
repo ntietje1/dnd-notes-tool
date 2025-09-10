@@ -9,9 +9,12 @@ import { useCallback, useState, useEffect, useRef } from "react";
 import { useNotes } from "~/contexts/NotesContext";
 import { UNTITLED_NOTE_TITLE } from "convex/notes/types";
 import { Skeleton } from "~/components/shadcn/ui/skeleton";
+import { Link } from "@tanstack/react-router";
+import { useCampaign } from "~/contexts/CampaignContext";
 
 export function FileTopbar() {
-  const { note, updateNoteName, selectNote, status } = useNotes();
+  const { dmUsername, campaignSlug } = useCampaign();
+  const { note, updateNoteName, status, selectNote } = useNotes();
   const [title, setTitle] = useState(note?.name ?? "");
   const [isEditing, setIsEditing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -81,13 +84,15 @@ export function FileTopbar() {
               <DropdownMenuContent align="end">
               </DropdownMenuContent>
             </DropdownMenu>
-
             <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => selectNote(null)}
-            >
-              <X className="h-4 w-4" />
+                variant="ghost"
+                size="icon"
+                onClick={() => selectNote(null)}
+                asChild
+              >
+              <Link to="/campaigns/$dmUsername/$campaignSlug/notes" params={{ dmUsername, campaignSlug }}>
+                <X className="h-4 w-4" />
+              </Link>
             </Button>
           </div>
         </div>

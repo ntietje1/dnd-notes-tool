@@ -15,6 +15,7 @@ import {
 import type { CustomBlock } from "~/lib/editor-schema";
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent } from "~/components/shadcn/ui/dropdown-menu";
+import type { Tag } from "convex/tags/types";
 
 interface TagSideMenuButtonProps {
   block: CustomBlock;
@@ -83,19 +84,19 @@ export default function TagSideMenuButton({
 
   // Tags that are unavailable (locked) include inline tags and the note level tag
   const lockedTagIds = [...inlineTagIds, ...(noteTagId ? [noteTagId] : [])];
-  const unavailableTags = nonSystemManagedTags?.filter((tag) => lockedTagIds.includes(tag._id)) || [];
+  const unavailableTags = nonSystemManagedTags?.filter((tag: Tag) => lockedTagIds.includes(tag._id)) || [];
   
   // Available tags are those not already applied to the block
-  const availableTags = nonSystemManagedTags?.filter((tag) => !allBlockTagIds.includes(tag._id)) || [];
+  const availableTags = nonSystemManagedTags?.filter((tag: Tag) => !allBlockTagIds.includes(tag._id)) || [];
   const filteredAvailableTags = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return availableTags;
-    return availableTags.filter((t) => t.name.toLowerCase().includes(q));
+    return availableTags.filter((t: Tag) => t.displayName.includes(q));
   }, [availableTags, query]);
 
 
   const manualTagObjects = manualTagIds
-    .map((tagId: Id<"tags">) => nonSystemManagedTags?.find((t) => t._id === tagId))
+    .map((tagId: Id<"tags">) => nonSystemManagedTags?.find((t: Tag) => t._id === tagId))
     .filter((t): t is NonNullable<typeof t> => Boolean(t));
 
   return (
@@ -116,13 +117,13 @@ export default function TagSideMenuButton({
       <DropdownMenuContent
         side="bottom"
         align="start"
-        className="w-72 overflow-y-auto"
+        className="w-72 overflow-y-auto max-h-[var(--radix-dropdown-menu-content-available-height)]"
       >
         {(unavailableTags.length > 0 || manualTagObjects.length > 0) && (
           <div className="px-2 pt-1 pb-2">
             <div className="text-xs text-muted-foreground mb-1.5">Current tags</div>
             <div className="flex flex-wrap gap-1.5">
-              {unavailableTags.map((tag) => (
+              {unavailableTags.map((tag: Tag) => (
                 <div key={`inline-${tag._id}`} className="group">
                   <Badge
                     variant="secondary"
@@ -135,7 +136,7 @@ export default function TagSideMenuButton({
                     className="inline-flex items-center py-1 transition-colors bg-[var(--tag-bg)] text-[var(--tag-fg)]"
                   >
                     <Lock aria-hidden className="opacity-0" />
-                    <span>{tag.name}</span>
+                    <span>{tag.displayName}</span>
                     <Lock aria-hidden className="opacity-0 transition-opacity group-hover:opacity-100" />
                   </Badge>
                 </div>
@@ -145,7 +146,7 @@ export default function TagSideMenuButton({
                 <button
                   key={`manual-${tag._id}`}
                   type="button"
-                  aria-label={`Remove tag ${tag.name}`}
+                  aria-label={`Remove tag ${tag.displayName}`}
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -165,7 +166,7 @@ export default function TagSideMenuButton({
                     className="inline-flex items-center py-1 transition-colors bg-[var(--tag-bg)] text-[var(--tag-fg)] hover:bg-red-500 hover:text-white group-hover:bg-red-500 group-hover:text-white"
                   >
                     <X aria-hidden className="opacity-0" />
-                    <span>{tag.name}</span>
+                    <span>{tag.displayName}</span>
                     <X aria-hidden className="opacity-0 transition-opacity group-hover:opacity-100" />
                   </Badge>
                 </button>
@@ -194,11 +195,11 @@ export default function TagSideMenuButton({
           <div className="p-2">
             <div className="text-xs text-muted-foreground mb-1.5">Add tags</div>
             <div className="flex flex-wrap gap-1.5 max-h-40 overflow-auto">
-              {filteredAvailableTags.map((tag) => (
+              {filteredAvailableTags.map((tag: Tag) => (
                 <button
                   key={`available-${tag._id}`}
                   type="button"
-                  aria-label={`Add tag ${tag.name}`}
+                  aria-label={`Add tag ${tag.displayName}`}
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -218,7 +219,7 @@ export default function TagSideMenuButton({
                     className="inline-flex items-center py-1 transition-colors bg-[var(--tag-bg)] text-[var(--tag-fg)] hover:!bg-green-500 hover:!text-white group-hover:!bg-green-500 group-hover:!text-white"
                   >
                     <PlusIcon aria-hidden className="opacity-0" />
-                    <span>{tag.name}</span>
+                    <span>{tag.displayName}</span>
                     <PlusIcon aria-hidden className="opacity-0 transition-opacity group-hover:opacity-100" />
                   </Badge>
                 </button>

@@ -1,76 +1,98 @@
 import { CustomBlock } from "../notes/editorSpecs";
 import { Id } from "../_generated/dataModel";
 import { MutationCtx } from "../_generated/server";
-import { Tag, CATEGORY_KIND, CategoryKind, TagCategory, SYSTEM_TAG_CATEGORY_NAMES } from "./types";
+import { Tag, CATEGORY_KIND, TagCategory, SYSTEM_TAG_CATEGORY_NAMES, TagWithCategory } from "./types";
 import { Block } from "../notes/types";
 import { CAMPAIGN_MEMBER_ROLE } from "../campaigns/types";
 import { requireCampaignMembership } from "../campaigns/campaigns";
 import { Ctx } from "../common/types";
 
+export const getTag = async (ctx: Ctx, tagId: Id<"tags">): Promise<TagWithCategory> => {
+  const tag = await ctx.db.get(tagId);
+  if (!tag) {
+    throw new Error("Tag not found");
+  }
+
+  const { campaignWithMembership } = await requireCampaignMembership(ctx, { campaignId: tag.campaignId },
+    { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM, CAMPAIGN_MEMBER_ROLE.Player] }
+  );
+
+  if (tag.campaignId !== campaignWithMembership.campaign._id) {
+    throw new Error("Tag not found");
+  }
+
+  const category = await ctx.db.get(tag.categoryId);
+  if (!category) {
+    throw new Error("Category not found");
+  }
+
+  return { ...tag, category };
+};
+
 
 export const insertTagAndNote = async (
   ctx: MutationCtx,
-  tag: Omit<Tag, "_id" | "_creationTime" | "updatedAt" | "createdBy" | "noteId">,
+  newTag: Omit<Tag, "_id" | "_creationTime" | "updatedAt" | "createdBy" | "name" | "noteId">,
 ): Promise<{tagId: Id<"tags">, noteId: Id<"notes">}> => {
-  const { identityWithProfile } = await requireCampaignMembership(ctx, { campaignId: tag.campaignId },
+  const { identityWithProfile } = await requireCampaignMembership(ctx, { campaignId: newTag.campaignId },
     { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
   );
   const { profile } = identityWithProfile;
 
   const noteId = await ctx.db.insert("notes", {
     userId: profile.userId,
-    name: tag.name,
-    campaignId: tag.campaignId,
+    name: newTag.displayName,
+    campaignId: newTag.campaignId,
     updatedAt: Date.now(),
   });
 
   const tags = await ctx.db
    .query("tags")
-   .withIndex("by_campaign_noteId", (q) => q.eq("campaignId", tag.campaignId).eq("noteId", noteId))
+   .withIndex("by_campaign_noteId", (q) => q.eq("campaignId", newTag.campaignId).eq("noteId", noteId))
    .collect();
 
   if (tags.length > 1) throw new Error(
     `Invariant: multiple tags found for note ${noteId}`
   );
 
-  const tagId = await insertTag(ctx, { ...tag, noteId });
+  const tagId = await insertTag(ctx, { ...newTag, noteId });
   return { tagId, noteId };
 };
 
 export const insertTag = async (
   ctx: MutationCtx,
-  tag: Omit<Tag, "_id" | "_creationTime" | "updatedAt" | "createdBy">,
+  newTag: Omit<Tag, "_id" | "_creationTime" | "updatedAt" | "createdBy" | "name">,
   allowManaged: boolean = false,
 ): Promise<Id<"tags">> => {
-  const category = await ctx.db.get(tag.categoryId);
+  const category = await ctx.db.get(newTag.categoryId);
   if (!category) {
     throw new Error("Category not found");
   }
   if (!allowManaged && category.kind === CATEGORY_KIND.SystemManaged) {
     throw new Error("Managed-category tags cannot be created by users");
   }
-  const { identityWithProfile } = await requireCampaignMembership(ctx, { campaignId: tag.campaignId },
+  const { identityWithProfile } = await requireCampaignMembership(ctx, { campaignId: newTag.campaignId },
     { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
   );
   const { profile } = identityWithProfile;
 
   const existing = await ctx.db
     .query("tags")
-    .withIndex("by_campaign_name", (q) => q.eq("campaignId", tag.campaignId).eq("name", tag.name.toLowerCase()))
+    .withIndex("by_campaign_name", (q) => q.eq("campaignId", newTag.campaignId).eq("name", newTag.displayName.toLowerCase()))
     .unique();
   if (existing) {
     throw new Error("Tag already exists");
   }
 
   const tagId = await ctx.db.insert("tags", {
-    displayName: tag.name,
-    name: tag.name.toLowerCase(),
-    categoryId: tag.categoryId,
-    color: tag.color,
-    description: tag.description,
-    campaignId: tag.campaignId,
-    memberId: tag.memberId,
-    noteId: tag.noteId,
+    displayName: newTag.displayName,
+    name: newTag.displayName.toLowerCase(),
+    categoryId: newTag.categoryId,
+    color: newTag.color,
+    description: newTag.description,
+    campaignId: newTag.campaignId,
+    memberId: newTag.memberId,
+    noteId: newTag.noteId,
     createdBy: profile.userId,
     updatedAt: Date.now(),
   });
@@ -83,10 +105,10 @@ export async function ensureDefaultTagCategories(
   campaignId: Id<"campaigns">
 ): Promise<Id<"tagCategories">[]> {
   const defaults = [
-    { name: SYSTEM_TAG_CATEGORY_NAMES.Character, kind: CATEGORY_KIND.SystemCore },
-    { name: SYSTEM_TAG_CATEGORY_NAMES.Location, kind: CATEGORY_KIND.SystemCore },
-    { name: SYSTEM_TAG_CATEGORY_NAMES.Session, kind: CATEGORY_KIND.SystemCore },
-    { name: SYSTEM_TAG_CATEGORY_NAMES.SharedAll, kind: CATEGORY_KIND.SystemManaged },
+    { displayName: SYSTEM_TAG_CATEGORY_NAMES.Character, kind: CATEGORY_KIND.SystemCore },
+    { displayName: SYSTEM_TAG_CATEGORY_NAMES.Location, kind: CATEGORY_KIND.SystemCore },
+    { displayName: SYSTEM_TAG_CATEGORY_NAMES.Session, kind: CATEGORY_KIND.SystemCore },
+    { displayName: SYSTEM_TAG_CATEGORY_NAMES.Shared, kind: CATEGORY_KIND.SystemManaged },
   ];
 
   const existing = await ctx.db
@@ -94,14 +116,14 @@ export async function ensureDefaultTagCategories(
     .withIndex("by_campaign_name", (q) => q.eq("campaignId", campaignId))
     .collect();
 
-  const existingByName = new Map(existing.map((c) => [c.name, c]));
+  const existingByName = new Map(existing.map((c) => [c.displayName, c]));
   const ids: Id<"tagCategories">[] = [];
   for (const d of defaults) {
-    const found = existingByName.get(d.name);
+    const found = existingByName.get(d.displayName);
     if (found) {
       ids.push(found._id);
     } else {
-      const id = await insertTagCategory(ctx, { campaignId, kind: d.kind, name: d.name });
+      const id = await insertTagCategory(ctx, { campaignId, kind: d.kind, displayName: d.displayName }, true);
       ids.push(id);
     }
   }
@@ -116,7 +138,7 @@ export async function getTagCategoryByName(
   const existing = await ctx.db
     .query("tagCategories")
     .withIndex("by_campaign_name", (q) =>
-      q.eq("campaignId", campaignId).eq("name", name),
+      q.eq("campaignId", campaignId).eq("name", name.toLowerCase()),
     )
     .unique();
 
@@ -127,75 +149,202 @@ export async function getTagCategoryByName(
   return existing;
 }
 
+export async function getTagsByCampaign(
+  ctx: Ctx,
+  campaignId: Id<"campaigns">,
+): Promise<TagWithCategory[]> {
+  await requireCampaignMembership(ctx, { campaignId: campaignId },
+    { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM, CAMPAIGN_MEMBER_ROLE.Player] }
+  );
+
+  const categories = await ctx.db
+    .query("tagCategories")
+    .withIndex("by_campaign_name", (q) => q.eq("campaignId", campaignId))
+    .collect();
+
+  const tags = await ctx.db
+    .query("tags")
+    .withIndex("by_campaign_name", (q) => q.eq("campaignId", campaignId))
+    .collect();
+  return tags.map((t) => {
+    const category = categories.find((c) => c._id === t.categoryId);
+    if (!category) {
+      throw new Error(`Category not found for tag ${t._id}`);
+    }
+    return { ...t, category };
+  });
+}
+
+
+export async function getTagsByCategory(
+  ctx: Ctx,
+  categoryId: Id<"tagCategories">,
+): Promise<TagWithCategory[]> {
+  const category = await ctx.db.get(categoryId);
+  if (!category) {
+    throw new Error("Category not found");
+  }
+
+  const { campaignWithMembership } = await requireCampaignMembership(ctx, { campaignId: category.campaignId },
+    { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM, CAMPAIGN_MEMBER_ROLE.Player] }
+  );
+
+  if (category.campaignId !== campaignWithMembership.campaign._id) {
+    throw new Error("Category not found");
+  }
+
+  const tags = await ctx.db
+    .query("tags")
+    .withIndex("by_campaign_categoryId", (q) => q.eq("campaignId", category.campaignId).eq("categoryId", categoryId))
+    .collect();
+  return tags.map((t) => ({ ...t, category }));
+}
+
 export async function insertTagCategory(
   ctx: MutationCtx,
-  input: { campaignId: Id<"campaigns">; kind: CategoryKind; name: string }
+  input: Omit<TagCategory, "_id" | "_creationTime" | "updatedAt" | "createdBy" | "name">,
+  allowSystem: boolean = false,
 ): Promise<Id<"tagCategories">> {
-  await requireCampaignMembership(ctx, { campaignId: input.campaignId },
+  const { campaignWithMembership } = await requireCampaignMembership(ctx, { campaignId: input.campaignId },
     { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
   );
+
+  if (!input.campaignId || input.campaignId !== campaignWithMembership.campaign._id) {
+    throw new Error("Invalid campaign");
+  }
 
   const existing = await ctx.db
     .query("tagCategories")
     .withIndex("by_campaign_name", (q) =>
-      q.eq("campaignId", input.campaignId).eq("name", input.name.toLowerCase()),
+      q.eq("campaignId", input.campaignId).eq("name", input.displayName.toLowerCase()),
     )
     .unique();
   if (existing) {
     throw new Error("Category already exists");
   }
 
+  if (!allowSystem && input.kind !== CATEGORY_KIND.User) {
+    throw new Error("Invalid kind");
+  }
+
   const id = await ctx.db.insert("tagCategories", {
-    displayName: input.name,
-    name: input.name.toLowerCase(),
-    kind: input.kind,
-    campaignId: input.campaignId,
     updatedAt: Date.now(),
+    campaignId: input.campaignId,
+    name: input.displayName.toLowerCase(),
+    displayName: input.displayName,
+    kind: input.kind
   });
   return id;
+}
+
+export const updateTagCategory = async (
+  ctx: MutationCtx,
+  categoryId: Id<"tagCategories">,
+  input: {
+    displayName?: string;
+  },
+) => {
+  const category = await ctx.db.get(categoryId);
+  if (!category) {
+    throw new Error("Category not found");
+  }
+
+  await requireCampaignMembership(ctx, { campaignId: category.campaignId },
+    { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
+  );
+
+  if (category.kind === CATEGORY_KIND.SystemManaged) {
+    throw new Error("User cannot update system-managed categories");
+  }
+
+  const updates: Partial<TagCategory> = {
+    updatedAt: Date.now(),
+  };
+
+  if (input.displayName !== undefined) {
+    const next = input.displayName.toLowerCase();
+    const existing = await ctx.db
+      .query("tagCategories")
+      .withIndex("by_campaign_name", (q) =>
+        q.eq("campaignId", category.campaignId).eq("name", next),
+      )
+      .unique();
+    if (existing && existing._id !== categoryId) {
+      throw new Error("Category already exists");
+    }
+    updates.name = next;
+    updates.displayName = input.displayName;
+  }
+
+  await ctx.db.patch(categoryId, updates);
+  return categoryId;
 }
 
 export const updateTagAndContent = async (
   ctx: MutationCtx,
   tagId: Id<"tags">,
-  campaignId: Id<"campaigns">,
-  currentName: string,
-  currentColor: string,
-  updates: {
-    name?: string;
-    color?: string;
-  },
-) => {
-  await requireCampaignMembership(ctx, { campaignId: campaignId },
-    { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
-  );
-
-  const tagUpdates: {
-    name?: string;
+  input: {
+    displayName?: string;
     color?: string;
     description?: string;
-    updatedAt: number;
-  } = {
+  },
+) => {
+  const tag = await ctx.db.get(tagId);
+  if (!tag) {
+    throw new Error("Tag not found");
+  }
+
+  const { campaignWithMembership } = await requireCampaignMembership(ctx, { campaignId: tag.campaignId },
+    { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
+  );
+  if (tag.campaignId !== campaignWithMembership.campaign._id) {
+    throw new Error("Tag not found");
+  }
+
+  const category = await ctx.db.get(tag.categoryId);
+  if (!category) {
+    throw new Error("Category not found");
+  }
+
+  if (category.kind === CATEGORY_KIND.SystemManaged) {
+    throw new Error("Managed-category tags cannot be updated");
+  }
+
+  const updates: Partial<Tag> = {
     updatedAt: Date.now(),
   };
 
-  if (updates.name !== undefined) {
-    tagUpdates.name = updates.name;
+  if (input.displayName !== undefined) {
+    const next = input.displayName.toLowerCase();
+    const existing = await ctx.db
+      .query("tags")
+      .withIndex("by_campaign_name", (q) =>
+        q.eq("campaignId", tag.campaignId).eq("name", next),
+      )
+      .unique();
+    if (existing && existing._id !== tagId) {
+      throw new Error("Tag already exists");
+    }
+    updates.name = input.displayName.toLowerCase();
+    updates.displayName = input.displayName;
   }
-  if (updates.color !== undefined) {
-    tagUpdates.color = updates.color;
+  if (input.color !== undefined) {
+    updates.color = input.color;
+  }
+  if (input.description !== undefined) {
+    updates.description = input.description;
   }
 
-  await ctx.db.patch(tagId, tagUpdates);
+  await ctx.db.patch(tagId, updates);
 
-  if (updates.name !== undefined || updates.color !== undefined) {
-    const newName = updates.name ?? currentName;
-    const newColor = updates.color ?? currentColor;
+  if (updates.displayName !== undefined || updates.color !== undefined) {
+    const newDisplayName = updates.displayName;
+    const newColor = updates.color;
 
     const allBlocks = await ctx.db
       .query("blocks")
       .withIndex("by_campaign_note_toplevel_pos", (q) =>
-        q.eq("campaignId", campaignId),
+        q.eq("campaignId", tag.campaignId),
       )
       .collect();
 
@@ -208,8 +357,8 @@ export const updateTagAndContent = async (
             ...content,
             props: {
               ...content.props,
-              tagName: newName,
-              tagColor: newColor,
+              tagName: newDisplayName ?? content.props.tagName,
+              tagColor: newColor ?? content.props.tagColor,
             },
           };
         }
@@ -243,12 +392,44 @@ export const updateTagAndContent = async (
 export const deleteTagAndCleanupContent = async (
   ctx: MutationCtx,
   tagId: Id<"tags">,
-) => {
+): Promise<Id<"tags">> => {
   //TODO: modify all tags in content to just be text without being an actual tag inline content
   await ctx.db.delete(tagId);
+  return tagId;
 };
 
-export async function validateTagBelongsToCampaign(
+export const deleteTagCategory = async (
+  ctx: MutationCtx,
+  categoryId: Id<"tagCategories">,
+): Promise<Id<"tagCategories">> => {
+  const category = await ctx.db.get(categoryId);
+  if (!category) {
+    throw new Error("Category not found");
+  }
+
+  await requireCampaignMembership(ctx, { campaignId: category.campaignId },
+    { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
+  );
+
+  if (category.kind !== CATEGORY_KIND.User) {
+    throw new Error("Only user categories can be deleted");
+  }
+
+  const tags = await ctx.db
+    .query("tags")
+    .withIndex("by_campaign_categoryId", (q) =>
+      q.eq("campaignId", category.campaignId).eq("categoryId", categoryId),
+    )
+    .collect();
+  if (tags.length > 0) {
+    throw new Error("Cannot delete category with existing tags");
+  }
+
+  await ctx.db.delete(categoryId);
+  return categoryId;
+};
+
+export async function validateTagBelongsToCampaign( //TODO: remove this
   ctx: Ctx,
   tagId: Id<"tags">,
   campaignId: Id<"campaigns">,

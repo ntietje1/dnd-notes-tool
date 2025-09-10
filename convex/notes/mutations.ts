@@ -50,7 +50,7 @@ export const updateNote = mutation({
         )
         .unique();
       if (tag) {
-        await updateTagAndContent(ctx, tag._id, note.campaignId, tag.name, tag.color, { name: args.name });
+        await updateTagAndContent(ctx, tag._id, { displayName: args.name, color: tag.color });
       }
     }
 

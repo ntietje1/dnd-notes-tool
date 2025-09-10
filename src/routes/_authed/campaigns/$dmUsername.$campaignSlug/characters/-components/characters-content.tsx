@@ -7,7 +7,6 @@ import { CreateActionCard } from "~/components/content-grid-page/create-action-c
 import { EmptyState } from "~/components/content-grid-page/empty-state";
 import { ConfirmationDialog } from "~/components/dialogs/confirmation-dialog";
 import { Users, Edit, Plus, Trash2 } from "~/lib/icons";
-import type { CharacterWithTag } from "convex/characters/types";
 import CharacterDialog from "./character-dialog";
 import { toast } from "sonner";
 import { useRouter } from "@tanstack/react-router";
@@ -15,6 +14,7 @@ import { CardGridSkeleton } from "~/components/content-grid-page/card-grid-skele
 import { useCampaign } from "~/contexts/CampaignContext";
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import type { Id } from "convex/_generated/dataModel";
+import type { Character } from "convex/characters/types";
 
 export default function CharactersContent() {
   const { campaignWithMembership, dmUsername, campaignSlug } = useCampaign();
@@ -23,9 +23,9 @@ export default function CharactersContent() {
 
   const [creatingCharacter, setCreatingCharacter] = useState(false);
   const [editingCharacter, setEditingCharacter] =
-    useState<CharacterWithTag | null>(null);
+    useState<Character | null>(null);
   const [deletingCharacter, setDeletingCharacter] =
-    useState<CharacterWithTag | null>(null);
+    useState<Character | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const characters = useQuery(
@@ -41,7 +41,7 @@ export default function CharactersContent() {
 
     try {
       await deleteCharacter.mutateAsync({
-        characterId: deletingCharacter._id,
+        characterId: deletingCharacter.characterId,
       });
 
       toast.success("Character deleted successfully");

@@ -8,14 +8,11 @@ import TagMenu from "./extensions/side-menu/tags/tag-menu";
 import { SideMenuRenderer } from "./extensions/side-menu/side-menu";
 import SelectionToolbar from "./extensions/selection-toolbar/selection-toolbar";
 import { customInlineContentSpecs } from "~/lib/editor-schema";
-
-interface NotesEditorProps {
-  noteId: string;
-}
+import { ClientOnly } from "@tanstack/react-router";
 
 const schema = BlockNoteSchema.create({ inlineContentSpecs: customInlineContentSpecs });
 
-export function NotesEditor({ noteId }: NotesEditorProps) {
+export function NotesEditor() {
   const { note, debouncedUpdateNoteContent, status } = useNotes();
 
   const hasContent = note?.content && note?.content.length > 0;
@@ -27,11 +24,11 @@ export function NotesEditor({ noteId }: NotesEditorProps) {
     } : {
       schema
     },
-    [noteId]
+    [note?._id]
   );
 
-  if (note?._id !== noteId) {
-    return <></>;
+  if (!note?._id) {
+    return <NotesEditorEmptyContent />;
   }
 
   if (status === "pending") {
@@ -39,26 +36,32 @@ export function NotesEditor({ noteId }: NotesEditorProps) {
   }
 
   return (
-    <div className="h-full flex flex-col bg-white overflow-y-auto">
-      <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-8 py-6">
-        <BlockNoteView
-          editor={editor}
-          onChange={() => debouncedUpdateNoteContent(editor.document)}
-          theme="light"
-          sideMenu={false}
-          formattingToolbar={false}
-        >
-          <TagMenu editor={editor} />
-          <SideMenuController sideMenu={SideMenuRenderer} />
-          <SelectionToolbar />
-        </BlockNoteView>
+    <ClientOnly fallback={<NotesEditorSkeleton />}>
+      <div className="h-full flex flex-col bg-white overflow-y-auto">
+        <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-8 py-6">
+          <BlockNoteView
+            editor={editor}
+            onChange={() => debouncedUpdateNoteContent(editor.document)}
+            theme="light"
+            sideMenu={false}
+            formattingToolbar={false}
+          >
+            <TagMenu editor={editor} />
+            <SideMenuController sideMenu={SideMenuRenderer} />
+            <SelectionToolbar />
+          </BlockNoteView>
+        </div>
       </div>
-    </div>
+    </ClientOnly>
   );
 }
 
 export function NotesEditorEmptyContent() {
-  const { createNote } = useNotes();
+  const { createNote, status, note } = useNotes();
+
+  if (note?._id || status === "pending") {
+    return <NotesEditorSkeleton />;
+  }
 
   return (
     <div className="h-full flex flex-col items-center justify-center text-muted-foreground gap-4">
