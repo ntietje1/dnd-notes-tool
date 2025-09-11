@@ -14,7 +14,6 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { api } from "convex/_generated/api";
 import { NoteButton } from "../../sidebar-note/note-button";
 import type { Id } from "convex/_generated/dataModel";
-import { useNotes } from "~/contexts/NotesContext";
 import { ConfirmationDialog } from "~/components/dialogs/confirmation-dialog";
 import { toast } from "sonner";
 import { CharacterNoteContextMenu } from "./character-note-context-menu";
@@ -22,6 +21,8 @@ import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import type { Note } from "convex/notes/types";
 import { useCampaign } from "~/contexts/CampaignContext";
 import type { Character } from "convex/characters/types";
+import { useNoteActions } from "~/hooks/useNoteActions";
+import { useCurrentNote } from "~/hooks/useCurrentNote";
 
 interface CharacterSystemFolderProps {
   isExpanded: boolean;
@@ -38,7 +39,8 @@ export const CharacterSystemFolder = ({
 }: CharacterSystemFolderProps) => {
   const { campaignWithMembership } = useCampaign();
   const campaign = campaignWithMembership?.data?.campaign;
-  const { updateNoteName, selectNote, note: selectedNote } = useNotes();
+  const { selectNote, noteId } = useCurrentNote();
+  const { renameNote } = useNoteActions();
   const [deletingCharacter, setDeletingCharacter] = useState<Character | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   
@@ -72,7 +74,7 @@ export const CharacterSystemFolder = ({
         name: newName,
       });
 
-      updateNoteName(note._id, newName);
+      renameNote(note._id, newName);
       
       toast.success("Character renamed successfully");
     } catch (_) {
@@ -152,7 +154,7 @@ export const CharacterSystemFolder = ({
                   note={note}
                   isRenaming={renamingId === note._id}
                   onFinishRename={(name) => handleCharacterNoteRename(note, name)}
-                  isSelected={note?._id === selectedNote?._id}
+                  isSelected={noteId === note._id}
                   onNoteSelected={() => selectNote(note._id)}
                 />
               </CharacterNoteContextMenu>

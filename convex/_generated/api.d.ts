@@ -25,6 +25,7 @@ import type * as locations_queries from "../locations/queries.js";
 import type * as locations_types from "../locations/types.js";
 import type * as notes_editorSpecs from "../notes/editorSpecs.js";
 import type * as notes_mutations from "../notes/mutations.js";
+import type * as notes_notes from "../notes/notes.js";
 import type * as notes_queries from "../notes/queries.js";
 import type * as notes_types from "../notes/types.js";
 import type * as tags_editorSpecs from "../tags/editorSpecs.js";
@@ -70,6 +71,7 @@ declare const fullApi: ApiFromModules<{
   "locations/types": typeof locations_types;
   "notes/editorSpecs": typeof notes_editorSpecs;
   "notes/mutations": typeof notes_mutations;
+  "notes/notes": typeof notes_notes;
   "notes/queries": typeof notes_queries;
   "notes/types": typeof notes_types;
   "tags/editorSpecs": typeof tags_editorSpecs;

@@ -26,20 +26,11 @@ export type Note = SidebarItem<typeof SIDEBAR_ITEM_TYPES.notes>;
 export const UNTITLED_NOTE_TITLE = "Untitled Note";
 export const UNTITLED_FOLDER_NAME = "Untitled Folder";
 
-export type Folder = SidebarItem<typeof SIDEBAR_ITEM_TYPES.folders>;
-
-export interface FolderNode extends Folder {
-  type: typeof SIDEBAR_ITEM_TYPES.folders;
-  children: AnySidebarItem[];
+export type Folder = SidebarItem<typeof SIDEBAR_ITEM_TYPES.folders> & {
+  children?: AnySidebarItem[];
 }
 
-// Union type of all possible sidebar items (doesn't include Folder, as FolderNodes are used instead)
-export type AnySidebarItem = Note | FolderNode;
-
-export type RawSidebarData = {
-  folders: Folder[];
-  notes: Note[];
-};
+export type AnySidebarItem = Note | Folder;
 
 export type Block = {
   _id: Id<"blocks">;
@@ -62,4 +53,5 @@ export type BlockTag = {
   createdAt: number;
 };
 
+//TODO: remove this and move content to regular note type
 export type NoteWithContent = Note & { content: CustomBlock[] };

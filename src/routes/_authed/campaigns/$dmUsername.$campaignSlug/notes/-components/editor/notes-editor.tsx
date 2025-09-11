@@ -3,35 +3,36 @@ import { BlockNoteSchema } from "@blocknote/core";
 import { Skeleton } from "~/components/shadcn/ui/skeleton";
 import { SideMenuController, useCreateBlockNote } from "@blocknote/react";
 import { Button } from "~/components/shadcn/ui/button";
-import { useNotes } from "~/contexts/NotesContext";
 import TagMenu from "./extensions/side-menu/tags/tag-menu";
 import { SideMenuRenderer } from "./extensions/side-menu/side-menu";
 import SelectionToolbar from "./extensions/selection-toolbar/selection-toolbar";
 import { customInlineContentSpecs } from "~/lib/editor-schema";
 import { ClientOnly } from "@tanstack/react-router";
+import { useCurrentNote } from "~/hooks/useCurrentNote";
+import { useNoteActions } from "~/hooks/useNoteActions";
 
 const schema = BlockNoteSchema.create({ inlineContentSpecs: customInlineContentSpecs });
 
 export function NotesEditor() {
-  const { note, debouncedUpdateNoteContent, status } = useNotes();
+  const { note, noteId, updateCurrentNoteContent } = useCurrentNote();
 
-  const hasContent = note?.content && note?.content.length > 0;
+  const hasContent = note?.data && note?.data?.content && note?.data?.content.length > 0;
 
   const editor = useCreateBlockNote(
     hasContent ? {
-      initialContent: note.content,
+      initialContent: note.data.content,
       schema
     } : {
       schema
     },
-    [note?._id]
+    [note?.data?._id]
   );
 
-  if (!note?._id) {
+  if (!noteId) {
     return <NotesEditorEmptyContent />;
   }
 
-  if (status === "pending") {
+  if (note.status === "pending") {
     return <NotesEditorSkeleton />;
   }
 
@@ -41,7 +42,7 @@ export function NotesEditor() {
         <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-8 py-6">
           <BlockNoteView
             editor={editor}
-            onChange={() => debouncedUpdateNoteContent(editor.document)}
+            onChange={() => updateCurrentNoteContent(editor.document)}
             theme="light"
             sideMenu={false}
             formattingToolbar={false}
@@ -57,9 +58,10 @@ export function NotesEditor() {
 }
 
 export function NotesEditorEmptyContent() {
-  const { createNote, status, note } = useNotes();
+  const { note, noteId } = useCurrentNote();
+  const { createNote } = useNoteActions();
 
-  if (note?._id || status === "pending") {
+  if (noteId || note.status === "pending") {
     return <NotesEditorSkeleton />;
   }
 

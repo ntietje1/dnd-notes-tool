@@ -13,7 +13,6 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { api } from "convex/_generated/api";
 import { NoteButton } from "../../sidebar-note/note-button";
 import type { Id } from "convex/_generated/dataModel";
-import { useNotes } from "~/contexts/NotesContext";
 import { ConfirmationDialog } from "~/components/dialogs/confirmation-dialog";
 import { toast } from "sonner";
 import { LocationNoteContextMenu } from "./location-note-context-menu";
@@ -21,6 +20,8 @@ import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import type { Note } from "convex/notes/types";
 import { useCampaign } from "~/contexts/CampaignContext";
 import type { Location } from "convex/locations/types";
+import { useCurrentNote } from "~/hooks/useCurrentNote";
+import { useNoteActions } from "~/hooks/useNoteActions";
 
 interface LocationSystemFolderProps {
   isExpanded: boolean;
@@ -35,7 +36,8 @@ export const LocationSystemFolder = ({
   renamingId,
   setRenamingId,
 }: LocationSystemFolderProps) => {
-  const { updateNoteName, selectNote, note: selectedNote } = useNotes();
+  const { selectNote, noteId } = useCurrentNote();
+  const { renameNote } = useNoteActions();
   const { campaignWithMembership } = useCampaign();
   const campaign = campaignWithMembership?.data?.campaign;
   const [deletingLocation, setDeletingLocation] = useState<Location | null>(null);
@@ -71,7 +73,7 @@ export const LocationSystemFolder = ({
         name: newName,
       });
 
-      updateNoteName(note._id, newName);
+      renameNote(note._id, newName);
       
       toast.success("Location renamed successfully");
     } catch (_) {
@@ -148,7 +150,7 @@ export const LocationSystemFolder = ({
                   note={note}
                   isRenaming={renamingId === note._id}
                   onFinishRename={(name) => handleLocationNoteRename(note, name)}
-                  isSelected={note?._id === selectedNote?._id}
+                  isSelected={noteId === note._id}
                   onNoteSelected={() => selectNote(note._id)}
                 />
               </LocationNoteContextMenu>

@@ -10,11 +10,11 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "convex/_generated/api";
 import { NoteButton } from "../../sidebar-note/note-button";
 import type { Id } from "convex/_generated/dataModel";
-import type { Note } from "convex/notes/types";
-import { useNotes } from "~/contexts/NotesContext";
 import { convexQuery } from "@convex-dev/react-query";
 import { useCampaign } from "~/contexts/CampaignContext";
 import { SYSTEM_TAG_CATEGORY_NAMES } from "convex/tags/types";
+import { useCurrentNote } from "~/hooks/useCurrentNote";
+import { useNoteActions } from "~/hooks/useNoteActions";
 
 interface SessionSystemFolderProps {
   isExpanded: boolean;
@@ -29,9 +29,10 @@ export const SessionSystemFolder = ({
   renamingId,
   setRenamingId,
 }: SessionSystemFolderProps) => {
-  const { updateNoteName, selectNote, note } = useNotes();
   const { campaignWithMembership } = useCampaign();
   const campaign = campaignWithMembership?.data?.campaign;
+  const { selectNote, noteId } = useCurrentNote();
+  const { renameNote } = useNoteActions();
   
   const queryResult = useQuery(convexQuery(api.notes.queries.getTagNotePages, campaign ? {
     tagCategory: SYSTEM_TAG_CATEGORY_NAMES.Session,
@@ -73,19 +74,17 @@ export const SessionSystemFolder = ({
             <div className="absolute left-2 top-0 bottom-0 w-0.5 bg-muted-foreground/10" />
           )}
           {/* Render non-draggable notes */}
-          {tagNotePages.map((tagNote) => (
-            <div key={tagNote._id} className="flex w-full min-w-0">
+          {tagNotePages.map((note) => (
+            <div key={note._id} className="flex w-full min-w-0">
               <NoteButton
-                note={tagNote as Note}
-                isRenaming={renamingId === tagNote._id}
-                // onStartRename={() => setRenamingId(note._id)}
+                note={note}
+                isRenaming={renamingId === note._id}
                 onFinishRename={(name) => {
-                  updateNoteName(tagNote._id, name);
+                  renameNote(note._id, name);
                   setRenamingId(null);
                 }}
-                isSelected={note?._id === tagNote._id}
-                onNoteSelected={() => selectNote(tagNote._id)}
-                // onDelete={() => deleteNote(note._id)}
+                isSelected={noteId === note._id}
+                onNoteSelected={() => selectNote(note._id)}
               />
             </div>
           ))}

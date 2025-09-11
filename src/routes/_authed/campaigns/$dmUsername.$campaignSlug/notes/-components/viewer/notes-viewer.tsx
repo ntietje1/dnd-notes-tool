@@ -1,6 +1,5 @@
 import React from "react";
 import { useTags } from "../editor/extensions/side-menu/tags/use-tags";
-import { useNotes } from "~/contexts/NotesContext";
 import { api } from "convex/_generated/api";
 import { BlockNoteView } from "@blocknote/shadcn";
 import { BlockNoteSchema, BlockNoteEditor } from "@blocknote/core";
@@ -18,7 +17,6 @@ export function NotesViewer() {
   const { nonSystemManagedTags } = useTags();
   const { campaignWithMembership } = useCampaign();
   const campaign = campaignWithMembership?.data?.campaign;
-  const { status } = useNotes();
   const [selectedTagIds, setSelectedTagIds] = React.useState<Id<"tags">[]>([]);
 
   const blocks = useQuery(convexQuery(
@@ -39,7 +37,7 @@ export function NotesViewer() {
     });
   }, [blocks.data]);
 
-  if (status === "pending") {
+  if (blocks.status === "pending") {
     return <NotesViewerLoading />;
   }
 

@@ -1,13 +1,13 @@
 import { DraggableNote } from "../sidebar-note/draggable-note";
-import type { FolderNode, Note, AnySidebarItem } from "convex/notes/types";
+import type { Note, AnySidebarItem, Folder } from "convex/notes/types";
 import { NoteButton } from "../sidebar-note/note-button";
 import type { Id } from "convex/_generated/dataModel";
 import { RecursiveFolder } from "../sidebar-folder/recursive-folder";
-import { useNotes } from "~/contexts/NotesContext";
 import { NoteContextMenu } from "../sidebar-note/note-context-menu";
 
 //TODO: use switch statement instead
-function isFolderNode(item: AnySidebarItem): item is FolderNode {
+//TODO: move all actions down so that this level doesnt need to know about them
+function isFolder(item: AnySidebarItem): item is Folder {
   return item.type === "folders" && "children" in item;
 }
 
@@ -39,7 +39,7 @@ export const SidebarItem = ({
     createFolder,
   } = useNotes();
 
-  if (isFolderNode(item)) {
+  if (isFolder(item)) {
     return (
       <RecursiveFolder
         folder={item}
