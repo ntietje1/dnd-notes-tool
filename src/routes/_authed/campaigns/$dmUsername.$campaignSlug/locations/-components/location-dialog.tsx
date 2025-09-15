@@ -28,8 +28,6 @@ interface LocationDialogProps {
   mode: "create" | "edit";
   isOpen: boolean;
   onClose: () => void;
-  dmUsername: string;
-  campaignSlug: string;
   location?: Location; // Required for edit mode
   navigateToNote?: boolean;
 }
@@ -38,14 +36,12 @@ export default function LocationDialog({
   mode,
   isOpen,
   onClose,
-  dmUsername,
-  campaignSlug,
   location,
   navigateToNote = false,
 }: LocationDialogProps) {
   const router = useRouter();
   const convex = useConvex();
-  const { campaignWithMembership } = useCampaign();
+  const { campaignWithMembership, dmUsername, campaignSlug } = useCampaign();
   const campaign = campaignWithMembership?.data?.campaign
   const createLocation = useMutation({ mutationFn: useConvexMutation(api.locations.mutations.createLocation) });
   const updateLocation = useMutation({ mutationFn: useConvexMutation(api.locations.mutations.updateLocation) });

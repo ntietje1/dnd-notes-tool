@@ -131,8 +131,6 @@ export default function CharactersContent() {
           mode="create"
           isOpen={creatingCharacter}
           onClose={() => setCreatingCharacter(false)}
-          dmUsername={dmUsername}
-          campaignSlug={campaignSlug}
         />
       )}
 
@@ -141,8 +139,6 @@ export default function CharactersContent() {
           mode="edit"
           isOpen={true}
           onClose={() => setEditingCharacter(null)}
-          dmUsername={dmUsername}
-          campaignSlug={campaignSlug}
           character={editingCharacter}
         />
       )}

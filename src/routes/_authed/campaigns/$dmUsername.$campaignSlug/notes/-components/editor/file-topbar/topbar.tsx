@@ -8,15 +8,13 @@ import { X, MoreVertical } from "~/lib/icons";
 import { useCallback, useState, useEffect, useRef } from "react";
 import { UNTITLED_NOTE_TITLE } from "convex/notes/types";
 import { Skeleton } from "~/components/shadcn/ui/skeleton";
-import { Link } from "@tanstack/react-router";
-import { useCampaign } from "~/contexts/CampaignContext";
 import { useCurrentNote } from "~/hooks/useCurrentNote";
 import { useNoteActions } from "~/hooks/useNoteActions";
+import { toast } from "sonner";
 
 export function FileTopbar() {
-  const { dmUsername, campaignSlug } = useCampaign();
-  const { note, selectNote } = useCurrentNote();
-  const { renameNote } = useNoteActions();
+  const { note, selectNote, noteId } = useCurrentNote();
+  const { updateNote } = useNoteActions();
   const [title, setTitle] = useState(note.data?.name ?? "");
   const [isEditing, setIsEditing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -25,12 +23,16 @@ export function FileTopbar() {
     setTitle(note.data?.name ?? "");
   }, [note.data?.name]);
 
-  const handleTitleSubmit = useCallback(() => {
+  const handleTitleSubmit = useCallback(async () => {
     setIsEditing(false);
     if (note.data) {
-      renameNote(note.data._id, title);
+      await updateNote.mutateAsync({ noteId: note.data._id, name: title })
+        .catch((error) => {
+          console.error(error);
+          toast.error("Failed to update note");
+        });
     }
-  }, [note, title, renameNote]);
+  }, [note, title, updateNote]);
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -38,7 +40,7 @@ export function FileTopbar() {
     }
   }, [isEditing]);
 
-  if (note.status === "pending") {
+  if (noteId && note.status === "pending") {
     return <TopbarLoading />;
   }
 
@@ -92,11 +94,8 @@ export function FileTopbar() {
               variant="ghost"
               size="icon"
               onClick={() => selectNote(null)}
-              asChild
             >
-            <Link to="/campaigns/$dmUsername/$campaignSlug/notes" params={{ dmUsername, campaignSlug }}>
               <X className="h-4 w-4" />
-            </Link>
           </Button>
         </div>
       </div>

@@ -19,11 +19,6 @@ export const getFolder = async (ctx: Ctx, folderId: Id<"folders">): Promise<Fold
 }
 
 export const getSidebarItems = async (ctx: Ctx, campaignId: Id<"campaigns">, parentId?: Id<"folders">): Promise<AnySidebarItem[]> => {
-    const folder = parentId ? await getFolder(ctx, parentId) : undefined;
-    if (folder?.campaignId !== campaignId) {
-        throw new Error("Campaign mismatch");
-    }
-
     await requireCampaignMembership(ctx, { campaignId: campaignId },
         { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
     );
@@ -58,7 +53,6 @@ export const getSidebarItems = async (ctx: Ctx, campaignId: Id<"campaigns">, par
             type: SIDEBAR_ITEM_TYPES.notes,
         })).filter((note) => !tagLinkedNoteIds.has(note._id))
     );
-
 
     return [...folders, ...notes] as AnySidebarItem[];
 }

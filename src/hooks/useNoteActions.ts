@@ -4,19 +4,14 @@ import { useMutation } from "@tanstack/react-query";
 import { useCallback } from "react";
 import type { Id } from "convex/_generated/dataModel";
 import type { CustomBlock } from "~/lib/editor-schema";
-import { useCampaign } from "~/contexts/CampaignContext";
 
 
 export const useNoteActions = () => {
-    const { campaignWithMembership } = useCampaign();
     const updateNote = useMutation({ mutationFn: useConvexMutation(api.notes.mutations.updateNote) });
     const createNote = useMutation({ mutationFn: useConvexMutation(api.notes.mutations.createNote) });
     const deleteNote = useMutation({ mutationFn: useConvexMutation(api.notes.mutations.deleteNote) });
     const moveNote = useMutation({ mutationFn: useConvexMutation(api.notes.mutations.moveNote) });
 
-    const renameNote = useCallback(async (noteId: Id<"notes">, name: string) => {
-        await updateNote.mutateAsync({ noteId, name });
-    }, [updateNote]);
 
     const updateNoteContent = useCallback(
         async (noteId: Id<"notes">, newContent: CustomBlock[]) => {    
@@ -29,19 +24,13 @@ export const useNoteActions = () => {
         [updateNote],
     );
 
-    const createNoteAction = useCallback(async (parentFolderId?: Id<"folders">) => {
-        if (!campaignWithMembership?.data?.campaign?._id) return;
-        await createNote.mutateAsync({
-            campaignId: campaignWithMembership?.data?.campaign?._id,
-            parentFolderId,
-        });
-    }, [createNote]);
 
     return {
-        createNote: createNoteAction,
+        updateNote,
+        createNote,
         deleteNote,
         moveNote,
-        renameNote,
+        
         updateNoteContent,
     }
 }
@@ -64,4 +53,4 @@ const sanitizeNoteContent = (node: any): any => {
         return sanitized;
     }
     return node;
-  };
+};

@@ -54,6 +54,6 @@ export const getCharacterById = query({
       { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
     ); //TODO: allow players to see characters that have been "introduced" to them
 
-    return { ...tag, characterId: character._id, type: SYSTEM_TAG_CATEGORY_NAMES.Character };
+    return { ...tag, characterId: character._id };
   },
 });

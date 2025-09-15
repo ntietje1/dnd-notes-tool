@@ -17,10 +17,11 @@ import {
   getNoteLevelTag,
   getTagCategoryByName,
   doesBlockMatchRequiredTags,
+  getTagsByCategory,
 } from "../tags/tags";
 import { CAMPAIGN_MEMBER_ROLE } from "../campaigns/types";
 import { requireCampaignMembership } from "../campaigns/campaigns";
-import { SYSTEM_TAG_CATEGORY_NAMES } from "../tags/types";
+import { SYSTEM_TAG_CATEGORY_NAMES, TagWithNote } from "../tags/types";
 import { hasAccessToBlock } from "../tags/shared";
 import { getSidebarItems as getSidebarItemsFn, getFolder as getFolderFn } from "./notes";
 
@@ -322,24 +323,16 @@ export const getBlockTagState = query({
 export const getTagNotePages = query({
   args: {
     campaignId: v.id("campaigns"),
-    tagCategory: v.union(
-      v.literal(SYSTEM_TAG_CATEGORY_NAMES.Character),
-      v.literal(SYSTEM_TAG_CATEGORY_NAMES.Location),
-      v.literal(SYSTEM_TAG_CATEGORY_NAMES.Session),
-      v.literal(SYSTEM_TAG_CATEGORY_NAMES.Shared),
-    ),
+    tagCategory: v.string(),
   },
-  handler: async (ctx, args): Promise<Note[]> => {
+  handler: async (ctx, args): Promise<TagWithNote[]> => {
     await requireCampaignMembership(ctx, { campaignId: args.campaignId },
       { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM, CAMPAIGN_MEMBER_ROLE.Player] }
     );
 
     const category = await getTagCategoryByName(ctx, args.campaignId, args.tagCategory);
 
-    const tags = await ctx.db
-      .query("tags")
-      .withIndex("by_campaign_categoryId", (q) => q.eq("campaignId", args.campaignId).eq("categoryId", category._id))
-      .collect();
+    const tags = await getTagsByCategory(ctx, category._id);
 
     const tagNotePages = [];
     for (const tag of tags) {
@@ -347,8 +340,11 @@ export const getTagNotePages = query({
 
       if (note) {
         tagNotePages.push({
-          ...note,
-          type: SIDEBAR_ITEM_TYPES.notes,
+          ...tag,
+          note: {
+            ...note,
+            type: SIDEBAR_ITEM_TYPES.notes,
+          },
         });
       }
     }

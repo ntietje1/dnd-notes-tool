@@ -7,13 +7,23 @@ import TagMenu from "./extensions/side-menu/tags/tag-menu";
 import { SideMenuRenderer } from "./extensions/side-menu/side-menu";
 import SelectionToolbar from "./extensions/selection-toolbar/selection-toolbar";
 import { customInlineContentSpecs } from "~/lib/editor-schema";
-import { ClientOnly } from "@tanstack/react-router";
 import { useCurrentNote } from "~/hooks/useCurrentNote";
 import { useNoteActions } from "~/hooks/useNoteActions";
+import { useCampaign } from "~/contexts/CampaignContext";
+import { ClientOnly } from "@tanstack/react-router";
+import type { Id } from "convex/_generated/dataModel";
+import { toast } from "sonner";
 
 const schema = BlockNoteSchema.create({ inlineContentSpecs: customInlineContentSpecs });
 
 export function NotesEditor() {
+  return (
+    <ClientOnly fallback={<NotesEditorSkeleton />}>
+      <NotesEditorBase />
+    </ClientOnly>
+  );
+}
+function NotesEditorBase() {
   const { note, noteId, updateCurrentNoteContent } = useCurrentNote();
 
   const hasContent = note?.data && note?.data?.content && note?.data?.content.length > 0;
@@ -37,38 +47,46 @@ export function NotesEditor() {
   }
 
   return (
-    <ClientOnly fallback={<NotesEditorSkeleton />}>
-      <div className="h-full flex flex-col bg-white overflow-y-auto">
-        <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-8 py-6">
-          <BlockNoteView
-            editor={editor}
-            onChange={() => updateCurrentNoteContent(editor.document)}
-            theme="light"
-            sideMenu={false}
-            formattingToolbar={false}
-          >
-            <TagMenu editor={editor} />
-            <SideMenuController sideMenu={SideMenuRenderer} />
-            <SelectionToolbar />
-          </BlockNoteView>
-        </div>
+    <div className="h-full flex flex-col bg-white overflow-y-auto">
+      <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-8 py-6">
+        <BlockNoteView
+          editor={editor}
+          onChange={() => updateCurrentNoteContent(editor.document)}
+          theme="light"
+          sideMenu={false}
+          formattingToolbar={false}
+        >
+          <TagMenu editor={editor} />
+          <SideMenuController sideMenu={SideMenuRenderer} />
+          <SelectionToolbar />
+        </BlockNoteView>
       </div>
-    </ClientOnly>
+    </div>
   );
 }
 
 export function NotesEditorEmptyContent() {
-  const { note, noteId } = useCurrentNote();
   const { createNote } = useNoteActions();
+  const { selectNote } = useCurrentNote();
+  const { campaignWithMembership } = useCampaign();
+  const campaignId = campaignWithMembership.data?.campaign._id;
 
-  if (noteId || note.status === "pending") {
-    return <NotesEditorSkeleton />;
+  const handleCreateNote = async () => {
+    if (!campaignId) return;
+    await createNote.mutateAsync({ campaignId: campaignId })
+      .then((noteId: Id<"notes">) => {
+        selectNote(noteId);
+      })
+      .catch((error: Error) => {
+        console.error(error);
+        toast.error("Failed to create note");
+      });
   }
 
   return (
     <div className="h-full flex flex-col items-center justify-center text-muted-foreground gap-4">
       <p>Select a note or create a new one to get started</p>
-      <Button variant="outline" onClick={() => createNote()}>
+      <Button variant="outline" onClick={handleCreateNote}>
         Create new note
       </Button>
     </div>

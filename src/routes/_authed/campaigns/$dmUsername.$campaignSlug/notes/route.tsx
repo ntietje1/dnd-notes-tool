@@ -1,5 +1,4 @@
-import { createFileRoute, Outlet } from '@tanstack/react-router'
-import { NotesProvider } from '~/contexts/NotesContext'
+import { createFileRoute } from '@tanstack/react-router'
 import { SidebarLayout } from './-components/layout/sidebar-layout'
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/shadcn/style.css";
@@ -12,14 +11,12 @@ export const Route = createFileRoute('/_authed/campaigns/$dmUsername/$campaignSl
 
 function NotesLayout() {
   return (
-    <NotesProvider>
-      <div className="flex-1 min-h-0">
-        <SidebarLayout>
-          <NotesPageLayout>
-            <NotesEditor />
-          </NotesPageLayout>
-        </SidebarLayout>
-      </div>
-    </NotesProvider>
+    <div className="flex-1 min-h-0">
+      <SidebarLayout>
+        <NotesPageLayout>
+          <NotesEditor />
+        </NotesPageLayout>
+      </SidebarLayout>
+    </div>
   )
 }

@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useCampaign } from "~/contexts/CampaignContext";
 import { useNoteActions } from "./useNoteActions";
 import { debounce } from "lodash-es";
@@ -16,33 +16,25 @@ export const useCurrentNote = () => {
     const { dmUsername, campaignSlug } = useCampaign();
     const { updateNoteContent } = useNoteActions();
 
-    const routeNoteId = location.pathname.includes('/notes/') && !location.pathname.endsWith('/notes')
+    const pathNoteId = location.pathname.includes('/notes/') && !location.pathname.endsWith('/notes')
         ? location.pathname.split('/notes/')[1]
         : null;
 
-    const [selectedNoteId, setSelectedNoteId] = useState<string | null>(routeNoteId);
-
-    const note = useQuery(convexQuery(api.notes.queries.getNote, selectedNoteId ? { noteId: selectedNoteId as Id<"notes"> } : "skip"));
+    const note = useQuery(convexQuery(api.notes.queries.getNote, pathNoteId ? { noteId: pathNoteId as Id<"notes"> } : "skip"));
 
     const selectNote = useCallback((noteId: Id<"notes"> | null) => {
-        setSelectedNoteId(noteId ?? null);
         if (!noteId) {
             navigate({
                 to: '/campaigns/$dmUsername/$campaignSlug/notes',
                 params: { dmUsername, campaignSlug }
             });
-          return;
+            return;
         }
-    
         navigate({
             to: '/campaigns/$dmUsername/$campaignSlug/notes/$noteId',
             params: { dmUsername, campaignSlug, noteId }
         });
     }, [dmUsername, campaignSlug, navigate]);
-
-    useEffect(() => {
-        setSelectedNoteId(routeNoteId);
-    }, [routeNoteId]);
 
     const updateCurrentNoteContent = useMemo(
         () => debounce((newContent: CustomBlock[]) => {
@@ -52,9 +44,13 @@ export const useCurrentNote = () => {
         [updateNoteContent, note.data?._id],
     );
 
+    useEffect(() => {
+        updateCurrentNoteContent.flush();
+    }, [pathNoteId, updateCurrentNoteContent]);
+
     return {
         note,
-        noteId: selectedNoteId,
+        noteId: pathNoteId,
         selectNote,
         updateCurrentNoteContent,
     }

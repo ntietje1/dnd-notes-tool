@@ -54,6 +54,6 @@ export const getLocationById = query({
       { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
     ); //TODO: allow players to see locations that have been "introduced" to them
 
-    return { ...tag, locationId: location._id, type: SYSTEM_TAG_CATEGORY_NAMES.Location };
+    return { ...tag, locationId: location._id };
   },
 });

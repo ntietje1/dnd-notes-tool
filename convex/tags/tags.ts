@@ -337,6 +337,13 @@ export const updateTagAndContent = async (
 
   await ctx.db.patch(tagId, updates);
 
+  if (updates.displayName !== undefined && tag.noteId) {
+    await ctx.db.patch(tag.noteId, {
+      name: updates.displayName,
+      updatedAt: Date.now(),
+    });
+  }
+
   if (updates.displayName !== undefined || updates.color !== undefined) {
     const newDisplayName = updates.displayName;
     const newColor = updates.color;

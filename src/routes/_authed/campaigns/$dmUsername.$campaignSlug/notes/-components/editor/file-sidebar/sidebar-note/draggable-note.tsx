@@ -10,10 +10,7 @@ interface DraggableNoteProps {
 export function DraggableNote({ note, children }: DraggableNoteProps) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: note._id,
-    data: {
-      type: "note",
-      id: note._id,
-    },
+    data: note,
   });
 
   return (

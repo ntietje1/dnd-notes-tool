@@ -28,8 +28,6 @@ interface CharacterDialogProps {
   mode: "create" | "edit";
   isOpen: boolean;
   onClose: () => void;
-  dmUsername: string;
-  campaignSlug: string;
   character?: Character; // Required for edit mode
   navigateToNote?: boolean;
 }
@@ -38,14 +36,12 @@ export default function CharacterDialog({
   mode,
   isOpen,
   onClose,
-  dmUsername,
-  campaignSlug,
   character,
   navigateToNote = false,
 }: CharacterDialogProps) {
   const router = useRouter();
   const convex = useConvex();
-  const { campaignWithMembership } = useCampaign();
+  const { campaignWithMembership, dmUsername, campaignSlug } = useCampaign();
   const campaign = campaignWithMembership?.data?.campaign;
   const createCharacter = useMutation({ mutationFn: useConvexMutation(api.characters.mutations.createCharacter) });
   const updateCharacter = useMutation({ mutationFn: useConvexMutation(api.characters.mutations.updateCharacter) });

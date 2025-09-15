@@ -3,7 +3,6 @@ import { Tag, TagWithCategory } from "./types";
 import { query } from "../_generated/server";
 import { getPlayerSharedTags, getSharedAllTag } from "./shared";
 import { getTag as getTagFn, getTagsByCategory as getTagsByCategoryFn, getTagsByCampaign as getTagsByCampaignFn } from "./tags";
-import type { Id } from "../_generated/dataModel";
 
 export const getSharedTags = query({
   args: {
@@ -40,6 +39,25 @@ export const getTagsByCampaign = query({
     return await getTagsByCampaignFn(ctx, args.campaignId);
   },
 });
+
+export const getTagsByCategoryName = query({
+  args: {
+    campaignId: v.id("campaigns"),
+    categoryName: v.string(),
+  },
+  handler: async (ctx, args): Promise<TagWithCategory[]> => {
+    const category = await ctx.db
+      .query("tagCategories")
+      .withIndex("by_campaign_name", (q) => q.eq("campaignId", args.campaignId).eq("name", args.categoryName))
+      .unique();
+
+    if (!category) {
+      throw new Error("Category not found");
+    }
+    return await getTagsByCategoryFn(ctx, category._id);
+  },
+});
+
 
 
 export const getTagsByCategory = query({
