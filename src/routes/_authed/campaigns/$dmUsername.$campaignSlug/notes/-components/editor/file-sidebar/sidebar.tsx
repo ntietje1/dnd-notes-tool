@@ -4,7 +4,7 @@ import { SidebarItem } from "./sidebar-item/sidebar-item";
 import { SystemFolders } from "./sidebar-system-folder/system-folders";
 import { Skeleton } from "~/components/shadcn/ui/skeleton";
 import { useSidebarItems } from "~/hooks/useSidebarItems";
-import { FileSidebarProvider, useFileSidebar } from "~/contexts/FileSidebarContext";
+import { useFileSidebar } from "~/contexts/FileSidebarContext";
 import { DragOverlay } from "@dnd-kit/core";
 import { ClientOnly } from "@tanstack/react-router";
 

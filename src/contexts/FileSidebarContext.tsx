@@ -72,7 +72,7 @@ export function FileSidebarProvider({ children }: { children: React.ReactNode })
             const { active } = event;
             const item = active.data.current as AnySidebarItem;
             if (item) {
-            setActiveDragItem(item);
+                setActiveDragItem(item);
             }
         },
         [],
