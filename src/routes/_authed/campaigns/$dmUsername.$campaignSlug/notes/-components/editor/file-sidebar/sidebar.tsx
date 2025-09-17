@@ -7,7 +7,7 @@ import { useSidebarItems } from "~/hooks/useSidebarItems";
 import { useFileSidebar } from "~/contexts/FileSidebarContext";
 import { DragOverlay } from "@dnd-kit/core";
 import { ClientOnly } from "@tanstack/react-router";
-
+import { DragOverlayItem } from "./sidebar-item/drag-overlay-item";
 
 function FileSidebarContent() {
   const sidebarItems = useSidebarItems();
@@ -19,10 +19,12 @@ function FileSidebarContent() {
 
   return (
     <div className="h-full bg-background flex flex-1 flex-col min-h-0 min-w-0">
-      <DroppableRoot className="flex-1 p-1 transition-colors overflow-y-auto">
-        <SystemFolders />
+      <SystemFolders className="m-1"/>
 
-        <div className="my-2 border-t border-muted-foreground/20" />
+      <div className="border-t border-muted-foreground/20" />
+
+      <DroppableRoot className="flex-1 transition-colors overflow-y-auto m-1">
+        
 
         {sidebarItems.data?.map((item) => (
           <SidebarItem key={item._id} item={item} />
@@ -31,7 +33,7 @@ function FileSidebarContent() {
       
       <DragOverlay dropAnimation={null}>
         {activeDragItem && (
-          <SidebarItem item={activeDragItem} />
+          <DragOverlayItem item={activeDragItem} />
         )}
       </DragOverlay>
     </div>

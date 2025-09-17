@@ -2,6 +2,7 @@ import { Button } from "~/components/shadcn/ui/button";
 import {
   ChevronDown,
   ChevronRight,
+  MoreHorizontal,
 } from "~/lib/icons";
 import { EditableName } from "../../sidebar-item/editable-name";
 import { Collapsible, CollapsibleContent } from "~/components/shadcn/ui/collapsible";
@@ -14,6 +15,7 @@ import { useFolderState } from "~/hooks/useFolderState";
 import { GenericCategoryContextMenu, type GenericCategoryContextMenuProps } from "./generic-category-context-menu";
 import { GenericTagNoteContextMenu, type GenericTagNoteContextMenuProps } from "./generic-note-context.menu";
 import type { TagWithNote } from "convex/tags/types";
+import { toast } from "sonner";
 
 type CategoryContextMenuComponent = React.ComponentType<GenericCategoryContextMenuProps>;
 type NoteContextMenuComponent = React.ComponentType<GenericTagNoteContextMenuProps>;
@@ -60,7 +62,7 @@ export const GenericCategoryFolder = ({
         <div className="relative pl-4">
           {/* Vertical line */}
           {hasItems && (
-            <div className="absolute left-2 top-0 bottom-0 w-0.5 bg-muted-foreground/10" />
+            <div className="absolute left-2 top-0 bottom-0 w-px bg-muted-foreground/10" />
           )}
           {(tagNotePages.map((tagWithNote: TagWithNote) => (
                 <NoteContextMenuComponent
@@ -91,28 +93,66 @@ const GenericCategoryFolderButton = ({
     isExpanded,
     toggleExpanded,
 }: GenericCategoryFolderButtonProps) => {
+  const handleFolderClick = () => {
+    toast.info("Category folder clicked - functionality coming soon!");
+  };
+
+  const handleMoreOptions = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    toast.info("More options - functionality coming soon!");
+  };
+
   return (
-    <Button
-        variant="ghost"
-        className="w-full flex-1 justify-start gap-2 h-8 min-w-0 p-0"
-        onClick={toggleExpanded}
-    >
-        <div className="flex items-center gap-1 min-w-0 w-full">
-        <div className="flex items-center h-4 w-3 shrink-0">
-            {isExpanded ? (
-            <ChevronDown className="h-2 w-2 pl-1 pr-0.5" />
-            ) : (
-            <ChevronRight className="h-2 w-2 pl-1 pr-0.5" />
-            )}
+    <div className="group relative flex items-center w-full h-8 px-1 rounded-sm hover:bg-muted/50 transition-colors">
+      {/* Icon Slot - Category Icon and Chevron in same position */}
+      <div className="relative h-6 w-6 shrink-0">
+        {/* Category Icon - Show by default */}
+        <div className="absolute inset-0 flex items-center justify-center opacity-100 group-hover:opacity-0 transition-opacity text-muted-foreground">
+          {icon}
         </div>
-        {icon}
+        
+        {/* Chevron Button - Show on Hover */}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="absolute inset-0 h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-muted-foreground/20 rounded-sm opacity-0 group-hover:opacity-100 transition-opacity"
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleExpanded();
+          }}
+        >
+          {isExpanded ? (
+            <ChevronDown className="h-3 w-3" />
+          ) : (
+            <ChevronRight className="h-3 w-3" />
+          )}
+        </Button>
+      </div>
+
+      {/* Category Name */}
+      <div 
+        className="flex items-center min-w-0 flex-1 px-1 py-1 rounded-sm"
+        onClick={handleFolderClick}
+      >
         <EditableName
-            initialName={categoryName}
-            defaultName={categoryName}
-            isRenaming={false} // not actually editable here
-            onFinishRename={() => {}}
+          initialName={categoryName}
+          defaultName={categoryName}
+          isRenaming={false} // not actually editable here
+          onFinishRename={() => {}}
         />
-        </div>
-    </Button>
+      </div>
+
+      {/* Action Buttons - Show on Hover */}
+      <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-muted-foreground/20 rounded-sm"
+          onClick={handleMoreOptions}
+        >
+           <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
   );
 };

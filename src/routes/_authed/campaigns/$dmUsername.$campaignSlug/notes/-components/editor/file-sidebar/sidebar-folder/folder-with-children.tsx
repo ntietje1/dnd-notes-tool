@@ -25,7 +25,7 @@ export function FolderWithChildren({
           <div className="relative pl-4">
             {/* Vertical line */}
             {hasChildren && (
-              <div className="absolute left-2 top-0 bottom-0 w-0.5 bg-muted-foreground/10" />
+              <div className="absolute left-2 top-0 bottom-0 w-px bg-muted-foreground/10" />
             )}
             {children.data?.map((item) => (
               <SidebarItem

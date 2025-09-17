@@ -51,7 +51,8 @@ export {
   SortDesc,
   Lock,
   UploadCloud,
-  Notebook
+  Notebook,
+  MoreHorizontal,
 } from "lucide-react";
 
 export type { LucideIcon } from "lucide-react";

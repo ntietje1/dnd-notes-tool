@@ -1,4 +1,4 @@
-import { FileText, FileEdit } from "~/lib/icons";
+import { FileText, FileEdit, MoreHorizontal } from "~/lib/icons";
 import { Button } from "~/components/shadcn/ui/button";
 import type { Note } from "convex/notes/types";
 import { NoteName } from "./note-name";
@@ -17,26 +17,45 @@ export function NoteButton({
   const { note: currentNote, selectNote } = useCurrentNote();
   const isSelected = currentNote?.data?._id === note._id;
 
+  const handleMoreOptions = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    // Note context menu will handle this
+  };
+
   return (
-    <Button
-      variant="ghost"
+    <div 
       className={cn(
-        "w-full flex-1 justify-start gap-2 h-8 min-w-0 p-0",
-        isSelected && "bg-muted",
+        "group relative flex items-center w-full h-8 px-1 rounded-sm hover:bg-muted/50 transition-colors",
+        isSelected && "bg-muted"
       )}
-      onClick={(e) => {
-        e.stopPropagation();
-        selectNote(note._id);
-      }}
     >
-      <div className="flex items-center gap-1 min-w-0 w-full pl-2">
+      {/* Note Icon and Name */}
+      <div 
+        className="flex items-center gap-2 min-w-0 flex-1 px-1 py-1 rounded-sm"
+        onClick={(e) => {
+          e.stopPropagation();
+          selectNote(note._id);
+        }}
+      >
         {renamingId === note._id ? (
-          <FileEdit className="h-4 w-4 shrink-0" />
+          <FileEdit className="h-4 w-4 shrink-0 text-muted-foreground" />
         ) : (
-          <FileText className="h-4 w-4 shrink-0" />
+          <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
         )}
         <NoteName note={note} />
       </div>
-    </Button>
+
+      {/* Action Button - Show on Hover */}
+      <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-muted-foreground/20 rounded-sm"
+          onClick={handleMoreOptions}
+        >
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
   );
 }

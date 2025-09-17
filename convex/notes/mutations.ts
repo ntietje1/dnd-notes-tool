@@ -94,6 +94,9 @@ export const moveFolder = mutation({
     await requireCampaignMembership(ctx, { campaignId: folder.campaignId },
       { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
     );
+
+    //TODO: check if folder is being put into one of it's own children
+    
     await ctx.db.patch(args.folderId, { parentFolderId: args.parentId });
     return args.folderId;
   },
