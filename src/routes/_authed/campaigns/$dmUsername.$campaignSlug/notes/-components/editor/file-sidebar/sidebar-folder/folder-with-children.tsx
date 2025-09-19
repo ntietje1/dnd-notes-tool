@@ -22,10 +22,10 @@ export function FolderWithChildren({
       <Collapsible open={isExpanded} onOpenChange={toggleExpanded}>
         <FolderButton folder={folder}/>
         <CollapsibleContent>
-          <div className="relative pl-4">
+          <div className="relative pl-2">
             {/* Vertical line */}
             {hasChildren && (
-              <div className="absolute left-2 top-0 bottom-0 w-px bg-muted-foreground/10" />
+              <div className="absolute left-1 top-0 bottom-0 w-px bg-muted-foreground/5" />
             )}
             {children.data?.map((item) => (
               <SidebarItem

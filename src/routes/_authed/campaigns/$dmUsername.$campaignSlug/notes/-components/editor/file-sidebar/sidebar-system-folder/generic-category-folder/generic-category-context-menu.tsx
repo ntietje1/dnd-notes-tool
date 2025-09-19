@@ -5,6 +5,7 @@ import {
   import { useState } from "react";
 import { GenericTagCreateDialog } from "./generic-tag-create-dialog";
 import { Plus } from "~/lib/icons";
+import { useFolderState } from "~/hooks/useFolderState";
 
 export interface GenericCategoryContextMenuProps {
   children: React.ReactNode;
@@ -20,8 +21,10 @@ export function GenericCategoryContextMenu({
   additionalItems,
 }: GenericCategoryContextMenuProps) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const { openFolder } = useFolderState(categoryName);
 
   const handleCreateItem = () => {
+    openFolder();
     setIsCreateDialogOpen(true);
   };
 

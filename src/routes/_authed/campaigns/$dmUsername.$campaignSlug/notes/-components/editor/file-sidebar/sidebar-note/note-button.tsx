@@ -5,6 +5,7 @@ import { NoteName } from "./note-name";
 import { cn } from "~/lib/utils";
 import { useFileSidebar } from "~/contexts/FileSidebarContext";
 import { useCurrentNote } from "~/hooks/useCurrentNote";
+import { HoverToggleButton } from "~/components/hover-toggle-button";
 
 interface NoteButtonProps {
   note: Note;
@@ -31,7 +32,7 @@ export function NoteButton({
     >
       {/* Note Icon and Name */}
       <div 
-        className="flex items-center gap-2 min-w-0 flex-1 px-1 py-1 rounded-sm"
+        className="flex items-center gap-2 min-w-0 flex-1 px-1 py-1"
         onClick={(e) => {
           e.stopPropagation();
           selectNote(note._id);
@@ -45,17 +46,21 @@ export function NoteButton({
         <NoteName note={note} />
       </div>
 
-      {/* Action Button - Show on Hover */}
-      <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-muted-foreground/20 rounded-sm"
-          onClick={handleMoreOptions}
-        >
-          <MoreHorizontal className="h-4 w-4" />
-        </Button>
-      </div>
+      {/* More Options Button */}
+      <HoverToggleButton
+        className="relative h-6 w-6 shrink-0 flex items-center justify-center"
+        nonHoverComponent={null}
+        hoverComponent={
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-muted-foreground/10 rounded-sm"
+            onClick={handleMoreOptions}
+          >
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        }
+      />
     </div>
   );
 }

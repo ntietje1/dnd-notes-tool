@@ -16,6 +16,7 @@ import { GenericCategoryContextMenu, type GenericCategoryContextMenuProps } from
 import { GenericTagNoteContextMenu, type GenericTagNoteContextMenuProps } from "./generic-note-context.menu";
 import type { TagWithNote } from "convex/tags/types";
 import { toast } from "sonner";
+import { HoverToggleButton } from "~/components/hover-toggle-button";
 
 type CategoryContextMenuComponent = React.ComponentType<GenericCategoryContextMenuProps>;
 type NoteContextMenuComponent = React.ComponentType<GenericTagNoteContextMenuProps>;
@@ -52,26 +53,26 @@ export const GenericCategoryFolder = ({
     <Collapsible open={isExpanded} onOpenChange={toggleExpanded}>
       <CategoryContextMenuComponent categoryName={categoryName}>
         <GenericCategoryFolderButton
-            icon={icon}
-            categoryName={categoryName + "s"}
-            isExpanded={isExpanded}
-            toggleExpanded={toggleExpanded}
+          icon={icon}
+          categoryName={categoryName + "s"}
+          isExpanded={isExpanded}
+          toggleExpanded={toggleExpanded}
         />
       </CategoryContextMenuComponent>
       <CollapsibleContent>
-        <div className="relative pl-4">
+        <div className="relative pl-2">
           {/* Vertical line */}
           {hasItems && (
-            <div className="absolute left-2 top-0 bottom-0 w-px bg-muted-foreground/10" />
+            <div className="absolute left-1 top-0 bottom-0 w-px bg-muted-foreground/5" />
           )}
           {(tagNotePages.map((tagWithNote: TagWithNote) => (
-                <NoteContextMenuComponent
-                    key={tagWithNote.note._id}
-                    categoryName={categoryName}
-                    tag={tagWithNote}
-                >
-                  <NoteButton note={tagWithNote.note} />
-                </NoteContextMenuComponent>
+            <NoteContextMenuComponent
+              key={tagWithNote.note._id}
+              categoryName={categoryName}
+              tag={tagWithNote}
+            >
+              <NoteButton note={tagWithNote.note} />
+            </NoteContextMenuComponent>
             ))
           )}
         </div>
@@ -104,30 +105,28 @@ const GenericCategoryFolderButton = ({
 
   return (
     <div className="group relative flex items-center w-full h-8 px-1 rounded-sm hover:bg-muted/50 transition-colors">
-      {/* Icon Slot - Category Icon and Chevron in same position */}
-      <div className="relative h-6 w-6 shrink-0">
-        {/* Category Icon - Show by default */}
-        <div className="absolute inset-0 flex items-center justify-center opacity-100 group-hover:opacity-0 transition-opacity text-muted-foreground">
-          {icon}
-        </div>
-        
-        {/* Chevron Button - Show on Hover */}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="absolute inset-0 h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-muted-foreground/20 rounded-sm opacity-0 group-hover:opacity-100 transition-opacity"
-          onClick={(e) => {
-            e.stopPropagation();
-            toggleExpanded();
-          }}
-        >
-          {isExpanded ? (
-            <ChevronDown className="h-3 w-3" />
-          ) : (
-            <ChevronRight className="h-3 w-3" />
-          )}
-        </Button>
-      </div>
+      {/* Category Icon / Chevron Toggle */}
+      <HoverToggleButton
+        className="relative h-6 w-6 shrink-0 flex items-center justify-center text-muted-foreground"
+        nonHoverComponent={icon}
+        hoverComponent={
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 hover:text-foreground hover:bg-muted-foreground/10 rounded-sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleExpanded();
+            }}
+          >
+            {isExpanded ? (
+              <ChevronDown className="h-3 w-3" />
+            ) : (
+              <ChevronRight className="h-3 w-3" />
+            )}
+          </Button>
+        }
+      />
 
       {/* Category Name */}
       <div 
@@ -142,17 +141,21 @@ const GenericCategoryFolderButton = ({
         />
       </div>
 
-      {/* Action Buttons - Show on Hover */}
-      <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-muted-foreground/20 rounded-sm"
-          onClick={handleMoreOptions}
-        >
-           <MoreHorizontal className="h-4 w-4" />
-        </Button>
-      </div>
+      {/* More Options Button */}
+      <HoverToggleButton
+        className="relative h-6 w-6 shrink-0 flex items-center justify-center"
+        nonHoverComponent={null}
+        hoverComponent={
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-muted-foreground/10 rounded-sm"
+            onClick={handleMoreOptions}
+          >
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        }
+      />
     </div>
   );
 };

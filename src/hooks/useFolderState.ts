@@ -13,10 +13,20 @@ export function useFolderState(folderId: string) {
   const setExpanded = useCallback((expanded: boolean) => {
     setFolderState(folderId, expanded);
   }, [folderId, setFolderState]);
+
+  const openFolder = useCallback(() => {
+    setFolderState(folderId, true);
+  }, [folderId, setFolderState]);
+
+  const closeFolder = useCallback(() => {
+    setFolderState(folderId, false);
+  }, [folderId, setFolderState]);
   
   return {
     isExpanded,
     toggleExpanded,
     setExpanded,
+    openFolder,
+    closeFolder,
   };
 }

@@ -7,6 +7,7 @@ import { ConfirmationDialog } from "~/components/dialogs/confirmation-dialog";
 import { useCampaign } from "~/contexts/CampaignContext";
 import { useFileSidebar } from "~/contexts/FileSidebarContext";
 import { useFolderActions } from "~/hooks/useFolderActions";
+import { useFolderState } from "~/hooks/useFolderState";
 import { useNoteActions } from "~/hooks/useNoteActions";
 import { FilePlus, FolderPlus, FolderEdit, Trash2 } from "~/lib/icons";
 
@@ -22,6 +23,7 @@ export function FolderContextMenu({
   const [confirmDeleteDialogOpen, setConfirmDeleteDialogOpen] = useState(false);
   const { setRenamingId } = useFileSidebar();
   const { deleteFolder, createFolder } = useFolderActions();
+  const { openFolder } = useFolderState(folder._id);
   const { createNote } = useNoteActions();
   const { campaignWithMembership } = useCampaign();
   const campaignId = campaignWithMembership.data?.campaign._id;
@@ -35,6 +37,7 @@ export function FolderContextMenu({
   const handleNewPage = async () => {
     await createNote.mutateAsync({ parentFolderId: folder._id, campaignId: campaignId })
     .then((noteId: Id<"notes">) => {
+      openFolder();
       setRenamingId(noteId);
     }).catch((error: Error) => {
       console.error(error);
@@ -45,6 +48,7 @@ export function FolderContextMenu({
   const handleNewFolder = async () => {
     await createFolder.mutateAsync({ parentFolderId: folder._id, campaignId: campaignId })
     .then((folderId: Id<"folders">) => {
+      openFolder();
       setRenamingId(folderId);
     }).catch((error: Error) => {
       console.error(error);
