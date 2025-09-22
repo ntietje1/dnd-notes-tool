@@ -1,20 +1,21 @@
 
-import { SYSTEM_TAG_CATEGORY_NAMES } from "convex/tags/types";
-import { GenericTagNoteContextMenu, type GenericTagNoteContextMenuProps } from "../generic-category-folder/generic-note-context.menu";
+import { TagNoteContextMenu, type TagNoteContextMenuProps } from "../generic-category-folder/tag-note-context.menu";
+import { forwardRef } from "react";
+import type { ContextMenuRef } from "~/components/context-menu/context-menu";
+import { CHARACTER_CONFIG } from "~/components/forms/category-tag-dialogs/character-tag-dialog/types";
 
-
-export function CharacterNoteContextMenu({
+export const CharacterNoteContextMenu = forwardRef<ContextMenuRef, TagNoteContextMenuProps>(({
   children,
-  tag,
-}: GenericTagNoteContextMenuProps) {
-
-
+  tagWithNote,
+}, ref) => {
+  // const character = useQuery(convexQuery(api.characters.queries.getCharacterByTagId, { tagId: tag._id }));
   return (
-    <GenericTagNoteContextMenu
-      categoryName={SYSTEM_TAG_CATEGORY_NAMES.Character}
-      tag={tag}
+    <TagNoteContextMenu
+      ref={ref}
+      tagWithNote={tagWithNote}
+      categoryConfig={CHARACTER_CONFIG}
     >
       {children}
-    </GenericTagNoteContextMenu>
+    </TagNoteContextMenu>
   );
-}
+});

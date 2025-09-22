@@ -17,7 +17,7 @@ export const SystemFolders = ({
 }: SystemFoldersProps) => {
   return (
     <div className={cn("flex flex-col gap-1", className)}>
-    {SIDEBAR_FOLDER_TYPES.map((tagCategory) => (
+      {SIDEBAR_FOLDER_TYPES.map((tagCategory) => (
         <SystemFolderButton
           key={tagCategory}
           tagCategory={tagCategory}

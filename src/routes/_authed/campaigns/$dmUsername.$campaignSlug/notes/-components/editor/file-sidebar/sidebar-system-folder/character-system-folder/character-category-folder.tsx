@@ -1,18 +1,16 @@
-import { User } from "~/lib/icons";
-import { GenericCategoryFolder } from "../generic-category-folder/generic-category-folder";
+import { CategoryFolderButton } from "../generic-category-folder/category-folder-button";
 import { CharacterCategoryFolderContextMenu } from "./character-category-context-menu";
 import { CharacterNoteContextMenu } from "./character-note-context-menu";
-import { SYSTEM_TAG_CATEGORY_NAMES } from "convex/tags/types";
+import { CHARACTER_CONFIG } from "~/components/forms/category-tag-dialogs/character-tag-dialog/types";
 
 interface CharacterCategoryFolderProps {}
 
 export const CharacterCategoryFolder = ({}: CharacterCategoryFolderProps) => {
   return (
-    <GenericCategoryFolder
-      categoryName={SYSTEM_TAG_CATEGORY_NAMES.Character}
-      icon={<User className="h-4 w-4 shrink-0" />}
+    <CategoryFolderButton
+      categoryConfig={CHARACTER_CONFIG}
       categoryContextMenu={CharacterCategoryFolderContextMenu}
-      noteContextMenu={CharacterNoteContextMenu}
+      tagNoteContextMenu={CharacterNoteContextMenu}
     />
   );
 };

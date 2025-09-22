@@ -1,8 +1,8 @@
 import type { Id } from "convex/_generated/dataModel";
 import type { Folder } from "convex/notes/types";
-import { useCallback, useState } from "react";
+import { useCallback, useState, forwardRef } from "react";
 import { toast } from "sonner";
-import { ContextMenu, type ContextMenuItem } from "~/components/context-menu/context-menu";
+import { ContextMenu, type ContextMenuItem, type ContextMenuRef } from "~/components/context-menu/context-menu";
 import { ConfirmationDialog } from "~/components/dialogs/confirmation-dialog";
 import { useCampaign } from "~/contexts/CampaignContext";
 import { useFileSidebar } from "~/contexts/FileSidebarContext";
@@ -16,10 +16,10 @@ interface FolderContextMenuProps {
   children: React.ReactNode;
 }
 
-export function FolderContextMenu({
+export const FolderContextMenu = forwardRef<ContextMenuRef, FolderContextMenuProps>(({
   folder,
   children,
-}: FolderContextMenuProps) {
+}, ref) => {
   const [confirmDeleteDialogOpen, setConfirmDeleteDialogOpen] = useState(false);
   const { setRenamingId } = useFileSidebar();
   const { deleteFolder, createFolder } = useFolderActions();
@@ -74,22 +74,26 @@ export function FolderContextMenu({
 
   const menuItems: ContextMenuItem[] = [
     {
-      label: "Rename Folder",
+      type: "action",
+      label: "Rename",
       icon: <FolderEdit className="h-4 w-4" />,
       onClick: handleRenameFolder,
     },
     {
+      type: "action",
       label: "New Page",
       icon: <FilePlus className="h-4 w-4" />,
       onClick: handleNewPage,
     },
     {
+      type: "action",
       label: "New Folder",
       icon: <FolderPlus className="h-4 w-4" />,
       onClick: handleNewFolder,
     },
     {
-      label: "Delete Folder",
+      type: "action",
+      label: "Delete",
       icon: <Trash2 className="h-4 w-4" />,
       onClick: handleDeleteFolder,
       className: "text-red-600 focus:text-red-600",
@@ -98,7 +102,7 @@ export function FolderContextMenu({
 
   return (
     <>
-      <ContextMenu items={menuItems}>{children}</ContextMenu>
+      <ContextMenu ref={ref} items={menuItems}>{children}</ContextMenu>
       <ConfirmationDialog
         isOpen={confirmDeleteDialogOpen}
         onClose={() => setConfirmDeleteDialogOpen(false)}
@@ -111,4 +115,4 @@ export function FolderContextMenu({
       />
     </>
   );
-}
+});

@@ -8,6 +8,7 @@ import { useFileSidebar } from "~/contexts/FileSidebarContext";
 import { DragOverlay } from "@dnd-kit/core";
 import { ClientOnly } from "@tanstack/react-router";
 import { DragOverlayItem } from "./sidebar-item/drag-overlay-item";
+import { ScrollArea } from "~/components/shadcn/ui/scroll-area";
 
 function FileSidebarContent() {
   const sidebarItems = useSidebarItems();
@@ -18,25 +19,25 @@ function FileSidebarContent() {
   }
 
   return (
-    <div className="h-full bg-background flex flex-1 flex-col min-h-0 min-w-0">
-      <SystemFolders className="m-1"/>
-
-      <div className="border-t border-muted-foreground/20" />
-
-      <DroppableRoot className="flex-1 transition-colors overflow-y-auto m-1">
+    <DroppableRoot className="flex-1 flex min-h-0">
+      <ScrollArea type="always" className="flex-1 min-h-0 overflow-y-auto p-1.5 pr-2.5">
         
+        <SystemFolders />
 
+        <div className="border-t border-muted-foreground/20 my-1" />
+          
         {sidebarItems.data?.map((item) => (
           <SidebarItem key={item._id} item={item} />
         ))}
-      </DroppableRoot>
-      
-      <DragOverlay dropAnimation={null}>
-        {activeDragItem && (
-          <DragOverlayItem item={activeDragItem} />
-        )}
-      </DragOverlay>
-    </div>
+        
+        <DragOverlay dropAnimation={null}>
+          {activeDragItem && (
+            <DragOverlayItem item={activeDragItem} />
+          )}
+        </DragOverlay>
+        
+      </ScrollArea>
+    </DroppableRoot>
   );
 }
 

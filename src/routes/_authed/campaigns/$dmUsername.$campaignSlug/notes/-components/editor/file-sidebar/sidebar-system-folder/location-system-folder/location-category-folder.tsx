@@ -1,18 +1,16 @@
-import { MapPin } from "~/lib/icons";
-import { GenericCategoryFolder } from "../generic-category-folder/generic-category-folder";
-import { SYSTEM_TAG_CATEGORY_NAMES } from "convex/tags/types";
+import { CategoryFolderButton } from "../generic-category-folder/category-folder-button";
 import { LocationNoteContextMenu } from "./location-note-context-menu";
 import { LocationCategoryFolderContextMenu } from "./location-category-context-menu";
+import { LOCATION_CONFIG } from "~/components/forms/category-tag-dialogs/location-tag-dialog/types";
 
 interface LocationCategoryFolderProps {}
 
 export const LocationCategoryFolder = ({}: LocationCategoryFolderProps) => {
   return (
-    <GenericCategoryFolder
-      categoryName={SYSTEM_TAG_CATEGORY_NAMES.Location}
-      icon={<MapPin className="h-4 w-4 shrink-0" />}
+    <CategoryFolderButton
+      categoryConfig={LOCATION_CONFIG}
       categoryContextMenu={LocationCategoryFolderContextMenu}
-      noteContextMenu={LocationNoteContextMenu}
+      tagNoteContextMenu={LocationNoteContextMenu}
     />
   );
 };

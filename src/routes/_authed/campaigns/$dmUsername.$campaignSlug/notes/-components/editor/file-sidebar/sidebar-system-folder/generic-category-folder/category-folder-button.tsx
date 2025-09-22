@@ -3,60 +3,64 @@ import {
   ChevronDown,
   ChevronRight,
   MoreHorizontal,
+  type LucideIcon,
 } from "~/lib/icons";
 import { EditableName } from "../../sidebar-item/editable-name";
 import { Collapsible, CollapsibleContent } from "~/components/shadcn/ui/collapsible";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "convex/_generated/api";
-import { NoteButton } from "../../sidebar-note/note-button";
 import { convexQuery } from "@convex-dev/react-query";
 import { useCampaign } from "~/contexts/CampaignContext";
 import { useFolderState } from "~/hooks/useFolderState";
-import { GenericCategoryContextMenu, type GenericCategoryContextMenuProps } from "./generic-category-context-menu";
-import { GenericTagNoteContextMenu, type GenericTagNoteContextMenuProps } from "./generic-note-context.menu";
+import { CategoryContextMenu, type CategoryContextMenuProps } from "./category-context-menu";
+import { TagNoteContextMenu, type TagNoteContextMenuProps } from "./tag-note-context.menu";
 import type { TagWithNote } from "convex/tags/types";
 import { toast } from "sonner";
 import { HoverToggleButton } from "~/components/hover-toggle-button";
+import { useRef } from "react";
+import type { ContextMenuRef } from "~/components/context-menu/context-menu";
+import { TagNoteButton } from "./tag-note-button";
+import type { TagCategoryConfig } from "~/components/forms/category-tag-dialogs/base-tag-dialog/types";
 
-type CategoryContextMenuComponent = React.ComponentType<GenericCategoryContextMenuProps>;
-type NoteContextMenuComponent = React.ComponentType<GenericTagNoteContextMenuProps>;
+type CategoryContextMenuComponent = React.ComponentType<CategoryContextMenuProps>;
+type NoteContextMenuComponent = React.ComponentType<TagNoteContextMenuProps>;
 
-interface CategoryFolderProps {
-  categoryName: string;
-  icon: React.ReactNode;
+interface CategoryFolderButtonProps {
+  categoryConfig: TagCategoryConfig;
   categoryContextMenu?: CategoryContextMenuComponent;
-  noteContextMenu?: NoteContextMenuComponent;
+  tagNoteContextMenu?: NoteContextMenuComponent;
 }
 
-export const GenericCategoryFolder = ({ 
-  categoryName,
-  icon, 
+export const CategoryFolderButton = ({ 
+  categoryConfig,
   categoryContextMenu,
-  noteContextMenu,
-}: CategoryFolderProps) => {
+  tagNoteContextMenu,
+}: CategoryFolderButtonProps) => {
   const { campaignWithMembership } = useCampaign();
   const campaign = campaignWithMembership?.data?.campaign;
-  const { isExpanded, toggleExpanded } = useFolderState(categoryName);
+  const { isExpanded, toggleExpanded } = useFolderState(categoryConfig.categoryName);
+  const categoryContextMenuRef = useRef<ContextMenuRef>(null);
   
   const tagNotePagesQuery = useQuery(convexQuery(api.notes.queries.getTagNotePages, campaign ? {
-    tagCategory: categoryName,
+    tagCategory: categoryConfig.categoryName,
     campaignId: campaign._id,
   } : "skip"));
   
   const tagNotePages = tagNotePagesQuery.data ?? [];
   const hasItems = tagNotePages.length > 0;
 
-  const CategoryContextMenuComponent = categoryContextMenu || GenericCategoryContextMenu;
-  const NoteContextMenuComponent = noteContextMenu || GenericTagNoteContextMenu;
+  const CategoryContextMenuComponent = categoryContextMenu || CategoryContextMenu;
+  const TagNoteContextMenuComponent = tagNoteContextMenu || TagNoteContextMenu;
 
   return (
     <Collapsible open={isExpanded} onOpenChange={toggleExpanded}>
-      <CategoryContextMenuComponent categoryName={categoryName}>
-        <GenericCategoryFolderButton
-          icon={icon}
-          categoryName={categoryName + "s"}
+      <CategoryContextMenuComponent ref={categoryContextMenuRef} categoryConfig={categoryConfig}>
+        <CategoryFolderBase
+          icon={categoryConfig.icon}
+          categoryName={categoryConfig.plural}
           isExpanded={isExpanded}
           toggleExpanded={toggleExpanded}
+          contextMenuRef={categoryContextMenuRef}
         />
       </CategoryContextMenuComponent>
       <CollapsibleContent>
@@ -66,13 +70,12 @@ export const GenericCategoryFolder = ({
             <div className="absolute left-1 top-0 bottom-0 w-px bg-muted-foreground/5" />
           )}
           {(tagNotePages.map((tagWithNote: TagWithNote) => (
-            <NoteContextMenuComponent
-              key={tagWithNote.note._id}
-              categoryName={categoryName}
-              tag={tagWithNote}
-            >
-              <NoteButton note={tagWithNote.note} />
-            </NoteContextMenuComponent>
+              <TagNoteButton
+                key={tagWithNote.note._id}
+                tagWithNote={tagWithNote}
+                contextMenuComponent={TagNoteContextMenuComponent}
+                categoryConfig={categoryConfig}
+              />
             ))
           )}
         </div>
@@ -81,34 +84,38 @@ export const GenericCategoryFolder = ({
   );
 };
 
-interface GenericCategoryFolderButtonProps {
-    icon?: React.ReactNode;
+interface CategoryFolderBaseProps {
+    icon: LucideIcon;
     categoryName: string;
     isExpanded: boolean;
     toggleExpanded: () => void;
+    contextMenuRef: React.RefObject<ContextMenuRef | null>;
 }
 
-const GenericCategoryFolderButton = ({
+const CategoryFolderBase = ({
     icon,
     categoryName,
     isExpanded,
     toggleExpanded,
-}: GenericCategoryFolderButtonProps) => {
+    contextMenuRef,
+}: CategoryFolderBaseProps) => {
   const handleFolderClick = () => {
     toast.info("Category folder clicked - functionality coming soon!");
   };
 
   const handleMoreOptions = (e: React.MouseEvent) => {
     e.stopPropagation();
-    toast.info("More options - functionality coming soon!");
+    contextMenuRef.current?.open({ x: e.clientX + 4, y: e.clientY + 4 });
   };
+
+  const Icon = icon;
 
   return (
     <div className="group relative flex items-center w-full h-8 px-1 rounded-sm hover:bg-muted/50 transition-colors">
       {/* Category Icon / Chevron Toggle */}
       <HoverToggleButton
         className="relative h-6 w-6 shrink-0 flex items-center justify-center text-muted-foreground"
-        nonHoverComponent={icon}
+        nonHoverComponent={<Icon className="h-4 w-4 shrink-0" />}
         hoverComponent={
           <Button
             variant="ghost"

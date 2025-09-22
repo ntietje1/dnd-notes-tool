@@ -10,6 +10,7 @@ import { convexQuery } from "@convex-dev/react-query";
 import { useCampaign } from "~/contexts/CampaignContext";
 import { Skeleton } from "~/components/shadcn/ui/skeleton";
 import type { Tag } from "convex/tags/types";
+import { Button } from "~/components/shadcn/ui/button";
 
 const schema = BlockNoteSchema.create({ inlineContentSpecs: customInlineContentSpecs });
 
@@ -45,7 +46,7 @@ export function NotesViewer() {
     <div className="h-full flex flex-col bg-white">
       <div className="mb-4 flex flex-wrap gap-2">
         {nonSystemManagedTags?.map((tag: Tag) => (
-          <button
+          <Button
             key={tag._id}
             className={`px-2 py-1 rounded border ${
               selectedTagIds.includes(tag._id)
@@ -63,7 +64,7 @@ export function NotesViewer() {
             type="button"
           >
             {tag.displayName}
-          </button>
+          </Button>
         ))}
       </div>
 

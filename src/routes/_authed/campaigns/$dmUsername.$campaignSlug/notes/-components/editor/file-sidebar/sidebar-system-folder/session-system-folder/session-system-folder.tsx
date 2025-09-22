@@ -1,12 +1,19 @@
 import { Calendar } from "~/lib/icons";
-import { GenericCategoryFolder } from "../generic-category-folder/generic-category-folder";
+import { CategoryFolderButton } from "../generic-category-folder/category-folder-button";
 import { SYSTEM_TAG_CATEGORY_NAMES } from "convex/tags/types";
+import type { TagCategoryConfig } from "~/components/forms/category-tag-dialogs/base-tag-dialog/types";
+
+export const SESSION_CONFIG: TagCategoryConfig = {
+  categoryName: SYSTEM_TAG_CATEGORY_NAMES.Session,
+  singular: "Session",
+  plural: "Sessions",
+  icon: Calendar,
+}
 
 export const SessionSystemFolder = () => {
   return (
-    <GenericCategoryFolder
-      categoryName={SYSTEM_TAG_CATEGORY_NAMES.Session}
-      icon={<Calendar className="h-4 w-4 shrink-0" />}
+    <CategoryFolderButton
+      categoryConfig={SESSION_CONFIG}
     />
   );
 };

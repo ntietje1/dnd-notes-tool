@@ -18,8 +18,6 @@ interface ColorPickerProps {
   onColorChange: (color: string) => void;
   colors?: string[];
   disabled?: boolean;
-  label?: string;
-  isChanged?: boolean;
 }
 
 export function ColorPicker({
@@ -27,17 +25,9 @@ export function ColorPicker({
   onColorChange,
   colors = DEFAULT_COLORS,
   disabled = false,
-  label = "Color",
-  isChanged = false,
 }: ColorPickerProps) {
   return (
     <div className="space-y-2">
-      {label && (
-        <span id="color-picker-label" className="text-sm font-medium">
-          {label}
-          {isChanged && <span className="text-amber-600 ml-1">*</span>}
-        </span>
-      )}
       <div className="p-3 border border-slate-200 rounded-lg">
         <div className="flex flex-wrap gap-2 justify-between">
         {colors.map((color) => (

@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation } from "../_generated/server";
-import { updateTagAndContent, deleteTagAndCleanupContent, getTagCategoryByName, insertTagAndNote, getTag } from "../tags/tags";
+import { deleteTagAndCleanupContent, getTag, getTagCategoryByName, insertTagAndNote } from "../tags/tags";
 import { CAMPAIGN_MEMBER_ROLE } from "../campaigns/types";
 import { requireCampaignMembership } from "../campaigns/campaigns";
 import { Id } from "../_generated/dataModel";
@@ -8,12 +8,35 @@ import { SYSTEM_TAG_CATEGORY_NAMES } from "../tags/types";
 
 export const createCharacter = mutation({
   args: {
+    tagId: v.id("tags"),
+    playerId: v.optional(v.id("campaignMembers")),
+  },
+  handler: async (ctx, args): Promise<Id<"characters">> => {
+    console.log("createCharacter.playerId", args.playerId);
+    const tag = await getTag(ctx, args.tagId);
+    await requireCampaignMembership(ctx, { campaignId: tag.campaignId },
+      { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
+    );
+
+    const characterId = await ctx.db.insert("characters", {
+      campaignId: tag.campaignId,
+      tagId: tag._id,
+      playerId: args.playerId,
+    });
+
+    return characterId;
+  },
+});
+
+export const createCharacterFromForm = mutation({
+  args: {
     name: v.string(),
     description: v.optional(v.string()),
     color: v.string(),
     campaignId: v.id("campaigns"),
+    playerId: v.optional(v.id("campaignMembers")),
   },
-  handler: async (ctx, args): Promise<{ characterId: Id<"characters">, tagId: Id<"tags">, noteId: Id<"notes"> }> => {
+  handler: async (ctx, args): Promise<{ tagId: Id<"tags">; characterId: Id<"characters"> }> => {
     await requireCampaignMembership(ctx, { campaignId: args.campaignId },
       { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
     );
@@ -21,29 +44,30 @@ export const createCharacter = mutation({
     const characterCategory = await getTagCategoryByName(ctx, args.campaignId, SYSTEM_TAG_CATEGORY_NAMES.Character);
 
     const { tagId, noteId } = await insertTagAndNote(ctx, {
-      displayName: args.name,
-      categoryId: characterCategory._id,
+      displayName: args.name.trim(),
+      description: args.description,
       color: args.color,
       campaignId: args.campaignId,
-      description: args.description,
-    });
-    const characterId = await ctx.db.insert("characters", {
-      campaignId: args.campaignId,
-      tagId,
+      categoryId: characterCategory._id,
     });
 
-    return { characterId, tagId, noteId };
+    const characterId = await ctx.db.insert("characters", {
+      campaignId: args.campaignId,
+      tagId: tagId,
+      playerId: args.playerId,
+    });
+
+    return { tagId, characterId };
   },
 });
 
 export const updateCharacter = mutation({
   args: {
     characterId: v.id("characters"),
-    name: v.optional(v.string()),
-    description: v.optional(v.string()),
-    color: v.optional(v.string()),
+    playerId: v.optional(v.id("campaignMembers")),
   },
   handler: async (ctx, args): Promise<Id<"characters">> => {
+    console.log("updateCharacter.playerId", args.playerId);
     const character = await ctx.db.get(args.characterId);
     if (!character) {
       throw new Error("Character not found");
@@ -53,18 +77,9 @@ export const updateCharacter = mutation({
       { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
     );
 
-    const tag = await getTag(ctx, character.tagId);
-
-    await updateTagAndContent(
-      ctx,
-      tag._id,
-      {
-        displayName: args.name,
-        color: args.color,
-        description: args.description,
-      },
-    );
-
+    await ctx.db.patch(args.characterId, {
+      playerId: args.playerId,
+    });
 
     return args.characterId;
   },

@@ -22,7 +22,7 @@ export function DroppableRoot({
 
   return (
     <div ref={setNodeRef} className={cn(className, isOver && "bg-muted")}>
-      <RootContextMenu className="h-full flex-1">
+      <RootContextMenu className="flex flex-col flex-1 bg-purple">
         {children}
       </RootContextMenu>
     </div>

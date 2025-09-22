@@ -2,12 +2,13 @@ import { FileEdit, Trash2 } from "~/lib/icons";
 import {
   ContextMenu,
   type ContextMenuItem,
+  type ContextMenuRef,
 } from "~/components/context-menu/context-menu";
 import type { Note } from "convex/notes/types";
 import { useNoteActions } from "~/hooks/useNoteActions";
 import { useFileSidebar } from "~/contexts/FileSidebarContext";
 import { toast } from "sonner";
-import { useCallback, useState } from "react";
+import { useCallback, useState, forwardRef } from "react";
 import { ConfirmationDialog } from "~/components/dialogs/confirmation-dialog";
 
 interface NoteContextMenuProps {
@@ -15,10 +16,10 @@ interface NoteContextMenuProps {
   children: React.ReactNode;
 }
 
-export function NoteContextMenu({
+export const NoteContextMenu = forwardRef<ContextMenuRef, NoteContextMenuProps>(({
   note,
   children,
-}: NoteContextMenuProps) {
+}, ref) => {
   const [confirmDeleteDialogOpen, setConfirmDeleteDialogOpen] = useState(false);
   const { setRenamingId } = useFileSidebar();
   const { deleteNote } = useNoteActions();
@@ -45,12 +46,14 @@ export function NoteContextMenu({
 
   const menuItems: ContextMenuItem[] = [
     {
-      label: "Rename Note",
+      type: "action",
+      label: "Rename",
       icon: <FileEdit className="h-4 w-4" />,
       onClick: handleRenameNote,
     },
     {
-      label: "Delete Note",
+      type: "action",
+      label: "Delete",
       icon: <Trash2 className="h-4 w-4" />,
       onClick: handleDeleteNote,
       className: "text-red-600 focus:text-red-600",
@@ -59,7 +62,7 @@ export function NoteContextMenu({
 
   return (
     <>
-      <ContextMenu items={menuItems}>{children}</ContextMenu>
+      <ContextMenu ref={ref} items={menuItems}>{children}</ContextMenu>
       <ConfirmationDialog
         isOpen={confirmDeleteDialogOpen}
         onClose={() => setConfirmDeleteDialogOpen(false)}
@@ -72,4 +75,4 @@ export function NoteContextMenu({
       />
     </>
   );
-}
+});

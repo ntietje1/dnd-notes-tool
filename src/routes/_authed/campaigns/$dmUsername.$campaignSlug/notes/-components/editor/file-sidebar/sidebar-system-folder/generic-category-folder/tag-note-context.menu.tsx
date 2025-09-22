@@ -2,55 +2,47 @@ import { FileEdit, Pencil, Trash2 } from "~/lib/icons";
 import {
   ContextMenu,
   type ContextMenuItem,
+  type ContextMenuRef,
 } from "~/components/context-menu/context-menu";
-import { useCallback, useState } from "react";
+import { useCallback, useState, forwardRef, useMemo } from "react";
 import { ConfirmationDialog } from "~/components/dialogs/confirmation-dialog";
 import { useConvexMutation } from "@convex-dev/react-query";
 import { useMutation } from "@tanstack/react-query";
 import { api } from "convex/_generated/api";
 import { useFileSidebar } from "~/contexts/FileSidebarContext";
-import type { Tag } from "convex/tags/types";
 import { toast } from "sonner";
 import { useCurrentNote } from "~/hooks/useCurrentNote";
+import type { TagWithNote } from "convex/tags/types";
+import GenericTagDialog from "~/components/forms/category-tag-dialogs/generic-tag-dialog/generic-dialog";
+import type { TagCategoryConfig } from "~/components/forms/category-tag-dialogs/base-tag-dialog/types";
 
-export interface GenericTagNoteContextMenuProps {
+export interface TagNoteContextMenuProps {
   children: React.ReactNode;
-  categoryName: string;
-  tag: Tag;
-  onEdit?: (tag: Tag) => void;
-  onRename?: (tag: Tag) => void;
-  additionalItems?: (args: { tag: Tag; categoryName: string, baseMenuItems: ContextMenuItem[] }) => ContextMenuItem[];
+  tagWithNote: TagWithNote;
+  categoryConfig: TagCategoryConfig;
+  itemsTransformation?: (baseItems: ContextMenuItem[]) => ContextMenuItem[];
 }
 
-export function GenericTagNoteContextMenu({
+export const TagNoteContextMenu = forwardRef<ContextMenuRef, TagNoteContextMenuProps>(({
   children,
-  categoryName: displayName,
-  tag,
-  onEdit,
-  onRename,
-  additionalItems,
-}: GenericTagNoteContextMenuProps) {
-  // const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  tagWithNote,
+  categoryConfig,
+  itemsTransformation = (baseItems) => baseItems,
+}, ref) => {
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [confirmDeleteDialogOpen, setConfirmDeleteDialogOpen] = useState(false);
   const { setRenamingId } = useFileSidebar();
   const { note: currentNote, selectNote } = useCurrentNote();
   const deleteTag = useMutation({ mutationFn: useConvexMutation(api.tags.mutations.deleteTag) });
+  const note = tagWithNote.note;
+  const tag = tagWithNote;
 
   const handleRename = () => {
-    if (onRename) {
-      onRename(tag);
-      return;
-    }
-    setRenamingId(tag.noteId ?? null);
+    setRenamingId(note._id);
   };
 
   const handleEdit = () => {
-    if (onEdit) {
-      onEdit(tag);
-      return;
-    }
-    toast.info(`Edit ${displayName} not implemented yet`);
-    // setIsEditDialogOpen(true);
+    setIsEditDialogOpen(true);
   };
 
   const handleDelete = () => {
@@ -60,57 +52,69 @@ export function GenericTagNoteContextMenu({
   const confirmDeleteTag = useCallback(async () => {
     await deleteTag.mutateAsync({ tagId: tag._id })
     .then(() => {
-      toast.success(`${displayName} deleted successfully`);
+      toast.success(`${tag.displayName} deleted successfully`);
       if (currentNote.data?._id === tag.noteId) {
         selectNote(null);
       }
     }).catch((error) => {
       console.error(error);
-      toast.error(`Failed to delete ${displayName}`);
+      toast.error(`Failed to delete ${tagWithNote.category.displayName}: ${tag.displayName}`);
     }).finally(() => {
       setConfirmDeleteDialogOpen(false);
     });
-  }, [deleteTag, tag._id, setConfirmDeleteDialogOpen, displayName, tag, currentNote.data?._id, selectNote]);
+  }, [deleteTag, tag._id, setConfirmDeleteDialogOpen, tagWithNote.category, tag, currentNote.data?._id, selectNote]);
 
   const baseMenuItems: ContextMenuItem[] = [
     {
-      label: `Rename ${displayName}`,
+      type: "action",
+      label: `Rename`,
       icon: <FileEdit className="h-4 w-4" />,
       onClick: handleRename,
     },
     {
-      label: `Edit ${displayName}`,
+      type: "action",
+      label: `Edit`,
       icon: <Pencil className="h-4 w-4" />,
       onClick: handleEdit,
     },
     {
-      label: `Delete ${displayName}`,
+      type: "action",
+      label: `Delete`,
       icon: <Trash2 className="h-4 w-4" />,
       onClick: handleDelete,
       className: "text-red-600 focus:text-red-600",
     },
   ];
 
-  const extraItems: ContextMenuItem[] = additionalItems
-    ? additionalItems({ tag, categoryName: displayName, baseMenuItems })
-    : [];
-
-  const menuItems: ContextMenuItem[] = [...baseMenuItems, ...extraItems];
+  const menuItems: ContextMenuItem[] = useMemo(
+    () => itemsTransformation(baseMenuItems),
+    [itemsTransformation, baseMenuItems]
+  );
 
   return (
     <>
-      <ContextMenu items={menuItems}>{children}</ContextMenu>
+      <ContextMenu ref={ref} items={menuItems}>
+        {children}
+      </ContextMenu>
     
       <ConfirmationDialog
         isOpen={confirmDeleteDialogOpen}
         onClose={() => setConfirmDeleteDialogOpen(false)}
         onConfirm={confirmDeleteTag}
-        title={`Delete ${displayName}`}
-        description={`Are you sure you want to delete this ${displayName}?`}
-        confirmLabel={`Delete ${displayName}`}
+        title={`Delete ${tag.displayName}`}
+        description={`Are you sure you want to delete this ${tag.displayName}?`}
+        confirmLabel={`Delete ${tag.displayName}`}
         confirmVariant="destructive"
         icon={Trash2}
       />
+
+      <GenericTagDialog
+        mode="edit"
+        isOpen={isEditDialogOpen}
+        onClose={() => setIsEditDialogOpen(false)}
+        config={categoryConfig}
+        tag={tag}
+      />
     </>
   );
-}
+});

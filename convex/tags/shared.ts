@@ -27,7 +27,7 @@ export async function getSharedAllTag(
     const sharedTags = await ctx.db
         .query("tags")
         .withIndex("by_campaign_categoryId", (q) =>
-        q.eq("campaignId", campaignId).eq("categoryId", sharedCategory._id),
+            q.eq("campaignId", campaignId).eq("categoryId", sharedCategory._id),
         )
         .collect();
     const sharedAllTag = sharedTags.find((t) => t.name === SYSTEM_TAG_CATEGORY_NAMES.Shared.toLowerCase());
@@ -35,7 +35,7 @@ export async function getSharedAllTag(
         console.error("All shared tag should exist but was not found");
         throw new Error("All shared tag should exist but was not found");
     }
-    return sharedAllTag;
+    return { ...sharedAllTag, category: sharedCategory };
 }
 
 export async function ensureSharedAllTag(
@@ -72,7 +72,7 @@ export async function getPlayerSharedTags(
         )
         .collect()
         .then((tags) => tags.filter((t) => !!t.memberId));
-    return sharedTags;
+    return sharedTags.map((t) => ({ ...t, category: sharedCategory }));
 }
 
 
@@ -93,7 +93,7 @@ export async function getPlayerSharedTag(
         console.error("Player shared tag should exist but was not found");
         throw new Error("Player shared tag should exist but was not found");
     }
-    return playerSharedTag;
+    return { ...playerSharedTag, category: sharedCategory };
 }
 
 export async function ensurePlayerSharedTag(

@@ -7,7 +7,7 @@ import { CreateActionCard } from "~/components/content-grid-page/create-action-c
 import { EmptyState } from "~/components/content-grid-page/empty-state";
 import { ConfirmationDialog } from "~/components/dialogs/confirmation-dialog";
 import { Users, Edit, Plus, Trash2 } from "~/lib/icons";
-import CharacterDialog from "./character-dialog";
+import CharacterDialog from "../../../../../../components/forms/category-tag-dialogs/character-tag-dialog/character-dialog";
 import { toast } from "sonner";
 import { useRouter } from "@tanstack/react-router";
 import { CardGridSkeleton } from "~/components/content-grid-page/card-grid-skeleton";
@@ -15,6 +15,7 @@ import { useCampaign } from "~/contexts/CampaignContext";
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import type { Id } from "convex/_generated/dataModel";
 import type { Character } from "convex/characters/types";
+import { CHARACTER_CONFIG } from "~/components/forms/category-tag-dialogs/character-tag-dialog/types";
 
 export default function CharactersContent() {
   const { campaignWithMembership, dmUsername, campaignSlug } = useCampaign();
@@ -71,7 +72,7 @@ export default function CharactersContent() {
 
         {characters.data?.map((character) => (
           <ContentCard
-            key={character._id}
+            key={character.characterId}
             title={character.name}
             description={character.description}
             color={character.color}
@@ -87,7 +88,7 @@ export default function CharactersContent() {
               params: {
                 dmUsername,
                 campaignSlug,
-                characterId: character._id,
+                characterId: character.characterId,
               },
             })}
             actionButtons={[
@@ -130,6 +131,7 @@ export default function CharactersContent() {
         <CharacterDialog
           mode="create"
           isOpen={creatingCharacter}
+          config={CHARACTER_CONFIG}
           onClose={() => setCreatingCharacter(false)}
         />
       )}
@@ -139,7 +141,8 @@ export default function CharactersContent() {
           mode="edit"
           isOpen={true}
           onClose={() => setEditingCharacter(null)}
-          character={editingCharacter}
+          config={CHARACTER_CONFIG}
+          tag={editingCharacter}
         />
       )}
 

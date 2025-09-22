@@ -1,17 +1,29 @@
-import { useState, useRef } from "react";
+import { useState, useRef, forwardRef, useImperativeHandle } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
 } from "~/components/shadcn/ui/dropdown-menu";
 import { cn } from "~/lib/utils";
 
-export interface ContextMenuItem {
+
+export interface ContextMenuItemBase {
+  className?: string;
+}
+
+export interface ContextMenuAction extends ContextMenuItemBase {
+  type: "action";
   label: string;
   icon?: React.ReactNode;
   onClick: () => void;
-  className?: string;
 }
+
+export interface ContextMenuDividerItem extends ContextMenuItemBase {
+  type: "divider";
+}
+
+export type ContextMenuItem = ContextMenuAction | ContextMenuDividerItem;
 
 interface ContextMenuProps {
   children: React.ReactNode;
@@ -20,16 +32,39 @@ interface ContextMenuProps {
   menuClassName?: string;
 }
 
+export interface ContextMenuRef {
+  open: (position?: { x: number; y: number }) => void;
+  close: () => void;
+}
+
 //TODO: switch to shadcn/ui/context-menu
-export function ContextMenu({
+export const ContextMenu = forwardRef<ContextMenuRef, ContextMenuProps>(({
   children,
   items,
   className,
-  menuClassName = "w-48",
-}: ContextMenuProps) {
+  menuClassName = "w-48 z-[9999]",
+}, ref) => {
   const [isOpen, setIsOpen] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useImperativeHandle(ref, () => ({
+    open: (position?: { x: number; y: number }) => {
+      if (position) {
+        setPosition(position);
+      } else {
+        const rect = wrapperRef.current?.getBoundingClientRect();
+        if (rect) {
+          setPosition({
+            x: rect.right,
+            y: rect.bottom,
+          });
+        }
+      }
+      setIsOpen(true);
+    },
+    close: () => setIsOpen(false),
+  }));
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -63,7 +98,7 @@ export function ContextMenu({
       {children}
       <DropdownMenu open={isOpen} onOpenChange={handleOpenChange} modal={false}>
         <DropdownMenuContent
-          className={menuClassName}
+          className={cn(menuClassName, "z-[9999]")}
           style={{
             position: "absolute",
             top: position.y,
@@ -71,19 +106,24 @@ export function ContextMenu({
           }}
           sideOffset={0}
           alignOffset={0}
+          align="end"
         >
-          {items.map((item, index) => (
-            <DropdownMenuItem
-              key={index}
-              onClick={() => handleItemClick(item.onClick)}
-              className={item.className}
-            >
-              {item.icon && <span className="h-4 w-4 mr-2">{item.icon}</span>}
-              {item.label}
-            </DropdownMenuItem>
-          ))}
+          {items.map((item, index) => 
+            item.type === 'divider' ? (
+              <DropdownMenuSeparator key={index} />
+            ) : item.type === 'action' ? (
+              <DropdownMenuItem
+                key={index}
+                onClick={() => handleItemClick(item.onClick)}
+                className={item.className}
+              >
+                {item.icon && <span className="h-4 w-4 mr-2">{item.icon}</span>}
+                {item.label}
+              </DropdownMenuItem>
+            ) : <div>Invalid item type</div>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
   );
-}
+});

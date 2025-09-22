@@ -39,17 +39,15 @@ export type Tag = {
   description?: string;
   campaignId: Id<"campaigns">;
   noteId?: Id<"notes">;
+  note?: Note;
   categoryId: Id<"tagCategories">;
+  category: TagCategory;
   memberId?: Id<"campaignMembers">;
   createdBy: string;
   updatedAt: number;
 };
 
-export type TagWithCategory = Tag & {
-  category: TagCategory;
-};
-
-export type TagWithNote = TagWithCategory & {
+export type TagWithNote = Tag & {
   note: Note;
 };
 

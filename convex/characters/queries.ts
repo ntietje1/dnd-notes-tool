@@ -5,6 +5,7 @@ import { requireCampaignMembership } from "../campaigns/campaigns";
 import { SYSTEM_TAG_CATEGORY_NAMES } from "../tags/types";
 import { getTag, getTagCategoryByName, getTagsByCategory } from "../tags/tags";
 import { Character } from "./types";
+import { combineCharacterAndTag } from "./characters";
 
 export const getCharactersByCampaign = query({
   args: {
@@ -31,7 +32,7 @@ export const getCharactersByCampaign = query({
           console.warn(`Character not found for tag ${t._id}`);
           return null;
         }
-        return { ...t, characterId: character._id, type: SYSTEM_TAG_CATEGORY_NAMES.Character };
+        return combineCharacterAndTag(character, t);
       })
       .filter((c) => c !== null)
       .sort((a, b) => b._creationTime - a._creationTime);
@@ -54,6 +55,26 @@ export const getCharacterById = query({
       { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
     ); //TODO: allow players to see characters that have been "introduced" to them
 
-    return { ...tag, characterId: character._id };
+    return combineCharacterAndTag(character, tag);
+  },
+});
+
+export const getCharacterByTagId = query({
+  args: {
+    tagId: v.id("tags"),
+  },
+  handler: async (ctx, args): Promise<Character> => {
+    const tag = await getTag(ctx, args.tagId);
+
+    const character = await ctx.db
+      .query("characters")
+      .withIndex("by_campaign_tag", (q) => q.eq("campaignId", tag.campaignId).eq("tagId", tag._id))
+      .unique();
+    
+    if (!character) {
+      throw new Error(`Character not found: ${args.tagId}`);
+    }
+
+    return combineCharacterAndTag(character, tag);
   },
 });

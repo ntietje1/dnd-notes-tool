@@ -2,11 +2,10 @@ import { v } from "convex/values";
 import { mutation } from "../_generated/server";
 import { CATEGORY_KIND } from "./types";
 import { Id } from "../_generated/dataModel";
-import { insertTag as insertTagFn, insertTagCategory, updateTagAndContent, deleteTagCategory as deleteTagCategoryFn, updateTagCategory as updateTagCategoryFn, deleteTagAndCleanupContent as deleteTagFn } from "./tags";
+import { insertTagAndNote, updateTagAndContent, insertTagCategory, updateTagCategory as updateTagCategoryFn, deleteTagAndCleanupContent as deleteTagFn, deleteTagCategory as deleteTagCategoryFn } from "./tags";
 
-// note: these aren't used yet, will use them eventually
 
-export const createTag = mutation({ //TODO: call helper
+export const createTag = mutation({
   args: {
     displayName: v.string(),
     categoryId: v.id("tagCategories"),
@@ -14,18 +13,13 @@ export const createTag = mutation({ //TODO: call helper
     description: v.optional(v.string()),
     campaignId: v.id("campaigns"),
   },
-  handler: async (ctx, args): Promise<Id<"tags">> => {
-    return await insertTagFn(ctx, {
-      displayName: args.displayName,
-      categoryId: args.categoryId,
-      color: args.color,
-      description: args.description,
-      campaignId: args.campaignId,
-    });
+  handler: async (ctx, args): Promise<{ tagId: Id<"tags">, noteId: Id<"notes"> }> => {
+    console.log("createTag", args);
+    return await insertTagAndNote(ctx, args);
   },
 });
 
-export const updateTag = mutation({ //TODO: call helper
+export const updateTag = mutation({
   args: {
     tagId: v.id("tags"),
     displayName: v.optional(v.string()),
@@ -33,6 +27,7 @@ export const updateTag = mutation({ //TODO: call helper
     description: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<Id<"tags">> => {
+    console.log("updateTag", args);
 
 
     await updateTagAndContent(
