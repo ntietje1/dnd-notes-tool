@@ -7,7 +7,7 @@ import { Label } from "~/components/shadcn/ui/label";
 import { Input } from "~/components/shadcn/ui/input";
 import { ColorPicker } from "../base-tag-dialog/color-picker";
 import { toast } from "sonner";
-import { useRouter } from "node_modules/@tanstack/react-router/dist/esm/useRouter";
+import { useRouter } from "@tanstack/react-router";
 import BaseTagDialog from "../base-tag-dialog/base-dialog.tsx";
 import { validateTagDescription, validateTagName, validateTagNameAsync } from "../generic-tag-dialog/validators.ts";
 import { MAX_DESCRIPTION_LENGTH, MAX_NAME_LENGTH, type TagDialogProps } from "../base-tag-dialog/types.ts";
