@@ -66,6 +66,10 @@ export const getLocationByTagId = query({
   handler: async (ctx, args): Promise<Location> => {
     const tag = await getTag(ctx, args.tagId);
 
+    await requireCampaignMembership(ctx, { campaignId: tag.campaignId },
+      { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
+    ); // TODO: allow players to see locations that have been "introduced" to them
+
     const location = await ctx.db
       .query("locations")
       .withIndex("by_campaign_tag", (q) => q.eq("campaignId", tag.campaignId).eq("tagId", tag._id))

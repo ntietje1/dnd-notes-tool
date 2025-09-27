@@ -66,11 +66,21 @@ export const getCharacterByTagId = query({
   handler: async (ctx, args): Promise<Character> => {
     const tag = await getTag(ctx, args.tagId);
 
+    await requireCampaignMembership(
+      ctx,
+      { campaignId: tag.campaignId },
+      { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] },
+    );
+
     const character = await ctx.db
       .query("characters")
-      .withIndex("by_campaign_tag", (q) => q.eq("campaignId", tag.campaignId).eq("tagId", tag._id))
+      .withIndex("by_campaign_tag", (q) =>
+        q
+          .eq("campaignId", tag.campaignId)
+          .eq("tagId", tag._id)
+      )
       .unique();
-    
+
     if (!character) {
       throw new Error(`Character not found: ${args.tagId}`);
     }

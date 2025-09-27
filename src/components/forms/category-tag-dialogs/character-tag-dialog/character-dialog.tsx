@@ -11,20 +11,22 @@ import { useRouter } from "@tanstack/react-router";
 import BaseTagDialog from "../base-tag-dialog/base-dialog.tsx";
 import { validateTagDescription, validateTagName, validateTagNameAsync } from "../generic-tag-dialog/validators.ts";
 import { MAX_DESCRIPTION_LENGTH, MAX_NAME_LENGTH, type TagDialogProps } from "../base-tag-dialog/types.ts";
-import { CHARACTER_CONFIG, defaultCharacterFormValues, type CharacterFormValues } from "./types.ts";
+import { defaultCharacterFormValues, type CharacterFormValues } from "./types.ts";
 
-export default function CharacterDialog({
-  mode,
-  isOpen,
-  onClose,
-  config = CHARACTER_CONFIG,
-  tag: character,
-  navigateToNote = false,
-}: TagDialogProps<Character>) {
+export default function CharacterDialog(props: TagDialogProps<Character>) {
   const router = useRouter();
   const convex = useConvex();
   const { campaignWithMembership, dmUsername, campaignSlug } = useCampaign();
   const campaign = campaignWithMembership?.data?.campaign;
+
+  // Extract properties based on discriminated union
+  const isEditMode = props.mode === "edit";
+  const character = isEditMode ? props.tag : undefined;
+  const config = props.config;
+  const navigateToNote = props.navigateToNote ?? false;
+  const mode = props.mode;
+  const isOpen = props.isOpen;
+  const onClose = props.onClose;
 
   const playersQuery = useQuery(convexQuery(api.campaigns.queries.getPlayersByCampaign, campaign?._id ? {
     campaignId: campaign?._id,
@@ -48,14 +50,17 @@ export default function CharacterDialog({
     mutationFn: useConvexMutation(api.characters.mutations.updateCharacter)
   });
 
-  const getInitialValues = ({ mode, tag }: { mode: "create" | "edit"; tag?: Character }) => (
-    mode === "edit" && tag ? {
-      name: tag.displayName || "",
-      description: tag.description || "",
-      color: tag.color,
-      playerId: tag.playerId || undefined,
-    } : defaultCharacterFormValues
-  );
+  const getInitialValues = ({ mode }: { mode: "create" | "edit" }) => {
+    if (mode === "edit" && character) {
+      return {
+        name: character.displayName || "",
+        description: character.description || "",
+        color: character.color,
+        playerId: character.playerId || undefined,
+      };
+    }
+    return defaultCharacterFormValues;
+  };
 
   async function handleSubmit(args: { mode: "create" | "edit"; values: CharacterFormValues }) {
     const { mode, values } = args;
@@ -97,12 +102,7 @@ export default function CharacterDialog({
             },
           });
         }
-      } else if (mode === "edit") {
-        if (!character) {
-          toast.error("Character not found");
-          return;
-        }
-
+      } else if (mode === "edit" && character) {
         await updateTagMutation.mutateAsync({
           tagId: character.tagId,
           displayName: values.name.trim(),
@@ -110,7 +110,7 @@ export default function CharacterDialog({
           color: values.color,
         });
         await updateCharacterMutation.mutateAsync({
-          characterId: character?.characterId,
+          characterId: character.characterId,
           playerId: values.playerId || undefined,
         });
 
@@ -129,7 +129,7 @@ export default function CharacterDialog({
       isOpen={isOpen}
       onClose={onClose}
       config={config}
-      tag={character}
+      tag={character as any}
       getInitialValues={getInitialValues}
       onSubmit={handleSubmit}
     >

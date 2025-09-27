@@ -3,6 +3,7 @@ import { useFileSidebar } from "~/contexts/FileSidebarContext";
 import { useCurrentNote } from "~/hooks/useCurrentNote";
 import { NoteContextMenu } from "./note-context-menu";
 import { useRef } from "react";
+import type { MouseEvent } from "react";
 import type { ContextMenuRef } from "~/components/context-menu/context-menu";
 import { NoteButtonBase } from "./note-button-base";
 import { DraggableNote } from "./draggable-note";
@@ -19,7 +20,7 @@ export function NoteButton({
   const isSelected = currentNote?.data?._id === note._id;
   const contextMenuRef = useRef<ContextMenuRef>(null);
 
-  const handleMoreOptions = (e: React.MouseEvent) => {
+  const handleMoreOptions = (e: MouseEvent) => {
     e.stopPropagation();
     contextMenuRef.current?.open({ x: e.clientX + 4, y: e.clientY + 4 });
   };

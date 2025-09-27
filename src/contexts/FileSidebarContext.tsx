@@ -1,6 +1,6 @@
 
 import type { Id } from "convex/_generated/dataModel";
-import type { AnySidebarItem } from "convex/notes/types";
+import { SIDEBAR_ITEM_TYPES, type AnySidebarItem } from "convex/notes/types";
 import { createContext, useCallback, useContext, useState } from "react";
 import usePersistedState from "~/hooks/usePersistedState";
 import { useFolderActions } from "~/hooks/useFolderActions";
@@ -87,7 +87,7 @@ export function FileSidebarProvider({ children }: { children: React.ReactNode })
 
             const draggedItem = active.data.current as AnySidebarItem;
 
-            if (draggedItem.type === "notes") {
+            if (draggedItem.type === SIDEBAR_ITEM_TYPES.notes) {
                 let parentFolderId: Id<"folders"> | undefined = undefined;
 
                 if (over && over.id !== "root") {
@@ -98,7 +98,7 @@ export function FileSidebarProvider({ children }: { children: React.ReactNode })
                 await moveNote.mutateAsync({ noteId: draggedItem._id, parentFolderId });
             }
 
-            if (draggedItem.type === "folders") {
+            if (draggedItem.type === SIDEBAR_ITEM_TYPES.folders) {
                 if (over.id === draggedItem._id) {
                     return;
                 }
@@ -113,6 +113,10 @@ export function FileSidebarProvider({ children }: { children: React.ReactNode })
         },
     [moveNote, moveFolder, openFolder],
     );
+
+    const handleDragCancel = useCallback(() => {
+        setActiveDragItem(null);
+    }, []);
 
     const value: FileSidebarContextType = {
         renamingId,
@@ -132,6 +136,7 @@ export function FileSidebarProvider({ children }: { children: React.ReactNode })
             sensors={sensors}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
         >
             {children}
         </DndContext>

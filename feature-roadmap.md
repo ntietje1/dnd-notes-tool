@@ -26,6 +26,7 @@ Dev to-do list:
 - Linking system ("#" syntax, allowing "mentioning" a note or note section by header)
 
 Planned user features road map
+- Folders under categories (more generic handling of tagged folders/notes)
 - Sessions
     - Is a type of tag (system tag?)
     - Automatically tag all blocks made during a session

@@ -498,7 +498,7 @@ export async function getNoteLevelTag(
     .unique();
     
   if (!tag) {
-    throw new Error("Tag not found");
+    return null;
   }
 
   const category = await ctx.db.get(tag.categoryId);

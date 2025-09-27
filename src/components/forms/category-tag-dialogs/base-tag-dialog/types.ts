@@ -24,12 +24,21 @@ export const defaultBaseFormValues: BaseTagFormValues = {
     color: "#ef4444",
 }
 
-export interface TagDialogProps<T extends Tag = Tag> {
-    mode: "create" | "edit";
-    isOpen: boolean;
-    onClose: () => void;
-    config: TagCategoryConfig;
-    tag?: T;
-    navigateToNote?: boolean;
-}
+export type TagDialogProps<T extends Tag = Tag> = 
+    | {
+        mode: "create";
+        isOpen: boolean;
+        onClose: () => void;
+        config: TagCategoryConfig;
+        tag?: never;
+        navigateToNote?: boolean;
+    }
+    | {
+        mode: "edit";
+        isOpen: boolean;
+        onClose: () => void;
+        config: TagCategoryConfig;
+        tag: T;
+        navigateToNote?: boolean;
+    };
   

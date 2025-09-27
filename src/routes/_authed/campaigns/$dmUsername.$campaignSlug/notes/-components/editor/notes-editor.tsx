@@ -42,7 +42,7 @@ function NotesEditorBase() {
     return <NotesEditorEmptyContent />;
   }
 
-  if (note.status === "pending") {
+  if (!note || note.status === "pending") {
     return <NotesEditorSkeleton />;
   }
 

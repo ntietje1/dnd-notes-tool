@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { FolderContextMenu } from "./folder-context-menu";
 import { FolderButtonBase } from "./folder-button-base";
 import { useRef } from "react";
+import type { MouseEvent } from "react";
 import type { ContextMenuRef } from "~/components/context-menu/context-menu";
 
 interface FolderButtonProps {
@@ -19,11 +20,12 @@ export function FolderButton({
   const { renamingId } = useFileSidebar();
   const contextMenuRef = useRef<ContextMenuRef>(null);
   
-  const handleFolderClick = () => {
+  const handleFolderClick = (e: MouseEvent) => {
+    e.stopPropagation();
     toast.info("Folder clicked - functionality coming soon!");
   };
 
-  const handleMoreOptions = (e: React.MouseEvent) => {
+  const handleMoreOptions = (e: MouseEvent) => {
     e.stopPropagation();
     contextMenuRef.current?.open({ x: e.clientX + 4, y: e.clientY + 4 });
   };

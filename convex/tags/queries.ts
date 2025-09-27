@@ -49,7 +49,9 @@ export const getTagsByCategoryName = query({
   handler: async (ctx, args): Promise<Tag[]> => {
     const category = await ctx.db
       .query("tagCategories")
-      .withIndex("by_campaign_name", (q) => q.eq("campaignId", args.campaignId).eq("name", args.categoryName))
+      .withIndex("by_campaign_name", (q) =>
+        q.eq("campaignId", args.campaignId).eq("name", args.categoryName.toLowerCase()),
+      )
       .unique();
 
     if (!category) {

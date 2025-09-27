@@ -58,7 +58,7 @@ export const TagNoteContextMenu = forwardRef<ContextMenuRef, TagNoteContextMenuP
       }
     }).catch((error) => {
       console.error(error);
-      toast.error(`Failed to delete ${tagWithNote.category.displayName}: ${tag.displayName}`);
+      toast.error(`Failed to delete ${tagWithNote.category?.displayName}: ${tag.displayName}`);
     }).finally(() => {
       setConfirmDeleteDialogOpen(false);
     });

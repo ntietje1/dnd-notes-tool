@@ -1,6 +1,7 @@
 import { useDroppable } from "@dnd-kit/core";
 import { cn } from "~/lib/utils";
 import { RootContextMenu } from "./root-context-menu";
+import { SIDEBAR_ITEM_TYPES } from "convex/notes/types";
 
 interface DroppableRootProps {
   children: React.ReactNode;
@@ -14,7 +15,7 @@ export function DroppableRoot({
   const { setNodeRef, isOver } = useDroppable({
     id: "root",
     data: {
-      accepts: ["folders", "notes"],
+      accepts: [SIDEBAR_ITEM_TYPES.folders, SIDEBAR_ITEM_TYPES.notes],
       id: "root",
     },
   });

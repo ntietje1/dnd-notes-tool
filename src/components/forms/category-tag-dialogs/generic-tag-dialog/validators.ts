@@ -24,7 +24,7 @@ export async function validateTagNameAsync(
   excludeTagId?: Id<"tags">
 ): Promise<string | undefined> {
   const syncErr = validateTagName(displayName, MAX_NAME_LENGTH, "Tag");
-  if (syncErr) return undefined;
+  if (syncErr) return syncErr;
 
   const exists = await convex.query(api.tags.queries.checkTagNameExists, {
     campaignId,

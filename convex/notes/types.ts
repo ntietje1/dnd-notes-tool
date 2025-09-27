@@ -26,11 +26,11 @@ export type Note = SidebarItem<typeof SIDEBAR_ITEM_TYPES.notes>;
 export const UNTITLED_NOTE_TITLE = "Untitled Note";
 export const UNTITLED_FOLDER_NAME = "Untitled Folder";
 
+export type AnySidebarItem = Note | Folder;
+
 export type Folder = SidebarItem<typeof SIDEBAR_ITEM_TYPES.folders> & {
   children?: AnySidebarItem[];
 }
-
-export type AnySidebarItem = Note | Folder;
 
 export type Block = {
   _id: Id<"blocks">;

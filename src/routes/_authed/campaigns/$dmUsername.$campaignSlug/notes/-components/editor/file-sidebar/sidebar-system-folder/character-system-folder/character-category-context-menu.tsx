@@ -6,11 +6,11 @@ import { useRouter } from "@tanstack/react-router";
 import { forwardRef, useState } from "react";
 import type { ContextMenuItem, ContextMenuRef } from "~/components/context-menu/context-menu";
 import { useFolderState } from "~/hooks/useFolderState";
-import { CHARACTER_CONFIG } from "~/components/forms/category-tag-dialogs/character-tag-dialog/types";
 
 export const CharacterCategoryFolderContextMenu = forwardRef<ContextMenuRef, CategoryContextMenuProps>(({
   categoryConfig,
   children,
+  ...props
 }, ref) => {
   const router = useRouter();
   const { dmUsername, campaignSlug } = useCampaign();
@@ -50,8 +50,9 @@ export const CharacterCategoryFolderContextMenu = forwardRef<ContextMenuRef, Cat
     <>
       <CategoryContextMenu
         ref={ref}
-        categoryConfig={CHARACTER_CONFIG}
+        categoryConfig={categoryConfig}
         itemsTransformation={() => menuItems}
+        {...props}
       >
         {children}
       </CategoryContextMenu>
@@ -59,7 +60,7 @@ export const CharacterCategoryFolderContextMenu = forwardRef<ContextMenuRef, Cat
         mode="create"
         isOpen={isCreateDialogOpen}
         onClose={() => setIsCreateDialogOpen(false)}
-        config={CHARACTER_CONFIG}
+        config={categoryConfig}
         navigateToNote={false}
       />
     </>

@@ -4,7 +4,7 @@ import { api } from "convex/_generated/api";
 import { useCampaign } from "~/contexts/CampaignContext";
 import type { Id } from "convex/_generated/dataModel";
 import { SORT_DIRECTIONS, SORT_ORDERS, type SortOptions } from "convex/editors/types";
-import type { AnySidebarItem } from "convex/notes/types";
+import { SIDEBAR_ITEM_TYPES, type AnySidebarItem } from "convex/notes/types";
 import { useSortOptions } from "./useSortOptions";
 
 export const useSidebarItems = (parentId?: Id<"folders">) => {
@@ -24,18 +24,18 @@ export const useSidebarItems = (parentId?: Id<"folders">) => {
 
 export const sortItemsByOptions = (options: SortOptions, items?: AnySidebarItem[]) => {
     if (!items) return undefined;
-    return items.sort((a, b) => {
+    return [...items].sort((a, b) => {
         if (
           options.foldersAlwaysOnTop &&
-          a.type === "folders" &&
-          b.type !== "folders"
+          a.type === SIDEBAR_ITEM_TYPES.folders &&
+          b.type !== SIDEBAR_ITEM_TYPES.folders
         ) {
           return -1;
         }
         if (
           options.foldersAlwaysOnTop &&
-          a.type !== "folders" &&
-          b.type === "folders"
+          a.type !== SIDEBAR_ITEM_TYPES.folders &&
+          b.type === SIDEBAR_ITEM_TYPES.folders
         ) {
           return 1;
         }

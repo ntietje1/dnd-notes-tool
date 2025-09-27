@@ -6,11 +6,11 @@ import LocationDialog from "~/components/forms/category-tag-dialogs/location-tag
 import { forwardRef, useState } from "react";
 import type { ContextMenuItem, ContextMenuRef } from "~/components/context-menu/context-menu";
 import { useFolderState } from "~/hooks/useFolderState";
-import { LOCATION_CONFIG } from "~/components/forms/category-tag-dialogs/location-tag-dialog/types";
 
 export const LocationCategoryFolderContextMenu = forwardRef<ContextMenuRef, CategoryContextMenuProps>(({
   categoryConfig,
   children,
+  ...props
 }, ref) => {
   const router = useRouter();
   const { dmUsername, campaignSlug } = useCampaign();
@@ -50,8 +50,9 @@ export const LocationCategoryFolderContextMenu = forwardRef<ContextMenuRef, Cate
     <>
       <CategoryContextMenu
         ref={ref}
-        categoryConfig={LOCATION_CONFIG}
+        categoryConfig={categoryConfig}
         itemsTransformation={() => menuItems}
+        {...props}
       >
         {children}
       </CategoryContextMenu>
@@ -59,7 +60,7 @@ export const LocationCategoryFolderContextMenu = forwardRef<ContextMenuRef, Cate
         mode="create"
         isOpen={isCreateDialogOpen}
         onClose={() => setIsCreateDialogOpen(false)}
-        config={LOCATION_CONFIG}
+        config={categoryConfig}
         navigateToNote={true}
       />
     </>

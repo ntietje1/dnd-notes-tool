@@ -13,14 +13,15 @@ import { validateTagName, validateTagNameAsync, validateTagDescription } from ".
 import { type TagDialogProps, MAX_DESCRIPTION_LENGTH, MAX_NAME_LENGTH } from "../base-tag-dialog/types.ts";
 import { defaultLocationFormValues, LOCATION_CONFIG, type LocationFormValues } from "./types.ts";
 
-export default function LocationDialog({
-  mode,
-  isOpen,
-  onClose,
-  config = LOCATION_CONFIG,
-  tag: location,
-  navigateToNote = false,
-}: TagDialogProps<Location>) {
+export default function LocationDialog(props: TagDialogProps<Location>) {
+  // Extract properties based on discriminated union
+  const isEditMode = props.mode === "edit";
+  const location = isEditMode ? props.tag : undefined;
+  const config = props.config ?? LOCATION_CONFIG;
+  const navigateToNote = props.navigateToNote ?? false;
+  const mode = props.mode;
+  const isOpen = props.isOpen;
+  const onClose = props.onClose;
   const router = useRouter();
   const convex = useConvex();
   const { campaignWithMembership, dmUsername, campaignSlug } = useCampaign();
@@ -44,13 +45,16 @@ export default function LocationDialog({
     mutationFn: useConvexMutation(api.locations.mutations.updateLocation)
   });
 
-  const getInitialValues = ({ mode, tag }: { mode: "create" | "edit"; tag?: Location }) => (
-    mode === "edit" && tag ? {
-      name: tag.displayName || "",
-      description: tag.description || "",
-      color: tag.color,
-    } : defaultLocationFormValues
-  );
+  const getInitialValues = ({ mode }: { mode: "create" | "edit" }) => {
+    if (mode === "edit" && location) {
+      return {
+        name: location.displayName || "",
+        description: location.description || "",
+        color: location.color,
+      };
+    }
+    return defaultLocationFormValues;
+  };
 
   async function handleSubmit(args: { mode: "create" | "edit"; values: LocationFormValues }) {
     const { mode, values } = args;
@@ -91,12 +95,7 @@ export default function LocationDialog({
             },
           });
         }
-      } else if (mode === "edit") {
-        if (!location) {
-          toast.error("Location not found");
-          return;
-        }
-
+      } else if (mode === "edit" && location) {
         await updateTagMutation.mutateAsync({
           tagId: location.tagId,
           displayName: values.name.trim(),
@@ -123,7 +122,7 @@ export default function LocationDialog({
       isOpen={isOpen}
       onClose={onClose}
       config={config}
-      tag={location}
+      tag={location as any}
       getInitialValues={getInitialValues}
       onSubmit={handleSubmit}
     >

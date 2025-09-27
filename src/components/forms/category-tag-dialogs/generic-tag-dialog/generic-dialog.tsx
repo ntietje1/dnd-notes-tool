@@ -9,17 +9,17 @@ import { toast } from "sonner";
 import { Label } from "~/components/shadcn/ui/label";
 import { Input } from "~/components/shadcn/ui/input";
 import { ColorPicker } from "../base-tag-dialog/color-picker.tsx";
-import type { Tag } from "convex/tags/types";
 import { type TagDialogProps, defaultBaseFormValues, MAX_NAME_LENGTH, MAX_DESCRIPTION_LENGTH, type BaseTagFormValues } from "../base-tag-dialog/types.ts";
 
-export default function GenericTagDialog({
-  mode,
-  isOpen,
-  onClose,
-  config,
-  tag,
-  navigateToNote = false,
-}: TagDialogProps) {
+export default function GenericTagDialog(props: TagDialogProps) {
+  // Extract properties based on discriminated union
+  const isEditMode = props.mode === "edit";
+  const tag = isEditMode ? props.tag : undefined;
+  const config = props.config;
+  const navigateToNote = props.navigateToNote ?? false;
+  const mode = props.mode;
+  const isOpen = props.isOpen;
+  const onClose = props.onClose;
   const router = useRouter();
   const convex = useConvex();
   const { campaignWithMembership, dmUsername, campaignSlug } = useCampaign();
@@ -33,18 +33,21 @@ export default function GenericTagDialog({
     mutationFn: useConvexMutation(api.tags.mutations.updateTag)
   });
 
-  const getCategoryId = useQuery(convexQuery(api.tags.queries.getTagCategoryByName, campaign?._id ? {
+  const getCategory = useQuery(convexQuery(api.tags.queries.getTagCategoryByName, campaign?._id ? {
     campaignId: campaign?._id,
     categoryName: config.categoryName,
   } : "skip"));
 
-  const getInitialValues = ({ mode, tag }: { mode: "create" | "edit"; tag?: Tag }): BaseTagFormValues => (
-    mode === "edit" && tag ? {
-      name: tag.displayName,
-      description: tag.description || "",
-      color: tag.color,
-    } : defaultBaseFormValues
-  );
+  const getInitialValues = ({ mode }: { mode: "create" | "edit" }): BaseTagFormValues => {
+    if (mode === "edit" && tag) {
+      return {
+        name: tag.displayName,
+        description: tag.description || "",
+        color: tag.color,
+      };
+    }
+    return defaultBaseFormValues;
+  };
 
   async function handleSubmit(value: BaseTagFormValues) {
       if (!campaign) {
@@ -52,7 +55,7 @@ export default function GenericTagDialog({
         return;
       }
 
-      if (!getCategoryId.data) {
+      if (!getCategory.data) {
         toast.error(`Category "${config.categoryName}" not found`);
         return;
       }
@@ -64,7 +67,7 @@ export default function GenericTagDialog({
             description: value.description.trim() || undefined,
             color: value.color,
             campaignId: campaign._id,
-            categoryId: getCategoryId.data._id,
+            categoryId: getCategory.data._id,
           });
 
           toast.success(`${config.singular} created successfully`);
@@ -105,7 +108,7 @@ export default function GenericTagDialog({
       isOpen={isOpen}
       onClose={onClose}
       config={config}
-      tag={tag}
+      tag={tag as any}
       getInitialValues={getInitialValues}
       onSubmit={async ({ values }) => handleSubmit(values)}
     >

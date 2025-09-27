@@ -127,6 +127,11 @@ export const getSidebarItems = query({
     parentId: v.optional(v.id("folders"))
   },
   handler: async (ctx, args): Promise<AnySidebarItem[]> => {
+    await requireCampaignMembership(
+      ctx,
+      { campaignId: args.campaignId },
+      { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
+    );
     return getSidebarItemsFn(ctx, args.campaignId, args.parentId);
   },
 });
@@ -332,6 +337,10 @@ export const getTagNotePages = query({
 
     const category = await getTagCategoryByName(ctx, args.campaignId, args.tagCategory);
 
+    if (!category) {
+      throw new Error(`Tag category "${args.tagCategory}" not found`);
+    }
+    
     const tags = await getTagsByCategory(ctx, category._id);
 
     const tagNotePages = [];

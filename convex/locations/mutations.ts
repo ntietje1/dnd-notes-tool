@@ -1,11 +1,9 @@
 import { v } from "convex/values";
 import { mutation } from "../_generated/server";
-import { deleteTagAndCleanupContent, getTag, getTagCategoryByName, insertTagAndNote } from "../tags/tags";
+import { deleteTagAndCleanupContent, getTag } from "../tags/tags";
 import { CAMPAIGN_MEMBER_ROLE } from "../campaigns/types";
 import { requireCampaignMembership } from "../campaigns/campaigns";
 import { Id } from "../_generated/dataModel";
-import { createTag } from "../tags/mutations";
-import { SYSTEM_TAG_CATEGORY_NAMES } from "../tags/types";
 
 export const createLocation = mutation({
   args: {
@@ -23,37 +21,6 @@ export const createLocation = mutation({
     });
 
     return locationId;
-  },
-});
-
-export const createLocationFromForm = mutation({
-  args: {
-    name: v.string(),
-    description: v.optional(v.string()),
-    color: v.string(),
-    campaignId: v.id("campaigns"),
-  },
-  handler: async (ctx, args): Promise<{ tagId: Id<"tags">; locationId: Id<"locations"> }> => {
-    await requireCampaignMembership(ctx, { campaignId: args.campaignId },
-      { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
-    );
-
-    const locationCategory = await getTagCategoryByName(ctx, args.campaignId, SYSTEM_TAG_CATEGORY_NAMES.Location);
-
-    const { tagId, noteId } = await insertTagAndNote(ctx, {
-      displayName: args.name.trim(),
-      description: args.description,
-      color: args.color,
-      campaignId: args.campaignId,
-      categoryId: locationCategory._id,
-    });
-
-    const locationId = await ctx.db.insert("locations", {
-      campaignId: args.campaignId,
-      tagId: tagId,
-    });
-
-    return { tagId, locationId };
   },
 });
 

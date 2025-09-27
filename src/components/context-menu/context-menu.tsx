@@ -114,7 +114,7 @@ export const ContextMenu = forwardRef<ContextMenuRef, ContextMenuProps>(({
             ) : item.type === 'action' ? (
               <DropdownMenuItem
                 key={index}
-                onClick={() => handleItemClick(item.onClick)}
+                onSelect={() => handleItemClick(item.onClick)}
                 className={item.className}
               >
                 {item.icon && <span className="h-4 w-4 mr-2">{item.icon}</span>}

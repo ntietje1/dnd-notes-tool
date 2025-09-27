@@ -136,7 +136,7 @@ const CategoryFolderBase = ({
       />
 
       {/* Category Name */}
-      <div 
+      <button 
         className="flex items-center min-w-0 flex-1 pl-1 rounded-sm"
         onClick={handleFolderClick}
       >
@@ -146,7 +146,7 @@ const CategoryFolderBase = ({
           isRenaming={false} // not actually editable here
           onFinishRename={() => {}}
         />
-      </div>
+      </button>
 
       {/* More Options Button */}
       <HoverToggleButton

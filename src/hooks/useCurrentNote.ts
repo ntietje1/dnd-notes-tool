@@ -45,9 +45,10 @@ export const useCurrentNote = () => {
     );
 
     useEffect(() => {
-        updateCurrentNoteContent.flush();
+        return () => {
+            updateCurrentNoteContent.flush();
+        };
     }, [pathNoteId, updateCurrentNoteContent]);
-
     return {
         note,
         noteId: pathNoteId,

@@ -38,7 +38,7 @@ export function NotesViewer() {
     });
   }, [blocks.data]);
 
-  if (blocks.status === "pending") {
+  if (blocks.fetchStatus === "fetching") {
     return <NotesViewerLoading />;
   }
 
@@ -48,6 +48,7 @@ export function NotesViewer() {
         {nonSystemManagedTags?.map((tag: Tag) => (
           <Button
             key={tag._id}
+            variant="outline"
             className={`px-2 py-1 rounded border ${
               selectedTagIds.includes(tag._id)
                 ? "bg-blue-200 border-blue-400"

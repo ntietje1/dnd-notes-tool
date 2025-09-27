@@ -4,11 +4,12 @@ import type { Note } from "convex/notes/types";
 import { NoteName } from "./note-name";
 import { cn } from "~/lib/utils";
 import { HoverToggleButton } from "~/components/hover-toggle-button";
+import type { MouseEvent } from "react";
 
 interface NoteButtonBaseProps {
   note: Note;
-  handleSelect?: (e: React.MouseEvent) => void;
-  handleMoreOptions?: (e: React.MouseEvent) => void;
+  handleSelect?: (e: MouseEvent) => void;
+  handleMoreOptions?: (e: MouseEvent) => void;
   isSelected?: boolean;
   isRenaming?: boolean;
 }
@@ -28,7 +29,7 @@ export function NoteButtonBase({
       )}
     >
       {/* Note Icon and Name */}
-      <div 
+      <button 
         className="flex items-center gap-2 min-w-0 flex-1 pl-1"
         onClick={handleSelect}
       >
@@ -38,7 +39,7 @@ export function NoteButtonBase({
           <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
         )}
         <NoteName note={note} />
-      </div>
+      </button>
 
       {/* More Options Button */}
       <HoverToggleButton

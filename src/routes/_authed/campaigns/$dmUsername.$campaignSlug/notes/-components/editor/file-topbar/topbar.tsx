@@ -24,13 +24,25 @@ export function FileTopbar() {
   }, [note.data?.name]);
 
   const handleTitleSubmit = useCallback(async () => {
-    setIsEditing(false);
-    if (note.data) {
-      await updateNote.mutateAsync({ noteId: note.data._id, name: title })
-        .catch((error) => {
-          console.error(error);
-          toast.error("Failed to update note");
-        });
+    if (!note.data) {
+      setIsEditing(false);
+      return;
+    }
+
+    const previousTitle = note.data.name ?? "";
+
+    if (title === previousTitle) {
+      setIsEditing(false);
+      return;
+    }
+
+    try {
+      await updateNote.mutateAsync({ noteId: note.data._id, name: title });
+      setIsEditing(false);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to update note");
+      setTitle(previousTitle);
     }
   }, [note, title, updateNote]);
 

@@ -10,12 +10,13 @@ import { FolderName } from "./folder-name";
 import type { Folder } from "convex/notes/types";
 import { HoverToggleButton } from "~/components/hover-toggle-button";
 import { cn } from "~/lib/utils";
+import type { MouseEvent } from "react";
 
 interface FolderButtonBaseProps {
   folder: Folder;
-  handleToggleExpanded?: (e: React.MouseEvent) => void;
-  handleSelect?: (e: React.MouseEvent) => void;
-  handleMoreOptions?: (e: React.MouseEvent) => void;
+  handleToggleExpanded?: (e: MouseEvent) => void;
+  handleSelect?: (e: MouseEvent) => void;
+  handleMoreOptions?: (e: MouseEvent) => void;
   isExpanded?: boolean;
   isSelected?: boolean;
   isRenaming?: boolean;
@@ -67,12 +68,12 @@ export function FolderButtonBase({
       />
 
       {/* Folder Name */}
-      <div
+      <button
         className="flex items-center min-w-0 flex-1 pl-1 rounded-sm"
         onClick={handleSelect}
       >
         <FolderName folder={folder} />
-      </div>
+      </button>
 
       {/* More Options Button */}
       <HoverToggleButton

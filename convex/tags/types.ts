@@ -41,7 +41,7 @@ export type Tag = {
   noteId?: Id<"notes">;
   note?: Note;
   categoryId: Id<"tagCategories">;
-  category: TagCategory;
+  category?: TagCategory;
   memberId?: Id<"campaignMembers">;
   createdBy: string;
   updatedAt: number;

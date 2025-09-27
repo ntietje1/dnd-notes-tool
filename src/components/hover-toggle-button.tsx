@@ -14,7 +14,7 @@ export function HoverToggleButton({
   className
 }: HoverToggleButtonProps) {
   return (
-    <div className={cn(className, nonHoverComponent ?? "not-group-hover:w-0")}>
+    <div className={cn(className, !nonHoverComponent && "not-group-hover:w-0")}>
       <div className="absolute inset-0 flex items-center justify-center opacity-100 group-hover:opacity-0 group-hover:transition-opacity">
         {nonHoverComponent}
       </div>
