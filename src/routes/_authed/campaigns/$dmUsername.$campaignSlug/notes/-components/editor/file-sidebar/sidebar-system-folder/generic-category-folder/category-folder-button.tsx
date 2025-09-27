@@ -137,6 +137,7 @@ const CategoryFolderBase = ({
 
       {/* Category Name */}
       <button 
+        type="button"
         className="flex items-center min-w-0 flex-1 pl-1 rounded-sm"
         onClick={handleFolderClick}
       >

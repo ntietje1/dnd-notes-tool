@@ -48,7 +48,7 @@ export function EditableName({
         }}
         onClick={(e) => e.stopPropagation()}
         placeholder={defaultName}
-        className="bg-transparent border-none w-full focus:outline-none focus:ring-1 text-sm"
+        className="bg-transparent border-none w-full px-1 m-1 mr-2 focus:outline-none focus:ring-1 text-sm"
       />
     );
   }

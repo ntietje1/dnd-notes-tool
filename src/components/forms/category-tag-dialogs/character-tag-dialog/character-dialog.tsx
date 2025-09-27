@@ -11,7 +11,7 @@ import { useRouter } from "@tanstack/react-router";
 import BaseTagDialog from "../base-tag-dialog/base-dialog.tsx";
 import { validateTagDescription, validateTagName, validateTagNameAsync } from "../generic-tag-dialog/validators.ts";
 import { MAX_DESCRIPTION_LENGTH, MAX_NAME_LENGTH, type TagDialogProps } from "../base-tag-dialog/types.ts";
-import { defaultCharacterFormValues, type CharacterFormValues } from "./types.ts";
+import { CHARACTER_CONFIG, defaultCharacterFormValues, type CharacterFormValues } from "./types.ts";
 
 export default function CharacterDialog(props: TagDialogProps<Character>) {
   const router = useRouter();
@@ -22,7 +22,7 @@ export default function CharacterDialog(props: TagDialogProps<Character>) {
   // Extract properties based on discriminated union
   const isEditMode = props.mode === "edit";
   const character = isEditMode ? props.tag : undefined;
-  const config = props.config;
+  const config = props.config ?? CHARACTER_CONFIG;
   const navigateToNote = props.navigateToNote ?? false;
   const mode = props.mode;
   const isOpen = props.isOpen;

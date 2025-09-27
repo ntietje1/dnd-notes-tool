@@ -69,6 +69,7 @@ export function FolderButtonBase({
 
       {/* Folder Name */}
       <button
+        type="button"
         className="flex items-center min-w-0 flex-1 pl-1 rounded-sm"
         onClick={handleSelect}
       >

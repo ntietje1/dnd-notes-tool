@@ -55,7 +55,7 @@ export default function BaseTagDialog<TTag extends Tag = Tag, TFormValues = Reco
   // Reset form when dialog mode/tag changes
   useEffect(() => {
     form.reset(getInitialValues({ mode, tag }));
-  }, [mode, tag, getInitialValues]);
+  }, [mode, tag?._id, getInitialValues]);
 
   const handleClose = () => {
     if (form.state.isSubmitting) return;

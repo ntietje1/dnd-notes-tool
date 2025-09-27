@@ -152,4 +152,34 @@
       opacity: 1;
     }
   }
+
+  /* Scrollbar utilities for better cross-browser support */
+  .scrollbar-gutter-stable {
+    scrollbar-gutter: stable;
+  }
+  
+  /* Fallback for browsers that don't support scrollbar-gutter */
+  @supports not (scrollbar-gutter: stable) {
+    .scrollbar-gutter-stable {
+      /* Reserve space for scrollbar on WebKit browsers */
+      padding-right: 0;
+    }
+    
+    .scrollbar-gutter-stable::-webkit-scrollbar {
+      width: 10px;
+    }
+    
+    .scrollbar-gutter-stable::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    
+    .scrollbar-gutter-stable::-webkit-scrollbar-thumb {
+      background: hsl(var(--border));
+      border-radius: 5px;
+    }
+    
+    .scrollbar-gutter-stable::-webkit-scrollbar-thumb:hover {
+      background: hsl(var(--muted-foreground));
+    }
+  }
 }

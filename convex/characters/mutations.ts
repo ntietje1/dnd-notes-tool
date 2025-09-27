@@ -58,11 +58,11 @@ export const updateCharacter = mutation({
       if (!player || player.campaignId !== character.campaignId) {
         throw new Error("Player must belong to the same campaign as the character");
       }
-    }
 
-    await ctx.db.patch(args.characterId, {
-      playerId: args.playerId,
-    });
+      await ctx.db.patch(args.characterId, {
+        playerId: args.playerId,
+      });
+    }
 
     return args.characterId;
   },

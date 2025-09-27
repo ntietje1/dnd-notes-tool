@@ -38,11 +38,12 @@ export function FileTopbar() {
 
     try {
       await updateNote.mutateAsync({ noteId: note.data._id, name: title });
-      setIsEditing(false);
     } catch (error) {
       console.error(error);
       toast.error("Failed to update note");
       setTitle(previousTitle);
+    } finally {
+      setIsEditing(false);
     }
   }, [note, title, updateNote]);
 

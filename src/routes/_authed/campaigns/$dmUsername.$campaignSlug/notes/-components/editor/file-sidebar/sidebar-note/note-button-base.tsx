@@ -30,6 +30,7 @@ export function NoteButtonBase({
     >
       {/* Note Icon and Name */}
       <button 
+        type="button"
         className="flex items-center gap-2 min-w-0 flex-1 pl-1"
         onClick={handleSelect}
       >
@@ -42,19 +43,21 @@ export function NoteButtonBase({
       </button>
 
       {/* More Options Button */}
-      <HoverToggleButton
-        className="relative h-6 w-6 shrink-0 flex items-center justify-center"
-        hoverComponent={
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-muted-foreground/10 rounded-sm"
-            onClick={handleMoreOptions}
-          >
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
-        }
-      />
+      {!isRenaming && (
+        <HoverToggleButton
+          className="relative h-6 w-6 shrink-0 flex items-center justify-center"
+          hoverComponent={
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-muted-foreground/10 rounded-sm"
+              onClick={handleMoreOptions}
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          }
+        />
+      )}
     </div>
   );
 }
