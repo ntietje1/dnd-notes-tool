@@ -29,7 +29,7 @@ export function NoteButtonBase({
     >
       {/* Note Icon and Name */}
       <div 
-        className="flex items-center gap-2 min-w-0 flex-1 px-1 py-1"
+        className="flex items-center gap-2 min-w-0 flex-1 pl-1"
         onClick={handleSelect}
       >
         {isRenaming ? (
@@ -43,7 +43,6 @@ export function NoteButtonBase({
       {/* More Options Button */}
       <HoverToggleButton
         className="relative h-6 w-6 shrink-0 flex items-center justify-center"
-        nonHoverComponent={null}
         hoverComponent={
           <Button
             variant="ghost"

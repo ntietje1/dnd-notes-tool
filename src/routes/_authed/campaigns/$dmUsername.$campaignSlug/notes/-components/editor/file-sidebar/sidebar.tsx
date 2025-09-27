@@ -20,7 +20,7 @@ function FileSidebarContent() {
 
   return (
     <DroppableRoot className="flex-1 flex min-h-0">
-      <ScrollArea type="always" className="flex-1 min-h-0 overflow-y-auto p-1.5 pr-2.5">
+      <ScrollArea type="always" className="flex-1 min-h-0 overflow-y-auto p-1">
         
         <SystemFolders />
 

@@ -8,6 +8,36 @@ function ScrollArea({
   children,
   ...props
 }: React.ComponentProps<typeof ScrollAreaPrimitive.Root>) {
+  const [isScrollbarVisible, setIsScrollbarVisible] = React.useState(false)
+  const viewportRef = React.useRef<HTMLDivElement>(null)
+
+  React.useEffect(() => {
+    const viewport = viewportRef.current
+    if (!viewport) return
+
+    const checkScrollbarVisibility = () => {
+      const hasVerticalScrollbar = viewport.scrollHeight > viewport.clientHeight
+      setIsScrollbarVisible(hasVerticalScrollbar)
+    }
+
+    // Check initially
+    checkScrollbarVisibility()
+
+    // Set up ResizeObserver to detect content changes
+    const resizeObserver = new ResizeObserver(checkScrollbarVisibility)
+    resizeObserver.observe(viewport)
+
+    // Also observe the first child (content) for changes
+    const contentElement = viewport.firstElementChild
+    if (contentElement) {
+      resizeObserver.observe(contentElement)
+    }
+
+    return () => {
+      resizeObserver.disconnect()
+    }
+  }, [children])
+
   return (
     <ScrollAreaPrimitive.Root
       data-slot="scroll-area"
@@ -15,8 +45,16 @@ function ScrollArea({
       {...props}
     >
       <ScrollAreaPrimitive.Viewport
+        ref={viewportRef}
         data-slot="scroll-area-viewport"
-        className="focus-visible:ring-ring/50 size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:outline-1"
+        data-scrollbar-visible={isScrollbarVisible}
+        className={cn(
+          "focus-visible:ring-ring/50 size-full rounded-[inherit] transition-[color,box-shadow,padding-right] outline-none focus-visible:ring-[3px] focus-visible:outline-1",
+          // Override Radix's inner div styles that cause width issues
+          "[&>div]:!min-w-0 [&>div]:!block [&>div]:!table-auto",
+          // Conditional right padding when scrollbar is visible
+          "data-[scrollbar-visible=true]:pr-1.5"
+        )}
       >
         {children}
       </ScrollAreaPrimitive.Viewport>

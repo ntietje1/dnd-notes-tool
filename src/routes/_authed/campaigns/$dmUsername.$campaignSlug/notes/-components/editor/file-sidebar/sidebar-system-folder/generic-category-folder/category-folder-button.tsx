@@ -137,7 +137,7 @@ const CategoryFolderBase = ({
 
       {/* Category Name */}
       <div 
-        className="flex items-center min-w-0 flex-1 px-1 py-1 rounded-sm"
+        className="flex items-center min-w-0 flex-1 pl-1 rounded-sm"
         onClick={handleFolderClick}
       >
         <EditableName
@@ -151,7 +151,6 @@ const CategoryFolderBase = ({
       {/* More Options Button */}
       <HoverToggleButton
         className="relative h-6 w-6 shrink-0 flex items-center justify-center"
-        nonHoverComponent={null}
         hoverComponent={
           <Button
             variant="ghost"

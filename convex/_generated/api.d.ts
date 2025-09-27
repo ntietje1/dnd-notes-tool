@@ -21,6 +21,7 @@ import type * as common_types from "../common/types.js";
 import type * as editors_mutations from "../editors/mutations.js";
 import type * as editors_queries from "../editors/queries.js";
 import type * as editors_types from "../editors/types.js";
+import type * as locations_locations from "../locations/locations.js";
 import type * as locations_mutations from "../locations/mutations.js";
 import type * as locations_queries from "../locations/queries.js";
 import type * as locations_types from "../locations/types.js";
@@ -68,6 +69,7 @@ declare const fullApi: ApiFromModules<{
   "editors/mutations": typeof editors_mutations;
   "editors/queries": typeof editors_queries;
   "editors/types": typeof editors_types;
+  "locations/locations": typeof locations_locations;
   "locations/mutations": typeof locations_mutations;
   "locations/queries": typeof locations_queries;
   "locations/types": typeof locations_types;
