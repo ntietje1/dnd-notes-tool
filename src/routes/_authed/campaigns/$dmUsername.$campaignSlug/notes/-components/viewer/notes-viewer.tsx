@@ -1,6 +1,5 @@
 import React from "react";
 import { useTags } from "../editor/extensions/side-menu/tags/use-tags";
-import { useNotes } from "~/contexts/NotesContext";
 import { api } from "convex/_generated/api";
 import { BlockNoteView } from "@blocknote/shadcn";
 import { BlockNoteSchema, BlockNoteEditor } from "@blocknote/core";
@@ -11,6 +10,7 @@ import { convexQuery } from "@convex-dev/react-query";
 import { useCampaign } from "~/contexts/CampaignContext";
 import { Skeleton } from "~/components/shadcn/ui/skeleton";
 import type { Tag } from "convex/tags/types";
+import { Button } from "~/components/shadcn/ui/button";
 
 const schema = BlockNoteSchema.create({ inlineContentSpecs: customInlineContentSpecs });
 
@@ -18,7 +18,6 @@ export function NotesViewer() {
   const { nonSystemManagedTags } = useTags();
   const { campaignWithMembership } = useCampaign();
   const campaign = campaignWithMembership?.data?.campaign;
-  const { status } = useNotes();
   const [selectedTagIds, setSelectedTagIds] = React.useState<Id<"tags">[]>([]);
 
   const blocks = useQuery(convexQuery(
@@ -39,7 +38,7 @@ export function NotesViewer() {
     });
   }, [blocks.data]);
 
-  if (status === "pending") {
+  if (blocks.fetchStatus === "fetching") {
     return <NotesViewerLoading />;
   }
 
@@ -47,8 +46,9 @@ export function NotesViewer() {
     <div className="h-full flex flex-col bg-white">
       <div className="mb-4 flex flex-wrap gap-2">
         {nonSystemManagedTags?.map((tag: Tag) => (
-          <button
+          <Button
             key={tag._id}
+            variant="outline"
             className={`px-2 py-1 rounded border ${
               selectedTagIds.includes(tag._id)
                 ? "bg-blue-200 border-blue-400"
@@ -65,7 +65,7 @@ export function NotesViewer() {
             type="button"
           >
             {tag.displayName}
-          </button>
+          </Button>
         ))}
       </div>
 

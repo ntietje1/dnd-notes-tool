@@ -5,6 +5,7 @@ import { requireCampaignMembership } from "../campaigns/campaigns";
 import { SYSTEM_TAG_CATEGORY_NAMES } from "../tags/types";
 import { getTag, getTagCategoryByName, getTagsByCategory } from "../tags/tags";
 import { Location } from "./types";
+import { combineLocationAndTag } from "./locations";
 
 export const getLocationsByCampaign = query({
   args: {
@@ -31,7 +32,7 @@ export const getLocationsByCampaign = query({
           console.warn(`Location not found for tag ${t._id}`);
           return null;
         }
-        return { ...t, locationId: location._id, type: SYSTEM_TAG_CATEGORY_NAMES.Location };
+        return combineLocationAndTag(location, t);
       })
       .filter((l) => l !== null)
       .sort((a, b) => b._creationTime - a._creationTime);
@@ -54,6 +55,30 @@ export const getLocationById = query({
       { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
     ); //TODO: allow players to see locations that have been "introduced" to them
 
-    return { ...tag, locationId: location._id, type: SYSTEM_TAG_CATEGORY_NAMES.Location };
+    return combineLocationAndTag(location, tag);
+  },
+});
+
+export const getLocationByTagId = query({
+  args: {
+    tagId: v.id("tags"),
+  },
+  handler: async (ctx, args): Promise<Location> => {
+    const tag = await getTag(ctx, args.tagId);
+
+    await requireCampaignMembership(ctx, { campaignId: tag.campaignId },
+      { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
+    ); // TODO: allow players to see locations that have been "introduced" to them
+
+    const location = await ctx.db
+      .query("locations")
+      .withIndex("by_campaign_tag", (q) => q.eq("campaignId", tag.campaignId).eq("tagId", tag._id))
+      .unique();
+
+    if (!location) {
+      throw new Error(`Location not found: ${args.tagId}`);
+    }
+
+    return combineLocationAndTag(location, tag);
   },
 });

@@ -1,19 +1,16 @@
 import { useDraggable } from "@dnd-kit/core";
 import { cn } from "~/lib/utils";
-import { type FolderNode } from "convex/notes/types";
+import type { Folder } from "convex/notes/types";
 
 interface DraggableFolderProps {
-  folder: FolderNode;
+  folder: Folder;
   children: React.ReactNode;
 }
 
 export function DraggableFolder({ folder, children }: DraggableFolderProps) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: folder._id,
-    data: {
-      type: "folder",
-      id: folder._id,
-    },
+    data: folder,
   });
 
   return (

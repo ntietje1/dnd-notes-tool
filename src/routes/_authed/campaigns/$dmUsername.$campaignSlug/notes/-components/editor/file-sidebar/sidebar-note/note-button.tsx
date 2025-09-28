@@ -1,48 +1,41 @@
-import { FileText, FileEdit } from "~/lib/icons";
-import { Button } from "~/components/shadcn/ui/button";
 import type { Note } from "convex/notes/types";
-import { NoteName } from "./note-name";
-import { cn } from "~/lib/utils";
+import { useFileSidebar } from "~/contexts/FileSidebarContext";
+import { useCurrentNote } from "~/hooks/useCurrentNote";
+import { NoteContextMenu } from "./note-context-menu";
+import { useRef } from "react";
+import type { MouseEvent } from "react";
+import type { ContextMenuRef } from "~/components/context-menu/context-menu";
+import { NoteButtonBase } from "./note-button-base";
+import { DraggableNote } from "./draggable-note";
 
 interface NoteButtonProps {
   note: Note;
-  isRenaming: boolean;
-  isSelected: boolean;
-  onNoteSelected: () => void;
-  onFinishRename: (name: string) => void;
 }
 
 export function NoteButton({
-  note,
-  isRenaming,
-  isSelected,
-  onNoteSelected,
-  onFinishRename,
+  note
 }: NoteButtonProps) {
+  const { renamingId } = useFileSidebar();
+  const { note: currentNote, selectNote } = useCurrentNote();
+  const isSelected = currentNote?.data?._id === note._id;
+  const contextMenuRef = useRef<ContextMenuRef>(null);
+
+  const handleMoreOptions = (e: MouseEvent) => {
+    e.stopPropagation();
+    contextMenuRef.current?.open({ x: e.clientX + 4, y: e.clientY + 4 });
+  };
+
   return (
-    <Button
-      variant="ghost"
-      className={cn(
-        "w-full flex-1 justify-start gap-2 h-8 min-w-0 p-0",
-        isSelected && "bg-muted",
-      )}
-      onClick={(e) => {
-        e.stopPropagation();
-        onNoteSelected();
-      }}
-    >
-      <div className="flex items-center gap-1 min-w-0 w-full pl-2">
-        {isRenaming ? (
-          <FileEdit className="h-4 w-4 shrink-0" />
-        ) : (
-          <FileText className="h-4 w-4 shrink-0" />
-        )}
-        <NoteName
+    <DraggableNote note={note}>
+      <NoteContextMenu ref={contextMenuRef} note={note}>
+        <NoteButtonBase
           note={note}
-          isRenaming={isRenaming}
-          onFinishRename={onFinishRename}
+          handleSelect={() => selectNote(note._id)}
+          handleMoreOptions={handleMoreOptions}
+          isSelected={isSelected}
+          isRenaming={renamingId === note._id}
         />
-      </div>
-    </Button>
+      </NoteContextMenu>
+    </DraggableNote>
   );
 }

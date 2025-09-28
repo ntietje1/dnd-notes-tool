@@ -19,15 +19,15 @@ import {
   SortAsc,
   SortDesc,
 } from "~/lib/icons";
-import { useNotes } from "~/contexts/NotesContext";
 import {
   SORT_DIRECTIONS,
   SORT_ORDERS,
 } from "convex/editors/types";
 import type { SortDirection, SortOrder } from "convex/editors/types";
+import { useSortOptions } from "~/hooks/useSortOptions";
 
 export function SortMenu() {
-  const { sortOptions, setSortOptions } = useNotes();
+  const { sortOptions, setSortOptions } = useSortOptions();
 
   const handleSortOrderChange = (value: string) => {
     setSortOptions({ ...sortOptions, order: value as SortOrder });

@@ -2,11 +2,11 @@ import { query } from "../_generated/server";
 import { v } from "convex/values";
 import {
   Note,
-  FolderNode,
   AnySidebarItem,
   Block,
   NoteWithContent,
   SIDEBAR_ITEM_TYPES,
+  Folder,
 } from "./types";
 import { Id } from "../_generated/dataModel";
 import {
@@ -17,11 +17,33 @@ import {
   getNoteLevelTag,
   getTagCategoryByName,
   doesBlockMatchRequiredTags,
+  getTagsByCategory,
 } from "../tags/tags";
 import { CAMPAIGN_MEMBER_ROLE } from "../campaigns/types";
 import { requireCampaignMembership } from "../campaigns/campaigns";
-import { SYSTEM_TAG_CATEGORY_NAMES } from "../tags/types";
+import { SYSTEM_TAG_CATEGORY_NAMES, TagWithNote } from "../tags/types";
 import { hasAccessToBlock } from "../tags/shared";
+import { getSidebarItems as getSidebarItemsFn, getFolder as getFolderFn } from "./notes";
+
+export const getFolder = query({
+  args: {
+    folderId: v.id("folders"),
+  },
+  handler: async (ctx, args): Promise<Folder> => {
+    const folder = await getFolderFn(ctx, args.folderId);
+
+    await requireCampaignMembership(ctx, { campaignId: folder.campaignId },
+      { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
+    );
+
+    const children = await getSidebarItemsFn(ctx, folder.campaignId, args.folderId);
+
+    return {
+      ...folder,
+      children,
+    };
+  },
+});
 
 export const getNote = query({
   args: {
@@ -99,86 +121,101 @@ export const getNote = query({
   },
 });
 
-export const getSidebarData = query({
+export const getSidebarItems = query({
   args: {
     campaignId: v.id("campaigns"),
+    parentId: v.optional(v.id("folders"))
   },
   handler: async (ctx, args): Promise<AnySidebarItem[]> => {
-    await requireCampaignMembership(ctx, { campaignId: args.campaignId },
+    await requireCampaignMembership(
+      ctx,
+      { campaignId: args.campaignId },
       { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
     );
-
-    const [folders, notes] = await Promise.all([
-      ctx.db
-        .query("folders")
-        .withIndex("by_campaign_parent", (q) =>
-          q.eq("campaignId", args.campaignId!),
-        )
-        .collect(),
-      ctx.db
-        .query("notes")
-        .withIndex("by_campaign_parent", (q) =>
-          q.eq("campaignId", args.campaignId!),
-        )
-        .collect(),
-    ]);
-
-    // Filter out notes that are associated with tags (they appear in system folders)
-    const tagLinkedNoteIds = new Set(
-      (
-        await ctx.db
-          .query("tags")
-          .withIndex("by_campaign_categoryId", (q) => q.eq("campaignId", args.campaignId!))
-          .collect()
-      )
-        .map((t) => t.noteId)
-        .filter((nid): nid is Id<"notes"> => Boolean(nid)),
-    );
-    const regularNotes = notes.filter((note) => !tagLinkedNoteIds.has(note._id));
-
-    const folderMap = new Map<Id<"folders">, FolderNode>();
-
-    folders.forEach((folder) => {
-      folderMap.set(folder._id, {
-        ...folder,
-        type: SIDEBAR_ITEM_TYPES.folders,
-        children: [],
-      });
-    });
-
-    folders.forEach((folder) => {
-      if (folder.parentFolderId) {
-        const parentNode = folderMap.get(folder.parentFolderId);
-        const node = folderMap.get(folder._id);
-        if (parentNode && node) {
-          parentNode.children.push(node);
-        }
-      }
-    });
-
-    const typedNotes = regularNotes.map((note) => ({
-      ...note,
-      type: SIDEBAR_ITEM_TYPES.notes,
-    })) as Note[];
-
-    typedNotes.forEach((note) => {
-      if (note.parentFolderId) {
-        const parentNode = folderMap.get(note.parentFolderId);
-        if (parentNode) {
-          parentNode.children.push(note);
-        }
-      }
-    });
-
-    const rootFolders = Array.from(folderMap.values()).filter(
-      (folder) => !folder.parentFolderId,
-    );
-
-    const rootNotes = typedNotes.filter((note) => !note.parentFolderId);
-
-    return [...rootFolders, ...rootNotes] as AnySidebarItem[];
+    return getSidebarItemsFn(ctx, args.campaignId, args.parentId);
   },
 });
+
+// export const getSidebarData = query({
+//   args: {
+//     campaignId: v.id("campaigns"),
+//   },
+//   handler: async (ctx, args): Promise<AnySidebarItem[]> => {
+//     await requireCampaignMembership(ctx, { campaignId: args.campaignId },
+//       { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
+//     );
+
+//     const [folders, notes] = await Promise.all([
+//       ctx.db
+//         .query("folders")
+//         .withIndex("by_campaign_parent", (q) =>
+//           q.eq("campaignId", args.campaignId!),
+//         )
+//         .collect(),
+//       ctx.db
+//         .query("notes")
+//         .withIndex("by_campaign_parent", (q) =>
+//           q.eq("campaignId", args.campaignId!),
+//         )
+//         .collect(),
+//     ]);
+
+//     // Filter out notes that are associated with tags (they appear in system folders)
+//     const tagLinkedNoteIds = new Set(
+//       (
+//         await ctx.db
+//           .query("tags")
+//           .withIndex("by_campaign_categoryId", (q) => q.eq("campaignId", args.campaignId!))
+//           .collect()
+//       )
+//         .map((t) => t.noteId)
+//         .filter((nid): nid is Id<"notes"> => Boolean(nid)),
+//     );
+//     const regularNotes = notes.filter((note) => !tagLinkedNoteIds.has(note._id));
+
+//     const folderMap = new Map<Id<"folders">, FolderNode>();
+
+//     folders.forEach((folder) => {
+//       folderMap.set(folder._id, {
+//         ...folder,
+//         type: SIDEBAR_ITEM_TYPES.folders,
+//         children: [],
+//       });
+//     });
+
+//     folders.forEach((folder) => {
+//       if (folder.parentFolderId) {
+//         const parentNode = folderMap.get(folder.parentFolderId);
+//         const node = folderMap.get(folder._id);
+//         if (parentNode && node) {
+//           parentNode.children.push(node);
+//         }
+//       }
+//     });
+
+//     const typedNotes = regularNotes.map((note) => ({
+//       ...note,
+//       type: SIDEBAR_ITEM_TYPES.notes,
+//     })) as Note[];
+
+//     typedNotes.forEach((note) => {
+//       if (note.parentFolderId) {
+//         const parentNode = folderMap.get(note.parentFolderId);
+//         if (parentNode) {
+//           parentNode.children.push(note);
+//         }
+//       }
+//     });
+
+//     const rootFolders = Array.from(folderMap.values()).filter(
+//       (folder) => !folder.parentFolderId,
+//     );
+
+//     const rootNotes = typedNotes.filter((note) => !note.parentFolderId);
+
+//     return [...rootFolders, ...rootNotes] as AnySidebarItem[];
+//   },
+// });
 
 export const getBlocksByTags = query({
   args: {
@@ -291,24 +328,20 @@ export const getBlockTagState = query({
 export const getTagNotePages = query({
   args: {
     campaignId: v.id("campaigns"),
-    tagCategory: v.union(
-      v.literal(SYSTEM_TAG_CATEGORY_NAMES.Character),
-      v.literal(SYSTEM_TAG_CATEGORY_NAMES.Location),
-      v.literal(SYSTEM_TAG_CATEGORY_NAMES.Session),
-      v.literal(SYSTEM_TAG_CATEGORY_NAMES.Shared),
-    ),
+    tagCategory: v.string(),
   },
-  handler: async (ctx, args): Promise<Note[]> => {
+  handler: async (ctx, args): Promise<TagWithNote[]> => {
     await requireCampaignMembership(ctx, { campaignId: args.campaignId },
       { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM, CAMPAIGN_MEMBER_ROLE.Player] }
     );
 
     const category = await getTagCategoryByName(ctx, args.campaignId, args.tagCategory);
 
-    const tags = await ctx.db
-      .query("tags")
-      .withIndex("by_campaign_categoryId", (q) => q.eq("campaignId", args.campaignId).eq("categoryId", category._id))
-      .collect();
+    if (!category) {
+      throw new Error(`Tag category "${args.tagCategory}" not found`);
+    }
+    
+    const tags = await getTagsByCategory(ctx, category._id);
 
     const tagNotePages = [];
     for (const tag of tags) {
@@ -316,8 +349,11 @@ export const getTagNotePages = query({
 
       if (note) {
         tagNotePages.push({
-          ...note,
-          type: SIDEBAR_ITEM_TYPES.notes,
+          ...tag,
+          note: {
+            ...note,
+            type: SIDEBAR_ITEM_TYPES.notes,
+          },
         });
       }
     }

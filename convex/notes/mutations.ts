@@ -14,6 +14,7 @@ import {
 } from "../tags/tags";
 import { CAMPAIGN_MEMBER_ROLE } from "../campaigns/types";
 import { requireCampaignMembership } from "../campaigns/campaigns";
+import { getFolder as getFolderFn } from "./notes";
 
 export const updateNote = mutation({
   args: {
@@ -84,7 +85,7 @@ export const moveFolder = mutation({
     folderId: v.id("folders"),
     parentId: v.optional(v.id("folders")),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<Id<"folders">> => {
     const folder = await ctx.db.get(args.folderId);
     if (!folder) {
       throw new Error("Folder not found");
@@ -93,6 +94,9 @@ export const moveFolder = mutation({
     await requireCampaignMembership(ctx, { campaignId: folder.campaignId },
       { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
     );
+
+    //TODO: check if folder is being put into one of it's own children
+    
     await ctx.db.patch(args.folderId, { parentFolderId: args.parentId });
     return args.folderId;
   },
@@ -224,11 +228,25 @@ export const updateFolder = mutation({
 export const createFolder = mutation({
   args: {
     name: v.optional(v.string()),
-    campaignId: v.id("campaigns"),
+    campaignId: v.optional(v.id("campaigns")),
     parentFolderId: v.optional(v.id("folders")),
   },
   handler: async (ctx, args): Promise<Id<"folders">> => {
-    const { identityWithProfile } = await requireCampaignMembership(ctx, { campaignId: args.campaignId },
+    let campaignId: Id<"campaigns">;
+    let parentFolderId: Id<"folders"> | undefined;
+
+    if (args.parentFolderId) { // Creating child folder
+      const parentFolder = await getFolderFn(ctx, args.parentFolderId);
+      campaignId = parentFolder.campaignId;
+      parentFolderId = args.parentFolderId;
+    } else if (args.campaignId) { // Creating root folder
+      campaignId = args.campaignId;
+      parentFolderId = undefined;
+    } else {
+      throw new Error("Must provide either campaignId or parentFolderId");
+    }
+
+    const { identityWithProfile } = await requireCampaignMembership(ctx, { campaignId },
       { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
     );
     const { profile } = identityWithProfile;
@@ -236,9 +254,9 @@ export const createFolder = mutation({
     return await ctx.db.insert("folders", {
       userId: profile.userId,
       name: args.name || "",
-      campaignId: args.campaignId,
+      campaignId,
       updatedAt: Date.now(),
-      parentFolderId: args.parentFolderId,
+      parentFolderId,
     });
   },
 });
@@ -249,7 +267,7 @@ export const createNote = mutation({
     parentFolderId: v.optional(v.id("folders")),
     campaignId: v.id("campaigns"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<Id<"notes">> => {
     const { identityWithProfile } = await requireCampaignMembership(ctx, { campaignId: args.campaignId },
       { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
     );

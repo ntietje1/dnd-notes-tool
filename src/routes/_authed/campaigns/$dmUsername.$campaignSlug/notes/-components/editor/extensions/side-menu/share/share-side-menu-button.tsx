@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import { useNotes } from "~/contexts/NotesContext";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { api } from "convex/_generated/api";
 import { useComponentsContext } from "@blocknote/react";
@@ -11,6 +10,7 @@ import { useCampaign } from "~/contexts/CampaignContext";
 import type { Tag } from "convex/tags/types";
 import type { CampaignMember } from "convex/campaigns/types";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuCheckboxItem } from "~/components/shadcn/ui/dropdown-menu";
+import { useCurrentNote } from "~/hooks/useCurrentNote";
 
 interface ShareSideMenuButtonProps {
   block: CustomBlock;
@@ -19,7 +19,7 @@ interface ShareSideMenuButtonProps {
 }
 
 export default function ShareSideMenuButton({ block, freezeMenu, unfreezeMenu }: ShareSideMenuButtonProps) {
-  const { note } = useNotes();
+  const { note } = useCurrentNote();
   const { campaignWithMembership } = useCampaign();
   const campaign = campaignWithMembership?.data?.campaign;
   const Components = useComponentsContext()!;
@@ -27,9 +27,9 @@ export default function ShareSideMenuButton({ block, freezeMenu, unfreezeMenu }:
   const blockTagState = useQuery(
     convexQuery(
       api.notes.queries.getBlockTagState,
-      note?._id
+      note.data?._id
         ? {
-            noteId: note._id,
+            noteId: note.data._id,
             blockId: block.id,
           }
         : "skip",
@@ -71,19 +71,19 @@ export default function ShareSideMenuButton({ block, freezeMenu, unfreezeMenu }:
   }, [appliedTagIds, sharedAllTag, playerSharedTags]);
 
   const toggleShareTag = async (tag: Tag) => {
-    if (!note) return;
+    if (!note.data) return;
     if (isMutating) return;
     const isApplied = appliedTagIds.includes(tag._id);
     try {
       if (isApplied) {
         await removeTagFromBlock.mutateAsync({
-          noteId: note._id,
+          noteId: note.data._id,
           blockId: block.id,
           tagId: tag._id,
         });
       } else {
         await addTagToBlock.mutateAsync({
-          noteId: note._id,
+          noteId: note.data._id,
           blockId: block.id,
           tagId: tag._id,
         });
@@ -94,6 +94,7 @@ export default function ShareSideMenuButton({ block, freezeMenu, unfreezeMenu }:
   };
 
   const handleButtonClick = async (e: React.MouseEvent) => {
+    if (!note.data) return;
     if (isMutating) return;
     if (e.ctrlKey) {
       if (sharedAllTag) {

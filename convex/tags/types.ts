@@ -1,4 +1,5 @@
 import { Id } from "../_generated/dataModel";
+import { Note } from "../notes/types";
 
 export const CATEGORY_KIND = {
   SystemManaged: "system_managed", // both category and tags under it are immutable to users.
@@ -38,13 +39,15 @@ export type Tag = {
   description?: string;
   campaignId: Id<"campaigns">;
   noteId?: Id<"notes">;
+  note?: Note;
   categoryId: Id<"tagCategories">;
+  category?: TagCategory;
   memberId?: Id<"campaignMembers">;
   createdBy: string;
   updatedAt: number;
 };
 
-export type TagWithCategory = Tag & {
-  category: TagCategory;
+export type TagWithNote = Tag & {
+  note: Note;
 };
 

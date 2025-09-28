@@ -3,7 +3,7 @@ import { api } from "convex/_generated/api";
 import { createReactInlineContentSpec } from "@blocknote/react";
 import { TagConfig } from "convex/tags/editorSpecs";
 import { useCampaign } from "~/contexts/CampaignContext";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, skipToken } from "@tanstack/react-query";
 import { convexQuery } from "@convex-dev/react-query";
 
 export const TagInlineContent = createReactInlineContentSpec(

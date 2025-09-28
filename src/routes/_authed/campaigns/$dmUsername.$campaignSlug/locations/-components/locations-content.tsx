@@ -7,13 +7,14 @@ import { ConfirmationDialog } from "~/components/dialogs/confirmation-dialog";
 import { MapPin, Plus, Edit, Trash2 } from "~/lib/icons";
 import { useState } from "react";
 import type { Location } from "convex/locations/types";
-import LocationDialog from "./location-dialog";
+import LocationDialog from "../../../../../../components/forms/category-tag-dialogs/location-tag-dialog/location-dialog";
 import { toast } from "sonner";
 import { CardGridSkeleton } from "~/components/content-grid-page/card-grid-skeleton";
 import { useCampaign } from "~/contexts/CampaignContext";
 import { useRouter } from "@tanstack/react-router";
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { LOCATION_CONFIG } from "~/components/forms/category-tag-dialogs/location-tag-dialog/types";
 
 export default function LocationsContent() {
   const { dmUsername, campaignSlug, campaignWithMembership } = useCampaign();
@@ -81,7 +82,7 @@ export default function LocationsContent() {
 
         {locations.data.map((location) => (
           <ContentCard
-            key={location._id}
+            key={location.locationId}
             title={location.name}
             description={location.description}
             color={location.color}
@@ -134,8 +135,7 @@ export default function LocationsContent() {
           mode="create"
           isOpen={creatingLocation}
           onClose={() => setCreatingLocation(false)}
-          dmUsername={dmUsername}
-          campaignSlug={campaignSlug}
+          config={LOCATION_CONFIG}
         />
       )}
 
@@ -144,9 +144,8 @@ export default function LocationsContent() {
           mode="edit"
           isOpen={true}
           onClose={() => setEditingLocation(null)}
-          dmUsername={dmUsername}
-          campaignSlug={campaignSlug}
-          location={editingLocation}
+          config={LOCATION_CONFIG}
+          tag={editingLocation}
         />
       )}
 

@@ -1,33 +1,22 @@
-import { FileEdit, Trash2 } from "~/lib/icons";
-import {
-  ContextMenu,
-  type ContextMenuItem,
-} from "~/components/context-menu/context-menu";
 
-interface LocationNoteContextMenuProps {
-  children: React.ReactNode;
-  onEdit: () => void;
-  onDelete: () => void;
-}
+import { TagNoteContextMenu, type TagNoteContextMenuProps } from "../generic-category-folder/tag-note-context.menu";
+import { forwardRef } from "react";
+import type { ContextMenuRef } from "~/components/context-menu/context-menu";
 
-export function LocationNoteContextMenu({
+export const LocationNoteContextMenu = forwardRef<ContextMenuRef, TagNoteContextMenuProps>(({
   children,
-  onEdit,
-  onDelete,
-}: LocationNoteContextMenuProps) {
-  const menuItems: ContextMenuItem[] = [
-    {
-      label: "Rename Location",
-      icon: <FileEdit className="h-4 w-4" />,
-      onClick: onEdit,
-    },
-    {
-      label: "Delete Location",
-      icon: <Trash2 className="h-4 w-4" />,
-      onClick: onDelete,
-      className: "text-red-600 focus:text-red-600",
-    },
-  ];
-
-  return <ContextMenu items={menuItems}>{children}</ContextMenu>;
-}
+  tagWithNote,
+  categoryConfig,
+  ...props
+}, ref) => {
+  return (
+    <TagNoteContextMenu
+      ref={ref}
+      tagWithNote={tagWithNote}
+      categoryConfig={categoryConfig}
+      {...props}
+    >
+      {children}
+    </TagNoteContextMenu>
+  );
+});

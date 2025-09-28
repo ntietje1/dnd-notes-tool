@@ -1,85 +1,48 @@
-import {
-  ChevronDown,
-  ChevronRight,
-  Folder as FolderIcon,
-  FolderOpen as FolderOpenIcon,
-  FolderOpenDot as FolderOpenDotIcon,
-  FolderDot as FolderDotIcon,
-  FolderEdit as FolderEditIcon,
-} from "~/lib/icons";
-import { Button } from "~/components/shadcn/ui/button";
-import { FolderName } from "./folder-name";
-import { FolderContextMenu } from "./folder-context-menu";
-import type { FolderNode } from "convex/notes/types";
+import type { Folder } from "convex/notes/types";
 import { DraggableFolder } from "./draggable-folder";
+import { useFolderState } from "~/hooks/useFolderState";
+import { useFileSidebar } from "~/contexts/FileSidebarContext";
+import { toast } from "sonner";
+import { FolderContextMenu } from "./folder-context-menu";
+import { FolderButtonBase } from "./folder-button-base";
+import { useRef } from "react";
+import type { MouseEvent } from "react";
+import type { ContextMenuRef } from "~/components/context-menu/context-menu";
 
 interface FolderButtonProps {
-  folder: FolderNode;
-  isExpanded: boolean;
-  isRenaming: boolean;
-  hasItems: boolean;
-  onToggleExpanded: () => void;
-  onStartRename: () => void;
-  onFinishRename: (name: string) => void;
-  onDelete: () => void;
-  onNewPage: () => void;
-  onNewFolder: () => void;
+  folder: Folder;
 }
 
 export function FolderButton({
   folder,
-  isExpanded,
-  isRenaming,
-  hasItems,
-  onToggleExpanded,
-  onStartRename,
-  onFinishRename,
-  onDelete,
-  onNewPage,
-  onNewFolder,
 }: FolderButtonProps) {
+  const { isExpanded, toggleExpanded } = useFolderState(folder._id)
+  const { renamingId } = useFileSidebar();
+  const contextMenuRef = useRef<ContextMenuRef>(null);
+  
+  const handleFolderClick = (e: MouseEvent) => {
+    e.stopPropagation();
+    toast.info("Folder clicked - functionality coming soon!");
+  };
+
+  const handleMoreOptions = (e: MouseEvent) => {
+    e.stopPropagation();
+    contextMenuRef.current?.open({ x: e.clientX + 4, y: e.clientY + 4 });
+  };
+  
   return (
-    <DraggableFolder folder={folder}>
-      <FolderContextMenu
-        onRename={onStartRename}
-        onDelete={onDelete}
-        onNewPage={onNewPage}
-        onNewFolder={onNewFolder}
-      >
-        <Button
-          variant="ghost"
-          className="w-full flex-1 justify-start gap-2 h-8 min-w-0 p-0"
-          onClick={onToggleExpanded}
-        >
-          <div className="flex items-center gap-1 min-w-0 w-full">
-            <div className="flex items-center h-4 w-3 shrink-0">
-              {isExpanded ? (
-                <ChevronDown className="h-2 w-2 pl-1 pr-0.5" />
-              ) : (
-                <ChevronRight className="h-2 w-2 pl-1 pr-0.5" />
-              )}
-            </div>
-            {isRenaming ? (
-              <FolderEditIcon className="h-4 w-4 shrink-0" />
-            ) : isExpanded ? (
-              hasItems ? (
-                <FolderOpenDotIcon className="h-4 w-4 shrink-0" />
-              ) : (
-                <FolderOpenIcon className="h-4 w-4 shrink-0" />
-              )
-            ) : hasItems ? (
-              <FolderDotIcon className="h-4 w-4 shrink-0" />
-            ) : (
-              <FolderIcon className="h-4 w-4 shrink-0" />
-            )}
-            <FolderName
-              folder={folder}
-              isRenaming={isRenaming}
-              onFinishRename={onFinishRename}
-            />
-          </div>
-        </Button>
-      </FolderContextMenu>
-    </DraggableFolder>
+    <FolderContextMenu ref={contextMenuRef} folder={folder}>
+      <DraggableFolder folder={folder}>
+        <FolderButtonBase
+          folder={folder}
+          handleToggleExpanded={toggleExpanded}
+          handleSelect={handleFolderClick}
+          handleMoreOptions={handleMoreOptions}
+          isExpanded={isExpanded}
+          isSelected={false}
+          isRenaming={renamingId === folder._id}
+        />
+      </DraggableFolder>
+    </FolderContextMenu>
   );
 }

@@ -1,49 +1,49 @@
 import { v } from "convex/values";
 import { mutation } from "../_generated/server";
-import { updateTagAndContent, deleteTagAndCleanupContent, getTagCategoryByName, insertTagAndNote, getTag } from "../tags/tags";
+import { getTag } from "../tags/tags";
 import { CAMPAIGN_MEMBER_ROLE } from "../campaigns/types";
 import { requireCampaignMembership } from "../campaigns/campaigns";
 import { Id } from "../_generated/dataModel";
-import { SYSTEM_TAG_CATEGORY_NAMES } from "../tags/types";
 
 export const createCharacter = mutation({
   args: {
-    name: v.string(),
-    description: v.optional(v.string()),
-    color: v.string(),
-    campaignId: v.id("campaigns"),
+    tagId: v.id("tags"),
+    playerId: v.optional(v.id("campaignMembers")),
   },
-  handler: async (ctx, args): Promise<{ characterId: Id<"characters">, tagId: Id<"tags">, noteId: Id<"notes"> }> => {
-    await requireCampaignMembership(ctx, { campaignId: args.campaignId },
+  handler: async (ctx, args): Promise<Id<"characters">> => {
+    console.log("createCharacter.playerId", args.playerId);
+    const tag = await getTag(ctx, args.tagId);
+    await requireCampaignMembership(ctx, { campaignId: tag.campaignId },
       { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
     );
 
-    const characterCategory = await getTagCategoryByName(ctx, args.campaignId, SYSTEM_TAG_CATEGORY_NAMES.Character);
+    if (args.playerId) {
+      const player = await ctx.db.get(args.playerId);
+      if (!player) {
+        throw new Error("Player not found");
+      }
+      if (player.campaignId !== tag.campaignId) {
+        throw new Error("Player not found in campaign");
+      }
+    }
 
-    const { tagId, noteId } = await insertTagAndNote(ctx, {
-      displayName: args.name,
-      categoryId: characterCategory._id,
-      color: args.color,
-      campaignId: args.campaignId,
-      description: args.description,
-    });
     const characterId = await ctx.db.insert("characters", {
-      campaignId: args.campaignId,
-      tagId,
+      campaignId: tag.campaignId,
+      tagId: tag._id,
+      playerId: args.playerId,
     });
 
-    return { characterId, tagId, noteId };
+    return characterId;
   },
 });
 
 export const updateCharacter = mutation({
   args: {
     characterId: v.id("characters"),
-    name: v.optional(v.string()),
-    description: v.optional(v.string()),
-    color: v.optional(v.string()),
+    playerId: v.optional(v.id("campaignMembers")),
   },
   handler: async (ctx, args): Promise<Id<"characters">> => {
+    console.log("updateCharacter.playerId", args.playerId);
     const character = await ctx.db.get(args.characterId);
     if (!character) {
       throw new Error("Character not found");
@@ -53,18 +53,16 @@ export const updateCharacter = mutation({
       { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
     );
 
-    const tag = await getTag(ctx, character.tagId);
+    if (args.playerId) {
+      const player = await ctx.db.get(args.playerId);
+      if (!player || player.campaignId !== character.campaignId) {
+        throw new Error("Player must belong to the same campaign as the character");
+      }
 
-    await updateTagAndContent(
-      ctx,
-      tag._id,
-      {
-        displayName: args.name,
-        color: args.color,
-        description: args.description,
-      },
-    );
-
+      await ctx.db.patch(args.characterId, {
+        playerId: args.playerId,
+      });
+    }
 
     return args.characterId;
   },
@@ -83,9 +81,6 @@ export const deleteCharacter = mutation({
     await requireCampaignMembership(ctx, { campaignId: character.campaignId },
       { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
     );
-
-    await deleteTagAndCleanupContent(ctx, character.tagId);
-    await ctx.db.delete(args.characterId);
 
     return args.characterId;
   },

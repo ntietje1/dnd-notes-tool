@@ -48,10 +48,10 @@ export function EditableName({
         }}
         onClick={(e) => e.stopPropagation()}
         placeholder={defaultName}
-        className="bg-transparent border-none w-full mr-4 px-0.5 focus:outline-none focus:ring-1 text-sm"
+        className="bg-transparent border-none w-full px-1 m-1 mr-2 focus:outline-none focus:ring-1 text-sm"
       />
     );
   }
 
-  return <span className="truncate px-0.5">{initialName || defaultName}</span>;
+  return <span className="truncate">{initialName || defaultName}</span>;
 }

@@ -6,30 +6,46 @@ import {
 } from "~/components/shadcn/ui/dropdown-menu";
 import { X, MoreVertical } from "~/lib/icons";
 import { useCallback, useState, useEffect, useRef } from "react";
-import { useNotes } from "~/contexts/NotesContext";
 import { UNTITLED_NOTE_TITLE } from "convex/notes/types";
 import { Skeleton } from "~/components/shadcn/ui/skeleton";
-import { Link } from "@tanstack/react-router";
-import { useCampaign } from "~/contexts/CampaignContext";
+import { useCurrentNote } from "~/hooks/useCurrentNote";
+import { useNoteActions } from "~/hooks/useNoteActions";
+import { toast } from "sonner";
 
 export function FileTopbar() {
-  const { dmUsername, campaignSlug } = useCampaign();
-  const { note, updateNoteName, status, selectNote } = useNotes();
-  const [title, setTitle] = useState(note?.name ?? "");
+  const { note, selectNote, noteId } = useCurrentNote();
+  const { updateNote } = useNoteActions();
+  const [title, setTitle] = useState(note.data?.name ?? "");
   const [isEditing, setIsEditing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setTitle(note?.name ?? "");
-  }, [note?.name]);
+    setTitle(note.data?.name ?? "");
+  }, [note.data?.name]);
 
-
-  const handleTitleSubmit = useCallback(() => {
-    setIsEditing(false);
-    if (note) {
-      updateNoteName(note._id, title);
+  const handleTitleSubmit = useCallback(async () => {
+    if (!note.data) {
+      setIsEditing(false);
+      return;
     }
-  }, [note, title, updateNoteName]);
+
+    const previousTitle = note.data.name ?? "";
+
+    if (title === previousTitle) {
+      setIsEditing(false);
+      return;
+    }
+
+    try {
+      await updateNote.mutateAsync({ noteId: note.data._id, name: title });
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to update note");
+      setTitle(previousTitle);
+    } finally {
+      setIsEditing(false);
+    }
+  }, [note, title, updateNote]);
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -37,68 +53,65 @@ export function FileTopbar() {
     }
   }, [isEditing]);
 
-  if (status === "pending") {
+  if (noteId && note.status === "pending") {
     return <TopbarLoading />;
+  }
+
+  if (!note.data) {
+    return <TopbarEmpty />;
   }
 
   return (
     <div className="flex items-center justify-between px-4 py-2 h-12 border-b bg-white w-full">
-      {note ? (
-        <div className="flex items-center justify-between w-full">
-          {isEditing ? (
-            <input
-              ref={inputRef}
-              type="text"
-              value={title}
-              placeholder={UNTITLED_NOTE_TITLE}
-              onChange={(e) => setTitle(e.target.value)}
-              onBlur={handleTitleSubmit}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  handleTitleSubmit();
-                }
-              }}
-              className="bg-transparent border-b border-transparent outline-none focus:ring-0 px-2 w-full"
-              autoFocus
-            />
-          ) : (
-            <div className="truncate">
-              <button
-                onClick={() => setIsEditing(true)}
-                className="text-left border-b border-transparent hover:border-gray-300 px-2 max-w-full truncate"
-              >
-                {title || (
-                  <span className="opacity-85">{UNTITLED_NOTE_TITLE}</span>
-                )}
-              </button>
-            </div>
-          )}
-
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => selectNote(null)}
-                asChild
-              >
-              <Link to="/campaigns/$dmUsername/$campaignSlug/notes" params={{ dmUsername, campaignSlug }}>
-                <X className="h-4 w-4" />
-              </Link>
-            </Button>
+      <div className="flex items-center justify-between w-full">
+        {isEditing ? (
+          <input
+            ref={inputRef}
+            type="text"
+            value={title}
+            placeholder={UNTITLED_NOTE_TITLE}
+            onChange={(e) => setTitle(e.target.value)}
+            onBlur={handleTitleSubmit}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                handleTitleSubmit();
+              }
+            }}
+            className="bg-transparent border-b border-transparent outline-none focus:ring-0 px-2 w-full"
+            autoFocus
+          />
+        ) : (
+          <div className="truncate">
+            <button
+              onClick={() => setIsEditing(true)}
+              className="text-left border-b border-transparent hover:border-gray-300 px-2 max-w-full truncate"
+            >
+              {title || (
+                <span className="opacity-85">{UNTITLED_NOTE_TITLE}</span>
+              )}
+            </button>
           </div>
+        )}
+
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => selectNote(null)}
+            >
+              <X className="h-4 w-4" />
+          </Button>
         </div>
-      ) : (
-      <div className="flex items-center justify-between w-full h-12"/>
-    )}
+      </div>
     </div>
   );
 }
@@ -113,6 +126,14 @@ function TopbarLoading() {
           <Skeleton className="h-8 w-8" />
         </div>
       </div>
+    </div>
+  );
+}
+
+function TopbarEmpty() {
+  return (
+    <div className="flex items-center justify-between px-4 py-2 h-12 border-b bg-white w-full">
+      <div className="flex items-center justify-between w-full h-12"/>
     </div>
   );
 }

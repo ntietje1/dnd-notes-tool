@@ -1,6 +1,7 @@
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "~/components/shadcn/ui/resizable";
 import { NotesViewer } from "../viewer/notes-viewer";
 import { FileTopbar } from "../editor/file-topbar/topbar";
+import { ClientOnly } from "@tanstack/react-router";
 
 export function NotesPageLayout({ children }: { children: React.ReactNode }) {
     return (
@@ -11,7 +12,9 @@ export function NotesPageLayout({ children }: { children: React.ReactNode }) {
         </ResizablePanel>
         <ResizableHandle />
         <ResizablePanel defaultSize={50} minSize={25} className="flex min-h-0 flex-col">
-            <NotesViewer />
+            <ClientOnly>
+                <NotesViewer />
+            </ClientOnly>
         </ResizablePanel>
         </ResizablePanelGroup>
     )

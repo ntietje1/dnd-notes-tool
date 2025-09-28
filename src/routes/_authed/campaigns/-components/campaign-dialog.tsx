@@ -3,14 +3,14 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useForm } from "@tanstack/react-form";
 import type { CampaignWithMembership } from "convex/campaigns/types";
 import { api } from "convex/_generated/api";
-import { FormActions } from "~/components/forms/form-actions";
+import { FormActions } from "~/components/forms/category-tag-dialogs/base-tag-dialog/form-actions";
 import { UrlPreview } from "~/routes/_authed/campaigns/-components/url-preview";
 import { Input } from "~/components/shadcn/ui/input";
 import { Label } from "~/components/shadcn/ui/label";
 import { Plus, Sword, Link } from "~/lib/icons";
 import { toast } from "sonner";
 import { convexQuery, useConvex, useConvexMutation } from "@convex-dev/react-query";
-import { FormDialog } from "~/components/forms/form-dialog";
+import { FormDialog } from "~/components/forms/category-tag-dialogs/base-tag-dialog/form-dialog";
 import { LoadingSpinner } from "~/components/loading/loading-spinner";
 import {
   removeInvalidCharacters,

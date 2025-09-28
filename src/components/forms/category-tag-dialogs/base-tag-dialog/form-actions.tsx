@@ -3,7 +3,7 @@ import { Loader2, type LucideIcon } from "~/lib/icons";
 
 interface FormAction {
   label: string;
-  onClick: () => void;
+  onClick?: () => void;
   variant?: "default" | "outline" | "destructive";
   disabled?: boolean;
   icon?: LucideIcon;
@@ -24,7 +24,7 @@ export function FormActions({ actions, className = "pt-4" }: FormActionsProps) {
       {actions.map((action, index) => {
         const {
           label,
-          onClick,
+          onClick = () => {},
           variant = "default",
           disabled = false,
           icon: Icon,

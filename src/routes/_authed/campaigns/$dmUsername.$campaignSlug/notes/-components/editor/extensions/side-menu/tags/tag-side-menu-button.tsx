@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react";
 import { useTags } from "./use-tags";
-import { useNotes } from "~/contexts/NotesContext";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
@@ -16,6 +15,7 @@ import type { CustomBlock } from "~/lib/editor-schema";
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent } from "~/components/shadcn/ui/dropdown-menu";
 import type { Tag } from "convex/tags/types";
+import { useCurrentNote } from "~/hooks/useCurrentNote";
 
 interface TagSideMenuButtonProps {
   block: CustomBlock;
@@ -29,7 +29,7 @@ export default function TagSideMenuButton({
   unfreezeMenu,
 }: TagSideMenuButtonProps) {
   const { nonSystemManagedTags } = useTags();
-  const { note } = useNotes();
+  const { note } = useCurrentNote();
   const addTagToBlock = useMutation({mutationFn: useConvexMutation(api.notes.mutations.addTagToBlockMutation)});
   const removeTagFromBlock = useMutation({mutationFn: useConvexMutation(
     api.notes.mutations.removeTagFromBlockMutation,
@@ -39,19 +39,19 @@ export default function TagSideMenuButton({
 
   const Components = useComponentsContext()!;
 
-  const blockTagState = useQuery(convexQuery(api.notes.queries.getBlockTagState, note?._id ? {
-    noteId: note._id,
+  const blockTagState = useQuery(convexQuery(api.notes.queries.getBlockTagState, note.data?._id ? {
+    noteId: note.data._id,
     blockId: block.id
   } : "skip"));
 
 
   const handleAddTag = async (tagId: Id<"tags">) => {
-    if (!note) return;
+    if (!note.data) return;
     if (isMutating) return;
 
     try {
       await addTagToBlock.mutateAsync({
-        noteId: note._id,
+        noteId: note.data._id,
         blockId: block.id,
         tagId,
       });
@@ -62,12 +62,12 @@ export default function TagSideMenuButton({
   };
 
   const handleRemoveTag = async (tagId: Id<"tags">) => {
-    if (!note) return;
+    if (!note.data) return;
     if (isMutating) return;
 
     try {
       await removeTagFromBlock.mutateAsync({
-        noteId: note._id,
+        noteId: note.data._id,
         blockId: block.id,
         tagId,
       });

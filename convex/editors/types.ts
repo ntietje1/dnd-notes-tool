@@ -26,6 +26,7 @@ export type Editor = {
   _id: Id<"editor">;
   _creationTime: number;
 
+  campaignId: Id<"campaigns">;
   userId: string;
   sortOrder: SortOrder;
   sortDirection: SortDirection;

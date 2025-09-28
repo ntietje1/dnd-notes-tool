@@ -1,13 +1,13 @@
 import { CustomBlock } from "../notes/editorSpecs";
 import { Id } from "../_generated/dataModel";
 import { MutationCtx } from "../_generated/server";
-import { Tag, CATEGORY_KIND, TagCategory, SYSTEM_TAG_CATEGORY_NAMES, TagWithCategory } from "./types";
+import { Tag, CATEGORY_KIND, TagCategory, SYSTEM_TAG_CATEGORY_NAMES } from "./types";
 import { Block } from "../notes/types";
 import { CAMPAIGN_MEMBER_ROLE } from "../campaigns/types";
 import { requireCampaignMembership } from "../campaigns/campaigns";
 import { Ctx } from "../common/types";
 
-export const getTag = async (ctx: Ctx, tagId: Id<"tags">): Promise<TagWithCategory> => {
+export const getTag = async (ctx: Ctx, tagId: Id<"tags">): Promise<Tag> => {
   const tag = await ctx.db.get(tagId);
   if (!tag) {
     throw new Error("Tag not found");
@@ -32,7 +32,7 @@ export const getTag = async (ctx: Ctx, tagId: Id<"tags">): Promise<TagWithCatego
 
 export const insertTagAndNote = async (
   ctx: MutationCtx,
-  newTag: Omit<Tag, "_id" | "_creationTime" | "updatedAt" | "createdBy" | "name" | "noteId">,
+  newTag: Omit<Tag, "_id" | "_creationTime" | "updatedAt" | "createdBy" | "name" | "noteId" | "category">,
 ): Promise<{tagId: Id<"tags">, noteId: Id<"notes">}> => {
   const { identityWithProfile } = await requireCampaignMembership(ctx, { campaignId: newTag.campaignId },
     { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
@@ -61,7 +61,7 @@ export const insertTagAndNote = async (
 
 export const insertTag = async (
   ctx: MutationCtx,
-  newTag: Omit<Tag, "_id" | "_creationTime" | "updatedAt" | "createdBy" | "name">,
+  newTag: Omit<Tag, "_id" | "_creationTime" | "updatedAt" | "createdBy" | "name" | "category">,
   allowManaged: boolean = false,
 ): Promise<Id<"tags">> => {
   const category = await ctx.db.get(newTag.categoryId);
@@ -152,7 +152,7 @@ export async function getTagCategoryByName(
 export async function getTagsByCampaign(
   ctx: Ctx,
   campaignId: Id<"campaigns">,
-): Promise<TagWithCategory[]> {
+): Promise<Tag[]> {
   await requireCampaignMembership(ctx, { campaignId: campaignId },
     { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM, CAMPAIGN_MEMBER_ROLE.Player] }
   );
@@ -179,7 +179,7 @@ export async function getTagsByCampaign(
 export async function getTagsByCategory(
   ctx: Ctx,
   categoryId: Id<"tagCategories">,
-): Promise<TagWithCategory[]> {
+): Promise<Tag[]> {
   const category = await ctx.db.get(categoryId);
   if (!category) {
     throw new Error("Category not found");
@@ -337,6 +337,13 @@ export const updateTagAndContent = async (
 
   await ctx.db.patch(tagId, updates);
 
+  if (updates.displayName !== undefined && tag.noteId) {
+    await ctx.db.patch(tag.noteId, {
+      name: updates.displayName,
+      updatedAt: Date.now(),
+    });
+  }
+
   if (updates.displayName !== undefined || updates.color !== undefined) {
     const newDisplayName = updates.displayName;
     const newColor = updates.color;
@@ -447,7 +454,12 @@ export async function validateTagBelongsToCampaign( //TODO: remove this
     throw new Error("Tag does not belong to the specified campaign");
   }
 
-  return tag;
+  const category = await ctx.db.get(tag.categoryId);
+  if (!category) {
+    throw new Error("Category not found");
+  }
+
+  return { ...tag, category };
 }
 
 export async function findBlock(
@@ -480,10 +492,24 @@ export async function getNoteLevelTag(
     throw new Error("Note not found");
   }
 
-  return await ctx.db.query("tags").withIndex("by_campaign_noteId", (q) => q.eq("campaignId", note.campaignId).eq("noteId", noteId)).unique();
+  const tag = await ctx.db
+    .query("tags")
+    .withIndex("by_campaign_noteId", (q) => q.eq("campaignId", note.campaignId).eq("noteId", noteId))
+    .unique();
+    
+  if (!tag) {
+    return null;
+  }
+
+  const category = await ctx.db.get(tag.categoryId);
+  if (!category) {
+    throw new Error("Category not found");
+  }
+
+  return { ...tag, category };
 }
 
-export async function getBlockNoteLevelTag(
+export async function getBlockLevelTag(
   ctx: Ctx,
   blockDbId: Id<"blocks">,
 ): Promise<Tag | null> {
@@ -497,7 +523,17 @@ export async function getBlockNoteLevelTag(
     throw new Error("Note not found");
   }
 
-  return await ctx.db.query("tags").withIndex("by_campaign_noteId", (q) => q.eq("campaignId", note.campaignId).eq("noteId", note._id)).unique();
+  const tag = await ctx.db.query("tags").withIndex("by_campaign_noteId", (q) => q.eq("campaignId", note.campaignId).eq("noteId", note._id)).unique();
+  if (!tag) {
+    throw new Error("Tag not found");
+  }
+
+  const category = await ctx.db.get(tag.categoryId);
+  if (!category) {
+    throw new Error("Category not found");
+  }
+
+  return { ...tag, category };
 }
 
 export async function getBlockLevelTags(
@@ -535,7 +571,7 @@ export async function getNoteLevelTagIdForBlock(
   ctx: Ctx,
   blockDbId: Id<"blocks">
 ): Promise<Id<"tags"> | null> {
-  const noteTag = await getBlockNoteLevelTag(ctx, blockDbId);
+  const noteTag = await getBlockLevelTag(ctx, blockDbId);
   return noteTag?._id ?? null;
 }
 
