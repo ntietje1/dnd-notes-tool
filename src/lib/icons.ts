@@ -1,5 +1,4 @@
-
-export {    
+export {
   FileText,
   FolderPlus,
   FilePlus,
@@ -53,6 +52,6 @@ export {
   UploadCloud,
   Notebook,
   MoreHorizontal,
-} from "lucide-react";
+} from 'lucide-react'
 
-export type { LucideIcon } from "lucide-react";
+export type { LucideIcon } from 'lucide-react'

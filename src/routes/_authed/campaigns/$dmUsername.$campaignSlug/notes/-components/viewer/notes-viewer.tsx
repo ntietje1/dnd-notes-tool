@@ -1,45 +1,52 @@
-import React from "react";
-import { useTags } from "../editor/extensions/side-menu/tags/use-tags";
-import { api } from "convex/_generated/api";
-import { BlockNoteView } from "@blocknote/shadcn";
-import { BlockNoteSchema, BlockNoteEditor } from "@blocknote/core";
-import { customInlineContentSpecs, type CustomBlockNoteEditor } from "~/lib/editor-schema";
-import type { Id } from "convex/_generated/dataModel";
-import { useQuery } from "@tanstack/react-query";
-import { convexQuery } from "@convex-dev/react-query";
-import { useCampaign } from "~/contexts/CampaignContext";
-import { Skeleton } from "~/components/shadcn/ui/skeleton";
-import type { Tag } from "convex/tags/types";
-import { Button } from "~/components/shadcn/ui/button";
+import React from 'react'
+import { useTags } from '../editor/extensions/side-menu/tags/use-tags'
+import { api } from 'convex/_generated/api'
+import { BlockNoteView } from '@blocknote/shadcn'
+import { BlockNoteSchema, BlockNoteEditor } from '@blocknote/core'
+import {
+  customInlineContentSpecs,
+  type CustomBlockNoteEditor,
+} from '~/lib/editor-schema'
+import type { Id } from 'convex/_generated/dataModel'
+import { useQuery } from '@tanstack/react-query'
+import { convexQuery } from '@convex-dev/react-query'
+import { useCampaign } from '~/contexts/CampaignContext'
+import { Skeleton } from '~/components/shadcn/ui/skeleton'
+import type { Tag } from 'convex/tags/types'
+import { Button } from '~/components/shadcn/ui/button'
 
-const schema = BlockNoteSchema.create({ inlineContentSpecs: customInlineContentSpecs });
+const schema = BlockNoteSchema.create({
+  inlineContentSpecs: customInlineContentSpecs,
+})
 
 export function NotesViewer() {
-  const { nonSystemManagedTags } = useTags();
-  const { campaignWithMembership } = useCampaign();
-  const campaign = campaignWithMembership?.data?.campaign;
-  const [selectedTagIds, setSelectedTagIds] = React.useState<Id<"tags">[]>([]);
+  const { nonSystemManagedTags } = useTags()
+  const { campaignWithMembership } = useCampaign()
+  const campaign = campaignWithMembership?.data?.campaign
+  const [selectedTagIds, setSelectedTagIds] = React.useState<Id<'tags'>[]>([])
 
-  const blocks = useQuery(convexQuery(
-    api.notes.queries.getBlocksByTags,
-    selectedTagIds.length > 0 && campaign?._id
-      ? {
-          campaignId: campaign._id,
-          tagIds: selectedTagIds,
-        }
-      : "skip",
-  ));
+  const blocks = useQuery(
+    convexQuery(
+      api.notes.queries.getBlocksByTags,
+      selectedTagIds.length > 0 && campaign?._id
+        ? {
+            campaignId: campaign._id,
+            tagIds: selectedTagIds,
+          }
+        : 'skip',
+    ),
+  )
 
   const editor = React.useMemo<CustomBlockNoteEditor | null>(() => {
-    if (!blocks.data || blocks.data.length === 0) return null;
+    if (!blocks.data || blocks.data.length === 0) return null
     return BlockNoteEditor.create({
       schema,
       initialContent: blocks.data.map((block) => block.content),
-    });
-  }, [blocks.data]);
+    })
+  }, [blocks.data])
 
-  if (blocks.fetchStatus === "fetching") {
-    return <NotesViewerLoading />;
+  if (blocks.fetchStatus === 'fetching') {
+    return <NotesViewerLoading />
   }
 
   return (
@@ -51,8 +58,8 @@ export function NotesViewer() {
             variant="outline"
             className={`px-2 py-1 rounded border ${
               selectedTagIds.includes(tag._id)
-                ? "bg-blue-200 border-blue-400"
-                : "bg-gray-100 border-gray-300"
+                ? 'bg-blue-200 border-blue-400'
+                : 'bg-gray-100 border-gray-300'
             }`}
             aria-pressed={selectedTagIds.includes(tag._id)}
             onClick={() => {
@@ -60,7 +67,7 @@ export function NotesViewer() {
                 ids.includes(tag._id)
                   ? ids.filter((id) => id !== tag._id)
                   : [...ids, tag._id],
-              );
+              )
             }}
             type="button"
           >
@@ -82,14 +89,14 @@ export function NotesViewer() {
           {!editor && (
             <div className="h-full flex items-center justify-center text-muted-foreground">
               {selectedTagIds.length === 0
-                ? "Select tags to view blocks."
-                : "No blocks found for selected tags."}
+                ? 'Select tags to view blocks.'
+                : 'No blocks found for selected tags.'}
             </div>
           )}
         </div>
       </div>
     </div>
-  );
+  )
 }
 
 function NotesViewerLoading() {
@@ -104,5 +111,5 @@ function NotesViewerLoading() {
         </div>
       </div>
     </div>
-  );
+  )
 }

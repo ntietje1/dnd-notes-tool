@@ -1,46 +1,46 @@
-import { Link, useLocation } from "@tanstack/react-router";
-import { useCampaign } from "~/contexts/CampaignContext";
-import { MapPin, Home, Users, Settings, FileText, User } from "~/lib/icons";
-import { cn } from "~/lib/utils";
+import { Link, useLocation } from '@tanstack/react-router'
+import { useCampaign } from '~/contexts/CampaignContext'
+import { MapPin, Home, Users, Settings, FileText, User } from '~/lib/icons'
+import { cn } from '~/lib/utils'
 
 const navigationItems = [
   {
-    name: "Overview",
-    to: "/campaigns/$dmUsername/$campaignSlug",
+    name: 'Overview',
+    to: '/campaigns/$dmUsername/$campaignSlug',
     icon: Home,
     exact: true,
   },
   {
-    name: "Notes",
-    to: "/campaigns/$dmUsername/$campaignSlug/notes",
+    name: 'Notes',
+    to: '/campaigns/$dmUsername/$campaignSlug/notes',
     icon: FileText,
   },
   {
-    name: "Characters",
-    to: "/campaigns/$dmUsername/$campaignSlug/characters",
+    name: 'Characters',
+    to: '/campaigns/$dmUsername/$campaignSlug/characters',
     icon: User,
   },
   {
-    name: "Locations",
-    to: "/campaigns/$dmUsername/$campaignSlug/locations",
+    name: 'Locations',
+    to: '/campaigns/$dmUsername/$campaignSlug/locations',
     icon: MapPin,
   },
   {
-    name: "Players",
-    to: "/campaigns/$dmUsername/$campaignSlug/players",
+    name: 'Players',
+    to: '/campaigns/$dmUsername/$campaignSlug/players',
     icon: Users,
   },
   {
-    name: "Settings",
-    to: "/campaigns/$dmUsername/$campaignSlug/settings",
+    name: 'Settings',
+    to: '/campaigns/$dmUsername/$campaignSlug/settings',
     icon: Settings,
   },
-];
+]
 
 export const NavigationSidebar = () => {
   const { dmUsername, campaignSlug } = useCampaign()
   const { pathname } = useLocation()
-  const isActive = (item: typeof navigationItems[number]) => {
+  const isActive = (item: (typeof navigationItems)[number]) => {
     return pathname === item.to
   }
 
@@ -53,10 +53,10 @@ export const NavigationSidebar = () => {
             to={item.to}
             params={{ dmUsername, campaignSlug }}
             className={cn(
-              "w-10 h-10 rounded-lg flex items-center justify-center transition-colors group relative",
+              'w-10 h-10 rounded-lg flex items-center justify-center transition-colors group relative',
               isActive(item)
-                ? "bg-amber-100 text-amber-700"
-                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+                ? 'bg-amber-100 text-amber-700'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
             )}
             title={item.name}
           >
@@ -67,7 +67,7 @@ export const NavigationSidebar = () => {
               {item.name}
             </div>
           </Link>
-        );
+        )
       })}
     </div>
   )

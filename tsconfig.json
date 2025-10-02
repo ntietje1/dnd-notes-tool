@@ -1,5 +1,10 @@
 {
-  "include": ["**/*.ts", "**/*.tsx", "public/script*.js", "src/components/forms/category-tag-dialogs/generic-tag-dialog"],
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "public/script*.js",
+    "src/components/forms/category-tag-dialogs/generic-tag-dialog"
+  ],
   "compilerOptions": {
     "target": "ES2022",
     "jsx": "react-jsx",

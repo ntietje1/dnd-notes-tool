@@ -1,4 +1,4 @@
-import { Button } from "~/components/shadcn/ui/button";
+import { Button } from '~/components/shadcn/ui/button'
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -8,7 +8,7 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "~/components/shadcn/ui/dropdown-menu";
+} from '~/components/shadcn/ui/dropdown-menu'
 import {
   ArrowDownAZ,
   ArrowUpAZ,
@@ -18,28 +18,25 @@ import {
   CalendarArrowUp,
   SortAsc,
   SortDesc,
-} from "~/lib/icons";
-import {
-  SORT_DIRECTIONS,
-  SORT_ORDERS,
-} from "convex/editors/types";
-import type { SortDirection, SortOrder } from "convex/editors/types";
-import { useSortOptions } from "~/hooks/useSortOptions";
+} from '~/lib/icons'
+import { SORT_DIRECTIONS, SORT_ORDERS } from 'convex/editors/types'
+import type { SortDirection, SortOrder } from 'convex/editors/types'
+import { useSortOptions } from '~/hooks/useSortOptions'
 
 export function SortMenu() {
-  const { sortOptions, setSortOptions } = useSortOptions();
+  const { sortOptions, setSortOptions } = useSortOptions()
 
   const handleSortOrderChange = (value: string) => {
-    setSortOptions({ ...sortOptions, order: value as SortOrder });
-  };
+    setSortOptions({ ...sortOptions, order: value as SortOrder })
+  }
 
   const handleSortDirectionChange = (value: string) => {
-    setSortOptions({ ...sortOptions, direction: value as SortDirection });
-  };
+    setSortOptions({ ...sortOptions, direction: value as SortDirection })
+  }
 
   const handleFoldersAlwaysOnTopChange = (value: boolean) => {
-    setSortOptions({ ...sortOptions, foldersAlwaysOnTop: value });
-  };
+    setSortOptions({ ...sortOptions, foldersAlwaysOnTop: value })
+  }
 
   return (
     <DropdownMenu>
@@ -103,5 +100,5 @@ export function SortMenu() {
         </DropdownMenuCheckboxItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  );
+  )
 }

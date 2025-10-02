@@ -1,5 +1,5 @@
-import { defineTable } from "convex/server";
-import { v } from "convex/values";
+import { defineTable } from 'convex/server'
+import { v } from 'convex/values'
 
 export const userTables = {
   userProfiles: defineTable({
@@ -11,6 +11,6 @@ export const userTables = {
     lastName: v.optional(v.string()),
     updatedAt: v.number(),
   })
-    .index("by_user", ["userId"])
-    .index("by_username", ["username"]),
-}; 
+    .index('by_user', ['userId'])
+    .index('by_username', ['username']),
+}

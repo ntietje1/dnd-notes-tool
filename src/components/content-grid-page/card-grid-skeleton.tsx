@@ -1,22 +1,22 @@
-import { Card, CardContent, CardHeader } from "~/components/shadcn/ui/card";
-import { Skeleton } from "~/components/shadcn/ui/skeleton";
-import { ContentGrid } from "./content-grid";
+import { Card, CardContent, CardHeader } from '~/components/shadcn/ui/card'
+import { Skeleton } from '~/components/shadcn/ui/skeleton'
+import { ContentGrid } from './content-grid'
 
 interface CardGridSkeletonProps {
-  count?: number;
-  showCreateCard?: boolean;
-  cardHeight?: string;
-  className?: string;
+  count?: number
+  showCreateCard?: boolean
+  cardHeight?: string
+  className?: string
 }
 
-export function CardGridSkeleton({ 
-  count = 6, 
+export function CardGridSkeleton({
+  count = 6,
   showCreateCard = true,
-  cardHeight = "h-[180px]",
-  className = ""
+  cardHeight = 'h-[180px]',
+  className = '',
 }: CardGridSkeletonProps) {
-  const skeletonCount = showCreateCard ? count - 1 : count;
-  
+  const skeletonCount = showCreateCard ? count - 1 : count
+
   return (
     <ContentGrid className={className}>
       {showCreateCard && (
@@ -28,7 +28,7 @@ export function CardGridSkeleton({
           </CardContent>
         </Card>
       )}
-      
+
       {Array.from({ length: skeletonCount }).map((_, i) => (
         <Card key={i} className={cardHeight}>
           <CardHeader className="pb-3">
@@ -50,5 +50,5 @@ export function CardGridSkeleton({
         </Card>
       ))}
     </ContentGrid>
-  );
-} 
+  )
+}

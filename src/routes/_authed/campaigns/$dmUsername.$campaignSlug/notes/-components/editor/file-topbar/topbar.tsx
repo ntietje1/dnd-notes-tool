@@ -1,64 +1,64 @@
-import { Button } from "~/components/shadcn/ui/button";
+import { Button } from '~/components/shadcn/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
-} from "~/components/shadcn/ui/dropdown-menu";
-import { X, MoreVertical } from "~/lib/icons";
-import { useCallback, useState, useEffect, useRef } from "react";
-import { UNTITLED_NOTE_TITLE } from "convex/notes/types";
-import { Skeleton } from "~/components/shadcn/ui/skeleton";
-import { useCurrentNote } from "~/hooks/useCurrentNote";
-import { useNoteActions } from "~/hooks/useNoteActions";
-import { toast } from "sonner";
+} from '~/components/shadcn/ui/dropdown-menu'
+import { X, MoreVertical } from '~/lib/icons'
+import { useCallback, useState, useEffect, useRef } from 'react'
+import { UNTITLED_NOTE_TITLE } from 'convex/notes/types'
+import { Skeleton } from '~/components/shadcn/ui/skeleton'
+import { useCurrentNote } from '~/hooks/useCurrentNote'
+import { useNoteActions } from '~/hooks/useNoteActions'
+import { toast } from 'sonner'
 
 export function FileTopbar() {
-  const { note, selectNote, noteId } = useCurrentNote();
-  const { updateNote } = useNoteActions();
-  const [title, setTitle] = useState(note.data?.name ?? "");
-  const [isEditing, setIsEditing] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const { note, selectNote, noteId } = useCurrentNote()
+  const { updateNote } = useNoteActions()
+  const [title, setTitle] = useState(note.data?.name ?? '')
+  const [isEditing, setIsEditing] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    setTitle(note.data?.name ?? "");
-  }, [note.data?.name]);
+    setTitle(note.data?.name ?? '')
+  }, [note.data?.name])
 
   const handleTitleSubmit = useCallback(async () => {
     if (!note.data) {
-      setIsEditing(false);
-      return;
+      setIsEditing(false)
+      return
     }
 
-    const previousTitle = note.data.name ?? "";
+    const previousTitle = note.data.name ?? ''
 
     if (title === previousTitle) {
-      setIsEditing(false);
-      return;
+      setIsEditing(false)
+      return
     }
 
     try {
-      await updateNote.mutateAsync({ noteId: note.data._id, name: title });
+      await updateNote.mutateAsync({ noteId: note.data._id, name: title })
     } catch (error) {
-      console.error(error);
-      toast.error("Failed to update note");
-      setTitle(previousTitle);
+      console.error(error)
+      toast.error('Failed to update note')
+      setTitle(previousTitle)
     } finally {
-      setIsEditing(false);
+      setIsEditing(false)
     }
-  }, [note, title, updateNote]);
+  }, [note, title, updateNote])
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
-      inputRef.current.select();
+      inputRef.current.select()
     }
-  }, [isEditing]);
+  }, [isEditing])
 
-  if (noteId && note.status === "pending") {
-    return <TopbarLoading />;
+  if (noteId && note.status === 'pending') {
+    return <TopbarLoading />
   }
 
   if (!note.data) {
-    return <TopbarEmpty />;
+    return <TopbarEmpty />
   }
 
   return (
@@ -73,8 +73,8 @@ export function FileTopbar() {
             onChange={(e) => setTitle(e.target.value)}
             onBlur={handleTitleSubmit}
             onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                handleTitleSubmit();
+              if (e.key === 'Enter') {
+                handleTitleSubmit()
               }
             }}
             className="bg-transparent border-b border-transparent outline-none focus:ring-0 px-2 w-full"
@@ -100,20 +100,15 @@ export function FileTopbar() {
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-            </DropdownMenuContent>
+            <DropdownMenuContent align="end"></DropdownMenuContent>
           </DropdownMenu>
-          <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => selectNote(null)}
-            >
-              <X className="h-4 w-4" />
+          <Button variant="ghost" size="icon" onClick={() => selectNote(null)}>
+            <X className="h-4 w-4" />
           </Button>
         </div>
       </div>
     </div>
-  );
+  )
 }
 
 function TopbarLoading() {
@@ -127,13 +122,13 @@ function TopbarLoading() {
         </div>
       </div>
     </div>
-  );
+  )
 }
 
 function TopbarEmpty() {
   return (
     <div className="flex items-center justify-between px-4 py-2 h-12 border-b bg-white w-full">
-      <div className="flex items-center justify-between w-full h-12"/>
+      <div className="flex items-center justify-between w-full h-12" />
     </div>
-  );
+  )
 }

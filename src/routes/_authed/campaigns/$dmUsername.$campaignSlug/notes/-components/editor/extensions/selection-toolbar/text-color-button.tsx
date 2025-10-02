@@ -3,17 +3,17 @@ import {
   type BlockSchema,
   type InlineContentSchema,
   type StyleSchema,
-} from "@blocknote/core";
+} from '@blocknote/core'
 import {
   useBlockNoteEditor,
   useComponentsContext,
   useDictionary,
   useEditorContentOrSelectionChange,
   useSelectedBlocks,
-} from "@blocknote/react";
-import { useCallback, useMemo, useState } from "react";
-import { ColorIcon } from "./color-picker/color-icon";
-import { ColorPicker } from "./color-picker/color-picker";
+} from '@blocknote/react'
+import { useCallback, useMemo, useState } from 'react'
+import { ColorIcon } from './color-picker/color-icon'
+import { ColorPicker } from './color-picker/color-picker'
 
 function checkTextColorInSchema(
   editor: BlockNoteEditor<BlockSchema, InlineContentSchema, StyleSchema>,
@@ -22,93 +22,93 @@ function checkTextColorInSchema(
   InlineContentSchema,
   {
     textColor: {
-      type: "textColor";
-      propSchema: "string";
-    };
+      type: 'textColor'
+      propSchema: 'string'
+    }
   }
 > {
   return (
-    "textColor" in editor.schema.styleSchema &&
-    editor.schema.styleSchema.textColor.type === "textColor" &&
-    editor.schema.styleSchema.textColor.propSchema === "string"
-  );
+    'textColor' in editor.schema.styleSchema &&
+    editor.schema.styleSchema.textColor.type === 'textColor' &&
+    editor.schema.styleSchema.textColor.propSchema === 'string'
+  )
 }
 
 export const TextColorButton = () => {
-  const Components = useComponentsContext()!;
-  const dict = useDictionary();
+  const Components = useComponentsContext()!
+  const dict = useDictionary()
   const editor = useBlockNoteEditor<
     BlockSchema,
     InlineContentSchema,
     StyleSchema
-  >();
+  >()
 
-  const textColorInSchema = checkTextColorInSchema(editor);
-  const selectedBlocks = useSelectedBlocks(editor);
+  const textColorInSchema = checkTextColorInSchema(editor)
+  const selectedBlocks = useSelectedBlocks(editor)
 
   const [currentTextColor, setCurrentTextColor] = useState<string>(
     textColorInSchema
-      ? editor.getActiveStyles().textColor || "default"
-      : "default",
-  );
+      ? editor.getActiveStyles().textColor || 'default'
+      : 'default',
+  )
 
   useEditorContentOrSelectionChange(() => {
     if (textColorInSchema) {
-      setCurrentTextColor(editor.getActiveStyles().textColor || "default");
+      setCurrentTextColor(editor.getActiveStyles().textColor || 'default')
     }
-  }, editor);
+  }, editor)
 
   const setTextColor = useCallback(
     (color: string) => {
       if (!textColorInSchema) {
         throw Error(
-          "Tried to set text color, but style does not exist in editor schema.",
-        );
+          'Tried to set text color, but style does not exist in editor schema.',
+        )
       }
 
-      color === "default"
+      color === 'default'
         ? editor.removeStyles({ textColor: color })
-        : editor.addStyles({ textColor: color });
+        : editor.addStyles({ textColor: color })
 
       setTimeout(() => {
         // timeout needed to ensure compatibility with Mantine Toolbar useFocusTrap
-        editor.focus();
-      });
+        editor.focus()
+      })
     },
     [editor, textColorInSchema],
-  );
+  )
 
   const show = useMemo(() => {
     if (!textColorInSchema) {
-      return false;
+      return false
     }
 
     for (const block of selectedBlocks) {
       if (block.content !== undefined) {
-        return true;
+        return true
       }
     }
 
-    return false;
-  }, [selectedBlocks, textColorInSchema]);
+    return false
+  }, [selectedBlocks, textColorInSchema])
 
   if (!show || !editor.isEditable) {
-    return null;
+    return null
   }
 
   return (
     <Components.Generic.Menu.Root>
       <Components.Generic.Menu.Trigger>
         <Components.FormattingToolbar.Button
-          className={"bn-button"}
+          className={'bn-button'}
           data-test="text-colors"
-          label={"Text color"}
-          mainTooltip={"Text color"}
+          label={'Text color'}
+          mainTooltip={'Text color'}
           icon={<ColorIcon textColor={currentTextColor} size={20} />}
         />
       </Components.Generic.Menu.Trigger>
       <Components.Generic.Menu.Dropdown
-        className={"bn-menu-dropdown bn-color-picker-dropdown"}
+        className={'bn-menu-dropdown bn-color-picker-dropdown'}
       >
         <ColorPicker
           text={{
@@ -118,5 +118,5 @@ export const TextColorButton = () => {
         />
       </Components.Generic.Menu.Dropdown>
     </Components.Generic.Menu.Root>
-  );
-};
+  )
+}

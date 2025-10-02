@@ -3,17 +3,17 @@ import {
   type BlockSchema,
   type InlineContentSchema,
   type StyleSchema,
-} from "@blocknote/core";
+} from '@blocknote/core'
 import {
   useBlockNoteEditor,
   useComponentsContext,
   useDictionary,
   useEditorContentOrSelectionChange,
   useSelectedBlocks,
-} from "@blocknote/react";
-import { useCallback, useMemo, useState } from "react";
-import { BackgroundColorIcon } from "./color-picker/background-color-icon";
-import { ColorPicker } from "./color-picker/color-picker";
+} from '@blocknote/react'
+import { useCallback, useMemo, useState } from 'react'
+import { BackgroundColorIcon } from './color-picker/background-color-icon'
+import { ColorPicker } from './color-picker/color-picker'
 
 function checkBackgroundColorInSchema(
   editor: BlockNoteEditor<BlockSchema, InlineContentSchema, StyleSchema>,
@@ -22,90 +22,90 @@ function checkBackgroundColorInSchema(
   InlineContentSchema,
   {
     backgroundColor: {
-      type: "backgroundColor";
-      propSchema: "string";
-    };
+      type: 'backgroundColor'
+      propSchema: 'string'
+    }
   }
 > {
   return (
-    "backgroundColor" in editor.schema.styleSchema &&
-    editor.schema.styleSchema.backgroundColor.type === "backgroundColor" &&
-    editor.schema.styleSchema.backgroundColor.propSchema === "string"
-  );
+    'backgroundColor' in editor.schema.styleSchema &&
+    editor.schema.styleSchema.backgroundColor.type === 'backgroundColor' &&
+    editor.schema.styleSchema.backgroundColor.propSchema === 'string'
+  )
 }
 
 export const BackgroundColorButton = () => {
-  const Components = useComponentsContext()!;
-  const dict = useDictionary();
+  const Components = useComponentsContext()!
+  const dict = useDictionary()
   const editor = useBlockNoteEditor<
     BlockSchema,
     InlineContentSchema,
     StyleSchema
-  >();
+  >()
 
-  const backgroundColorInSchema = checkBackgroundColorInSchema(editor);
-  const selectedBlocks = useSelectedBlocks(editor);
+  const backgroundColorInSchema = checkBackgroundColorInSchema(editor)
+  const selectedBlocks = useSelectedBlocks(editor)
 
   const [currentBackgroundColor, setCurrentBackgroundColor] = useState<string>(
     backgroundColorInSchema
-      ? editor.getActiveStyles().backgroundColor || "default"
-      : "default",
-  );
+      ? editor.getActiveStyles().backgroundColor || 'default'
+      : 'default',
+  )
 
   useEditorContentOrSelectionChange(() => {
     if (backgroundColorInSchema) {
       setCurrentBackgroundColor(
-        editor.getActiveStyles().backgroundColor || "default",
-      );
+        editor.getActiveStyles().backgroundColor || 'default',
+      )
     }
-  }, editor);
+  }, editor)
 
   const setBackgroundColor = useCallback(
     (color: string) => {
       if (!backgroundColorInSchema) {
         throw Error(
-          "Tried to set background color, but style does not exist in editor schema.",
-        );
+          'Tried to set background color, but style does not exist in editor schema.',
+        )
       }
 
-      color === "default"
+      color === 'default'
         ? editor.removeStyles({ backgroundColor: color })
-        : editor.addStyles({ backgroundColor: color });
+        : editor.addStyles({ backgroundColor: color })
 
       setTimeout(() => {
         // timeout needed to ensure compatibility with Mantine Toolbar useFocusTrap
-        editor.focus();
-      });
+        editor.focus()
+      })
     },
     [backgroundColorInSchema, editor],
-  );
+  )
 
   const show = useMemo(() => {
     if (!backgroundColorInSchema) {
-      return false;
+      return false
     }
 
     for (const block of selectedBlocks) {
       if (block.content !== undefined) {
-        return true;
+        return true
       }
     }
 
-    return false;
-  }, [backgroundColorInSchema, selectedBlocks]);
+    return false
+  }, [backgroundColorInSchema, selectedBlocks])
 
   if (!show || !editor.isEditable) {
-    return null;
+    return null
   }
 
   return (
     <Components.Generic.Menu.Root>
       <Components.Generic.Menu.Trigger>
         <Components.FormattingToolbar.Button
-          className={"bn-button"}
+          className={'bn-button'}
           data-test="background-colors"
-          label={"Highlight Color"}
-          mainTooltip={"Highlight Color"}
+          label={'Highlight Color'}
+          mainTooltip={'Highlight Color'}
           icon={
             <BackgroundColorIcon
               backgroundColor={currentBackgroundColor}
@@ -115,7 +115,7 @@ export const BackgroundColorButton = () => {
         />
       </Components.Generic.Menu.Trigger>
       <Components.Generic.Menu.Dropdown
-        className={"bn-menu-dropdown bn-color-picker-dropdown"}
+        className={'bn-menu-dropdown bn-color-picker-dropdown'}
       >
         <ColorPicker
           background={{
@@ -125,5 +125,5 @@ export const BackgroundColorButton = () => {
         />
       </Components.Generic.Menu.Dropdown>
     </Components.Generic.Menu.Root>
-  );
-};
+  )
+}

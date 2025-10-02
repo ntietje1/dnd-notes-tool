@@ -1,6 +1,6 @@
 import type {
   InlineContentSpec,
-  CustomInlineContentConfig
+  CustomInlineContentConfig,
 } from '@blocknote/core'
 
 export const TAG_INLINE_CONTENT_TYPE = 'tag' as const
@@ -8,11 +8,11 @@ export const TAG_INLINE_CONTENT_TYPE = 'tag' as const
 export const TagConfig: CustomInlineContentConfig = {
   type: TAG_INLINE_CONTENT_TYPE,
   propSchema: {
-    tagId: { default: "" },
-    tagName: { default: "" },
-    tagColor: { default: "" },
+    tagId: { default: '' },
+    tagName: { default: '' },
+    tagColor: { default: '' },
   },
-  content: "none",
+  content: 'none',
 }
 
 declare const TagInlineSpec: InlineContentSpec<typeof TagConfig>

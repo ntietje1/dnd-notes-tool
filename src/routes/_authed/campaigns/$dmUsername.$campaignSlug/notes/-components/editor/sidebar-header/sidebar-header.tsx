@@ -2,8 +2,8 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "~/components/shadcn/ui/tooltip";
-import { SortMenu } from "./sort-menu";
+} from '~/components/shadcn/ui/tooltip'
+import { SortMenu } from './sort-menu'
 
 export function SidebarHeader() {
   return (
@@ -18,5 +18,5 @@ export function SidebarHeader() {
         </Tooltip>
       </div>
     </div>
-  );
+  )
 }

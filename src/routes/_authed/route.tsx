@@ -10,17 +10,19 @@ import { toast } from 'sonner'
 const useEnsureProfile = () => {
   const { user } = useUser()
   const ensureProfile = useMutation({
-    mutationFn: useConvexMutation(api.users.mutations.ensureUserProfile)
-  });
+    mutationFn: useConvexMutation(api.users.mutations.ensureUserProfile),
+  })
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) return
     ensureProfile.mutate(undefined, {
       onError: (_) => {
-        toast.error("An error occured while loading your account. Please try refreshing the page.")
+        toast.error(
+          'An error occured while loading your account. Please try refreshing the page.',
+        )
       },
     })
-  }, [user]);
+  }, [user])
 }
 
 export const Route = createFileRoute('/_authed')({
@@ -48,5 +50,5 @@ export const Route = createFileRoute('/_authed')({
         <Outlet />
       </div>
     )
-  }
+  },
 })
