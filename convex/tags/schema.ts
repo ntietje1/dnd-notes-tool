@@ -21,13 +21,11 @@ export const tagTables = {
     color: v.string(),
     description: v.optional(v.string()),
     campaignId: v.id("campaigns"),
-    noteId: v.optional(v.id("notes")),
     categoryId: v.id("tagCategories"),
     memberId: v.optional(v.id("campaignMembers")),
     createdBy: v.string(),
     updatedAt: v.number(),
   })
     .index("by_campaign_categoryId", ["campaignId", "categoryId"])
-    .index("by_campaign_noteId", ["campaignId", "noteId"])
     .index("by_campaign_name", ["campaignId", "name"]),
 };

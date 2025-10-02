@@ -18,11 +18,7 @@ export const SidebarItem = ({
       );
     case SIDEBAR_ITEM_TYPES.notes:
       return (
-        <DraggableNote note={item}>
-          <NoteContextMenu note={item}>
-            <NoteButton note={item} />
-          </NoteContextMenu>
-        </DraggableNote>
+        <NoteButton note={item} />
       );
     default:
       throw new Error("Invalid item type or missing required properties");

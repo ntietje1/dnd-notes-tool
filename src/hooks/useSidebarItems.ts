@@ -7,7 +7,7 @@ import { SORT_DIRECTIONS, SORT_ORDERS, type SortOptions } from "convex/editors/t
 import { SIDEBAR_ITEM_TYPES, type AnySidebarItem } from "convex/notes/types";
 import { useSortOptions } from "./useSortOptions";
 
-export const useSidebarItems = (parentId?: Id<"folders">) => {
+export const useSidebarItems = (categoryId?: Id<"tagCategories">, parentId?: Id<"folders">) => {
     const { sortOptions } = useSortOptions();
     const { campaignWithMembership } = useCampaign();
     const campaign = campaignWithMembership?.data?.campaign;
@@ -15,6 +15,7 @@ export const useSidebarItems = (parentId?: Id<"folders">) => {
         api.notes.queries.getSidebarItems,
         campaign?._id ? {
             campaignId: campaign._id,
+            categoryId: categoryId,
             parentId: parentId
         } : "skip",
     ));

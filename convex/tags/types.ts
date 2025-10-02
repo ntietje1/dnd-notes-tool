@@ -38,7 +38,7 @@ export type Tag = {
   color: string;
   description?: string;
   campaignId: Id<"campaigns">;
-  noteId?: Id<"notes">;
+  // noteId?: Id<"notes">;
   note?: Note;
   categoryId: Id<"tagCategories">;
   category?: TagCategory;

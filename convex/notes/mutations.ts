@@ -41,18 +41,10 @@ export const updateNote = mutation({
       await saveTopLevelBlocks(ctx, args.noteId, note.campaignId, args.content);
     }
 
-    if (args.name !== undefined) {
+    if (args.name !== undefined && note.tagId) {
       updates.name = args.name;
 
-      const tag = await ctx.db
-        .query("tags")
-        .withIndex("by_campaign_noteId", (q) =>
-          q.eq("campaignId", note.campaignId).eq("noteId", args.noteId),
-        )
-        .unique();
-      if (tag) {
-        await updateTagAndContent(ctx, tag._id, { displayName: args.name, color: tag.color });
-      }
+      await updateTagAndContent(ctx, note.tagId, { displayName: args.name });
     }
 
     await ctx.db.patch(args.noteId, updates);
@@ -160,12 +152,12 @@ export const deleteFolder = mutation({
     const recursiveDelete = async (folderId: Id<"folders">) => {
       const childFolders = await ctx.db
         .query("folders")
-        .withIndex("by_campaign_parent", (q) => q.eq("campaignId", folder.campaignId).eq("parentFolderId", folderId))
+        .withIndex("by_campaign_category_parent", (q) => q.eq("campaignId", folder.campaignId).eq("categoryId", folder.categoryId).eq("parentFolderId", folderId))
         .collect();
 
       const notesInFolder = await ctx.db
         .query("notes")
-        .withIndex("by_campaign_parent", (q) => q.eq("campaignId", folder.campaignId).eq("parentFolderId", folderId))
+        .withIndex("by_campaign_category_parent", (q) => q.eq("campaignId", folder.campaignId).eq("categoryId", folder.categoryId).eq("parentFolderId", folderId))
         .collect();
 
       for (const childFolder of childFolders) {

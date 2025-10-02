@@ -21,7 +21,7 @@ import {
 } from "../tags/tags";
 import { CAMPAIGN_MEMBER_ROLE } from "../campaigns/types";
 import { requireCampaignMembership } from "../campaigns/campaigns";
-import { SYSTEM_TAG_CATEGORY_NAMES, TagWithNote } from "../tags/types";
+import { TagWithNote } from "../tags/types";
 import { hasAccessToBlock } from "../tags/shared";
 import { getSidebarItems as getSidebarItemsFn, getFolder as getFolderFn } from "./notes";
 
@@ -36,7 +36,7 @@ export const getFolder = query({
       { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
     );
 
-    const children = await getSidebarItemsFn(ctx, folder.campaignId, args.folderId);
+    const children = await getSidebarItemsFn(ctx, folder.campaignId, folder.categoryId, args.folderId);
 
     return {
       ...folder,
@@ -124,6 +124,7 @@ export const getNote = query({
 export const getSidebarItems = query({
   args: {
     campaignId: v.id("campaigns"),
+    categoryId: v.optional(v.id("tagCategories")),
     parentId: v.optional(v.id("folders"))
   },
   handler: async (ctx, args): Promise<AnySidebarItem[]> => {
@@ -132,7 +133,7 @@ export const getSidebarItems = query({
       { campaignId: args.campaignId },
       { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
     );
-    return getSidebarItemsFn(ctx, args.campaignId, args.parentId);
+    return getSidebarItemsFn(ctx, args.campaignId, args.categoryId, args.parentId);
   },
 });
 
@@ -325,39 +326,39 @@ export const getBlockTagState = query({
   },
 });
 
-export const getTagNotePages = query({
-  args: {
-    campaignId: v.id("campaigns"),
-    tagCategory: v.string(),
-  },
-  handler: async (ctx, args): Promise<TagWithNote[]> => {
-    await requireCampaignMembership(ctx, { campaignId: args.campaignId },
-      { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM, CAMPAIGN_MEMBER_ROLE.Player] }
-    );
+// export const getTagNotePages = query({
+//   args: {
+//     campaignId: v.id("campaigns"),
+//     tagCategory: v.string(),
+//   },
+//   handler: async (ctx, args): Promise<TagWithNote[]> => {
+//     await requireCampaignMembership(ctx, { campaignId: args.campaignId },
+//       { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM, CAMPAIGN_MEMBER_ROLE.Player] }
+//     );
 
-    const category = await getTagCategoryByName(ctx, args.campaignId, args.tagCategory);
+//     const category = await getTagCategoryByName(ctx, args.campaignId, args.tagCategory);
 
-    if (!category) {
-      throw new Error(`Tag category "${args.tagCategory}" not found`);
-    }
-    
-    const tags = await getTagsByCategory(ctx, category._id);
+//     if (!category) {
+//       throw new Error(`Tag category "${args.tagCategory}" not found`);
+//     }
 
-    const tagNotePages = [];
-    for (const tag of tags) {
-      const note = tag.noteId ? await ctx.db.get(tag.noteId) : null;
+//     const tags = await getTagsByCategory(ctx, category._id);
 
-      if (note) {
-        tagNotePages.push({
-          ...tag,
-          note: {
-            ...note,
-            type: SIDEBAR_ITEM_TYPES.notes,
-          },
-        });
-      }
-    }
+//     const tagNotePages = [];
+//     for (const tag of tags) {
+//       const note = tag.noteId ? await ctx.db.get(tag.noteId) : null;
 
-    return tagNotePages;
-  },
-});
+//       if (note) {
+//         tagNotePages.push({
+//           ...tag,
+//           note: {
+//             ...note,
+//             type: SIDEBAR_ITEM_TYPES.notes,
+//           },
+//         });
+//       }
+//     }
+
+//     return tagNotePages;
+//   },
+// });

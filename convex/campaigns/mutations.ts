@@ -177,7 +177,7 @@ export const deleteCampaign = mutation({
 
     const notes = await ctx.db
       .query("notes")
-      .withIndex("by_campaign_parent", (q) =>
+      .withIndex("by_campaign_category_parent", (q) =>
         q.eq("campaignId", args.campaignId),
       )
       .collect();
@@ -188,7 +188,7 @@ export const deleteCampaign = mutation({
 
     const folders = await ctx.db
       .query("folders")
-      .withIndex("by_campaign_parent", (q) =>
+      .withIndex("by_campaign_category_parent", (q) =>
         q.eq("campaignId", args.campaignId),
       )
       .collect();

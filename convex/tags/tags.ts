@@ -39,23 +39,17 @@ export const insertTagAndNote = async (
   );
   const { profile } = identityWithProfile;
 
+  const tagId = await insertTag(ctx, newTag);
+
   const noteId = await ctx.db.insert("notes", {
     userId: profile.userId,
     name: newTag.displayName,
     campaignId: newTag.campaignId,
     updatedAt: Date.now(),
+    categoryId: newTag.categoryId,
+    tagId: tagId,
   });
 
-  const tags = await ctx.db
-   .query("tags")
-   .withIndex("by_campaign_noteId", (q) => q.eq("campaignId", newTag.campaignId).eq("noteId", noteId))
-   .collect();
-
-  if (tags.length > 1) throw new Error(
-    `Invariant: multiple tags found for note ${noteId}`
-  );
-
-  const tagId = await insertTag(ctx, { ...newTag, noteId });
   return { tagId, noteId };
 };
 
@@ -92,7 +86,6 @@ export const insertTag = async (
     description: newTag.description,
     campaignId: newTag.campaignId,
     memberId: newTag.memberId,
-    noteId: newTag.noteId,
     createdBy: profile.userId,
     updatedAt: Date.now(),
   });
@@ -294,6 +287,11 @@ export const updateTagAndContent = async (
     throw new Error("Tag not found");
   }
 
+  const tagNote = await ctx.db
+    .query("notes")
+    .withIndex("by_campaign_category_tag", (q) => q.eq("campaignId", tag.campaignId).eq("categoryId", tag.categoryId).eq("tagId", tagId))
+    .unique();
+
   const { campaignWithMembership } = await requireCampaignMembership(ctx, { campaignId: tag.campaignId },
     { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
   );
@@ -337,8 +335,8 @@ export const updateTagAndContent = async (
 
   await ctx.db.patch(tagId, updates);
 
-  if (updates.displayName !== undefined && tag.noteId) {
-    await ctx.db.patch(tag.noteId, {
+  if (updates.displayName !== undefined && tagNote) {
+    await ctx.db.patch(tagNote._id, {
       name: updates.displayName,
       updatedAt: Date.now(),
     });
@@ -492,10 +490,11 @@ export async function getNoteLevelTag(
     throw new Error("Note not found");
   }
 
-  const tag = await ctx.db
-    .query("tags")
-    .withIndex("by_campaign_noteId", (q) => q.eq("campaignId", note.campaignId).eq("noteId", noteId))
-    .unique();
+  if (!note.tagId) {
+    return null;
+  }
+
+  const tag = await ctx.db.get(note.tagId);
     
   if (!tag) {
     return null;
@@ -523,7 +522,11 @@ export async function getBlockLevelTag(
     throw new Error("Note not found");
   }
 
-  const tag = await ctx.db.query("tags").withIndex("by_campaign_noteId", (q) => q.eq("campaignId", note.campaignId).eq("noteId", note._id)).unique();
+  if (!note.tagId) {
+    return null;
+  }
+
+  const tag = await ctx.db.get(note.tagId);
   if (!tag) {
     throw new Error("Tag not found");
   }
@@ -760,12 +763,7 @@ export async function saveTopLevelBlocks(
   const note = await ctx.db.get(noteId);
   if (!note) return;
 
-  const noteLevelTag = await ctx.db
-    .query("tags")
-    .withIndex("by_campaign_noteId", (q) =>
-      q.eq("campaignId", note.campaignId).eq("noteId", noteId),
-    )
-    .unique();
+  const noteLevelTag = note.tagId ? await ctx.db.get(note.tagId) : null;
 
   const allBlocksWithTags = extractAllBlocksWithTags(
     content,

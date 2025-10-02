@@ -14,7 +14,7 @@ export function FolderWithChildren({
   folder,
 }: FolderWithChildrenProps) {
   const { isExpanded, toggleExpanded } = useFolderState(folder._id)
-  const children = useSidebarItems(folder._id);
+  const children = useSidebarItems(folder.categoryId, folder._id);
   const hasChildren = (children.data && children.data.length > 0) || false;
 
   return (

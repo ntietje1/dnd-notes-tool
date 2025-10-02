@@ -16,12 +16,15 @@ export type SidebarItem<T extends SidebarItemType> = {
   name?: string;
   userId: string;
   campaignId: Id<"campaigns">;
+  categoryId?: Id<"tagCategories">;
   parentFolderId?: Id<"folders">;
   updatedAt: number;
   type: T;
 };
 
-export type Note = SidebarItem<typeof SIDEBAR_ITEM_TYPES.notes>;
+export type Note = SidebarItem<typeof SIDEBAR_ITEM_TYPES.notes> & {
+  tagId?: Id<"tags">;
+}
 
 export const UNTITLED_NOTE_TITLE = "Untitled Note";
 export const UNTITLED_FOLDER_NAME = "Untitled Folder";

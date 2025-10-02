@@ -6,19 +6,23 @@ export const notesTables = {
     userId: v.string(),
     campaignId: v.id("campaigns"),
     name: v.optional(v.string()),
-    parentFolderId: v.optional(v.id("folders")),
     updatedAt: v.number(),
+    categoryId: v.optional(v.id("tagCategories")),
+    tagId: v.optional(v.id("tags")),
+    parentFolderId: v.optional(v.id("folders")),
   })
-    .index("by_campaign_parent", ["campaignId", "parentFolderId"]),
+    .index("by_campaign_category_parent", ["campaignId", "categoryId", "parentFolderId"])
+    .index("by_campaign_category_tag", ["campaignId", "categoryId", "tagId"]),
 
   folders: defineTable({
     userId: v.string(),
     campaignId: v.id("campaigns"),
     name: v.optional(v.string()),
     updatedAt: v.number(),
+    categoryId: v.optional(v.id("tagCategories")),
     parentFolderId: v.optional(v.id("folders")),
   })
-    .index("by_campaign_parent", ["campaignId", "parentFolderId"]),
+    .index("by_campaign_category_parent", ["campaignId", "categoryId", "parentFolderId"]),
 
   blocks: defineTable({
     noteId: v.id("notes"),

@@ -21,6 +21,7 @@ import { useRef } from "react";
 import type { ContextMenuRef } from "~/components/context-menu/context-menu";
 import { TagNoteButton } from "./tag-note-button";
 import type { TagCategoryConfig } from "~/components/forms/category-tag-dialogs/base-tag-dialog/types";
+import { useSidebarItems } from "~/hooks/useSidebarItems";
 
 type CategoryContextMenuComponent = React.ComponentType<CategoryContextMenuProps>;
 type NoteContextMenuComponent = React.ComponentType<TagNoteContextMenuProps>;
@@ -38,15 +39,16 @@ export const CategoryFolderButton = ({
 }: CategoryFolderButtonProps) => {
   const { campaignWithMembership } = useCampaign();
   const campaign = campaignWithMembership?.data?.campaign;
+  const category = useQuery(convexQuery(api.tags.queries.getTagCategoryByName, campaign?._id ? {
+    campaignId: campaign._id,
+    categoryName: categoryConfig.categoryName,
+  } : "skip"));
   const { isExpanded, toggleExpanded } = useFolderState(categoryConfig.categoryName);
   const categoryContextMenuRef = useRef<ContextMenuRef>(null);
   
-  const tagNotePagesQuery = useQuery(convexQuery(api.notes.queries.getTagNotePages, campaign ? {
-    tagCategory: categoryConfig.categoryName,
-    campaignId: campaign._id,
-  } : "skip"));
+  const children = useSidebarItems(category?.data?._id);
   
-  const tagNotePages = tagNotePagesQuery.data ?? [];
+  const tagNotePages = category?.data?._id && children.data ? children.data : [];
   const hasItems = tagNotePages.length > 0;
 
   const CategoryContextMenuComponent = categoryContextMenu || CategoryContextMenu;
