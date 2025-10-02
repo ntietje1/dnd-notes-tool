@@ -1,5 +1,4 @@
 import { cn } from '~/lib/utils'
-import { SYSTEM_TAG_CATEGORY_NAMES } from 'convex/tags/types'
 import { CategoryFolderButton } from './generic-category-folder/category-folder-button'
 import { CharacterCategoryFolderContextMenu } from './character-system-folder/character-category-context-menu'
 import { CharacterNoteContextMenu } from './character-system-folder/character-note-context-menu'
