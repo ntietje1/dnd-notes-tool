@@ -42,7 +42,6 @@ export const blockValidator = v.object({
   updatedAt: v.number(),
 })
 
-// Note with content validator - content is array of CustomBlock (BlockNote blocks), not database blocks
 export const noteWithContentValidator = v.object({
   ...noteBaseFields,
   content: v.array(customBlockValidator), // CustomBlock[] from BlockNote
