@@ -1,46 +1,52 @@
-import type { Folder } from "convex/notes/types";
-import { DraggableFolder } from "./draggable-folder";
-import { useFolderState } from "~/hooks/useFolderState";
-import { useFileSidebar } from "~/contexts/FileSidebarContext";
-import { toast } from "sonner";
-import { FolderContextMenu } from "./folder-context-menu";
-import { FolderButtonBase } from "./folder-button-base";
-import { useRef } from "react";
-import type { ContextMenuRef } from "~/components/context-menu/context-menu";
+import type { Folder } from 'convex/notes/types'
+import { UNTITLED_FOLDER_NAME } from 'convex/notes/types'
+import { DraggableFolder } from './draggable-folder'
+import { useFolderState } from '~/hooks/useFolderState'
+import { useFileSidebar } from '~/contexts/FileSidebarContext'
+import { useFolderActions } from '~/hooks/useFolderActions'
+import { toast } from 'sonner'
+import { FolderContextMenu } from './folder-context-menu'
+import { SidebarItemButtonBase } from '../sidebar-item/sidebar-item-button-base'
+import { Folder as FolderIcon } from '~/lib/icons'
+import { useContextMenu } from '~/hooks/useContextMenu'
 
 interface FolderButtonProps {
-  folder: Folder;
+  folder: Folder
+  ancestorIds?: string[]
 }
 
-export function FolderButton({
-  folder,
-}: FolderButtonProps) {
+export function FolderButton({ folder, ancestorIds = [] }: FolderButtonProps) {
   const { isExpanded, toggleExpanded } = useFolderState(folder._id)
-  const { renamingId } = useFileSidebar();
-  const contextMenuRef = useRef<ContextMenuRef>(null);
-  
-  const handleFolderClick = () => {
-    toast.info("Folder clicked - functionality coming soon!");
-  };
+  const { renamingId, setRenamingId } = useFileSidebar()
+  const { updateFolder } = useFolderActions()
+  const { contextMenuRef, handleMoreOptions } = useContextMenu()
 
-  const handleMoreOptions = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    contextMenuRef.current?.open({ x: e.clientX + 4, y: e.clientY + 4 });
-  };
-  
+  const handleFolderClick = () => {
+    toast.info('Folder clicked - functionality coming soon!')
+  }
+
+  const handleFinishRename = async (name: string) => {
+    await updateFolder.mutateAsync({ folderId: folder._id, name })
+    setRenamingId(null)
+  }
+
   return (
     <FolderContextMenu ref={contextMenuRef} folder={folder}>
-      <DraggableFolder folder={folder}>
-        <FolderButtonBase
-          folder={folder}
-          handleToggleExpanded={toggleExpanded}
-          handleSelect={handleFolderClick}
-          handleMoreOptions={handleMoreOptions}
+      <DraggableFolder folder={folder} ancestorIds={ancestorIds}>
+        <SidebarItemButtonBase
+          icon={FolderIcon}
+          name={folder.name || ''}
+          defaultName={UNTITLED_FOLDER_NAME}
           isExpanded={isExpanded}
           isSelected={false}
           isRenaming={renamingId === folder._id}
+          showChevron={true}
+          onSelect={handleFolderClick}
+          onMoreOptions={handleMoreOptions}
+          onToggleExpanded={toggleExpanded}
+          onFinishRename={handleFinishRename}
         />
       </DraggableFolder>
     </FolderContextMenu>
-  );
+  )
 }

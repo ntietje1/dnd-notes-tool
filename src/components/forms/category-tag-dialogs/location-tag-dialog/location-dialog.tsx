@@ -1,118 +1,146 @@
-import type { Location } from "convex/locations/types";
-import { convexQuery, useConvex, useConvexMutation } from "@convex-dev/react-query";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { api } from "convex/_generated/api";
-import { Label } from "~/components/shadcn/ui/label";
-import { Input } from "~/components/shadcn/ui/input";
-import { ColorPicker } from "../base-tag-dialog/color-picker";
-import { useCampaign } from "~/contexts/CampaignContext";
-import { useRouter } from "@tanstack/react-router";
-import { toast } from "sonner";
-import BaseTagDialog from "../base-tag-dialog/base-dialog.tsx";
-import { validateTagName, validateTagNameAsync, validateTagDescription } from "../generic-tag-dialog/validators.ts";
-import { type TagDialogProps, MAX_DESCRIPTION_LENGTH, MAX_NAME_LENGTH } from "../base-tag-dialog/types.ts";
-import { defaultLocationFormValues, LOCATION_CONFIG, type LocationFormValues } from "./types.ts";
+import type { Location } from 'convex/locations/types'
+import {
+  convexQuery,
+  useConvex,
+  useConvexMutation,
+} from '@convex-dev/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { api } from 'convex/_generated/api'
+import { Label } from '~/components/shadcn/ui/label'
+import { Input } from '~/components/shadcn/ui/input'
+import { ColorPicker } from '../base-tag-dialog/color-picker'
+import { useCampaign } from '~/contexts/CampaignContext'
+import { useRouter } from '@tanstack/react-router'
+import { toast } from 'sonner'
+import BaseTagDialog from '../base-tag-dialog/base-dialog.tsx'
+import {
+  validateTagName,
+  validateTagNameAsync,
+  validateTagDescription,
+} from '../generic-tag-dialog/validators.ts'
+import {
+  type TagDialogProps,
+  MAX_DESCRIPTION_LENGTH,
+  MAX_NAME_LENGTH,
+} from '../base-tag-dialog/types.ts'
+import {
+  defaultLocationFormValues,
+  LOCATION_CONFIG,
+  type LocationFormValues,
+} from './types.ts'
 
 export default function LocationDialog(props: TagDialogProps<Location>) {
   // Extract properties based on discriminated union
-  const isEditMode = props.mode === "edit";
-  const location = isEditMode ? props.tag : undefined;
-  const config = props.config ?? LOCATION_CONFIG;
-  const navigateToNote = props.navigateToNote ?? false;
-  const mode = props.mode;
-  const isOpen = props.isOpen;
-  const onClose = props.onClose;
-  const router = useRouter();
-  const convex = useConvex();
-  const { campaignWithMembership, dmUsername, campaignSlug } = useCampaign();
-  const campaign = campaignWithMembership?.data?.campaign;
+  const isEditMode = props.mode === 'edit'
+  const location = isEditMode ? props.tag : undefined
+  const config = props.config ?? LOCATION_CONFIG
+  const navigateToNote = props.navigateToNote ?? false
+  const parentFolderId = !isEditMode ? props.parentFolderId : undefined
+  const mode = props.mode
+  const isOpen = props.isOpen
+  const onClose = props.onClose
+  const router = useRouter()
+  const convex = useConvex()
+  const { campaignWithMembership, dmUsername, campaignSlug } = useCampaign()
+  const campaign = campaignWithMembership?.data?.campaign
 
-  const getCategoryId = useQuery(convexQuery(api.tags.queries.getTagCategoryByName, campaign?._id ? {
-    campaignId: campaign?._id,
-    categoryName: config.categoryName,
-  } : "skip"));
+  const getCategoryId = useQuery(
+    convexQuery(
+      api.tags.queries.getTagCategoryByName,
+      campaign?._id
+        ? {
+            campaignId: campaign?._id,
+            categoryName: config.categoryName,
+          }
+        : 'skip',
+    ),
+  )
 
   const createTagMutation = useMutation({
-    mutationFn: useConvexMutation(api.tags.mutations.createTag)
-  });
+    mutationFn: useConvexMutation(api.tags.mutations.createTag),
+  })
   const createLocationMutation = useMutation({
-    mutationFn: useConvexMutation(api.locations.mutations.createLocation)
-  });
+    mutationFn: useConvexMutation(api.locations.mutations.createLocation),
+  })
   const updateTagMutation = useMutation({
-    mutationFn: useConvexMutation(api.tags.mutations.updateTag)
-  });
+    mutationFn: useConvexMutation(api.tags.mutations.updateTag),
+  })
   const updateLocationMutation = useMutation({
-    mutationFn: useConvexMutation(api.locations.mutations.updateLocation)
-  });
+    mutationFn: useConvexMutation(api.locations.mutations.updateLocation),
+  })
 
-  const getInitialValues = ({ mode }: { mode: "create" | "edit" }) => {
-    if (mode === "edit" && location) {
+  const getInitialValues = ({ mode }: { mode: 'create' | 'edit' }) => {
+    if (mode === 'edit' && location) {
       return {
-        name: location.displayName || "",
-        description: location.description || "",
+        name: location.displayName || '',
+        description: location.description || '',
         color: location.color,
-      };
+      }
     }
-    return defaultLocationFormValues;
-  };
+    return defaultLocationFormValues
+  }
 
-  async function handleSubmit(args: { mode: "create" | "edit"; values: LocationFormValues }) {
-    const { mode, values } = args;
+  async function handleSubmit(args: {
+    mode: 'create' | 'edit'
+    values: LocationFormValues
+  }) {
+    const { mode, values } = args
     if (!campaign) {
-      toast.error("Campaign not found");
-      return;
+      toast.error('Campaign not found')
+      return
     }
-    
+
     if (!getCategoryId.data) {
-      toast.error(`Category "${config.categoryName}" not found`);
-      return;
+      toast.error(`Category "${config.categoryName}" not found`)
+      return
     }
 
     try {
-      if (mode === "create") {
+      if (mode === 'create') {
         const tagResult = await createTagMutation.mutateAsync({
           displayName: values.name.trim(),
           description: values.description.trim() || undefined,
           color: values.color,
           campaignId: campaign._id,
           categoryId: getCategoryId.data._id,
-        });
+          parentFolderId: parentFolderId as any,
+        })
 
         await createLocationMutation.mutateAsync({
           tagId: tagResult.tagId,
-        });
+        })
 
-        toast.success(`${config.singular} created successfully`);
-        onClose();
+        toast.success(`${config.singular} created successfully`)
+        onClose()
 
         if (navigateToNote && tagResult.noteId) {
           router.navigate({
-            to: "/campaigns/$dmUsername/$campaignSlug/notes/$noteId",
+            to: '/campaigns/$dmUsername/$campaignSlug/notes/$noteId',
             params: {
               dmUsername,
               campaignSlug,
               noteId: tagResult.noteId,
             },
-          });
+          })
         }
-      } else if (mode === "edit" && location) {
+      } else if (mode === 'edit' && location) {
         await updateTagMutation.mutateAsync({
           tagId: location.tagId,
           displayName: values.name.trim(),
           description: values.description.trim() || undefined,
           color: values.color,
-        });
+        })
 
         await updateLocationMutation.mutateAsync({
           locationId: location.locationId,
-        });
+        })
 
-        toast.success(`${config.singular} updated successfully`);
-        onClose();
+        toast.success(`${config.singular} updated successfully`)
+        onClose()
       }
     } catch (error) {
-      console.error(`Failed to ${mode} tag:`, error);
-      toast.error(`Failed to ${mode} ${config.singular.toLowerCase()}`);
+      console.error(`Failed to ${mode} tag:`, error)
+      toast.error(`Failed to ${mode} ${config.singular.toLowerCase()}`)
     }
   }
 
@@ -132,22 +160,25 @@ export default function LocationDialog(props: TagDialogProps<Location>) {
           <form.Field
             name="name"
             validators={{
-              onChange: ({ value }: { value: string }) => validateTagName(value, MAX_NAME_LENGTH, config.singular),
+              onChange: ({ value }: { value: string }) =>
+                validateTagName(value, MAX_NAME_LENGTH, config.singular),
               onChangeAsync: async ({ value }: { value: string }) => {
-                if (!campaign) return undefined;
+                if (!campaign) return undefined
                 return validateTagNameAsync(
                   convex,
                   campaign._id,
                   value,
-                  mode === "edit" && location ? location.tagId : undefined
-                );
+                  mode === 'edit' && location ? location.tagId : undefined,
+                )
               },
               onChangeAsyncDebounceMs: 300,
             }}
           >
             {(field: any) => (
               <div className="space-y-2 px-px">
-                <Label htmlFor={`${config.singular.toLowerCase()}-name`}>{config.singular} Name</Label>
+                <Label htmlFor={`${config.singular.toLowerCase()}-name`}>
+                  {config.singular} Name
+                </Label>
                 <Input
                   id={`${config.singular.toLowerCase()}-name`}
                   value={field.state.value}
@@ -158,19 +189,31 @@ export default function LocationDialog(props: TagDialogProps<Location>) {
                   disabled={isSubmitting}
                 />
                 {field.state.meta.errors?.length ? (
-                  <p className="text-sm text-red-500">{field.state.meta.errors[0]}</p>
+                  <p className="text-sm text-red-500">
+                    {field.state.meta.errors[0]}
+                  </p>
                 ) : null}
               </div>
             )}
           </form.Field>
 
           {/* Description */}
-          <form.Field name="description" validators={{
-            onChange: ({ value }: { value: string }) => validateTagDescription(value, MAX_DESCRIPTION_LENGTH, config.singular),
-          }}>
+          <form.Field
+            name="description"
+            validators={{
+              onChange: ({ value }: { value: string }) =>
+                validateTagDescription(
+                  value,
+                  MAX_DESCRIPTION_LENGTH,
+                  config.singular,
+                ),
+            }}
+          >
             {(field: any) => (
               <div className="space-y-2 px-px">
-                <Label htmlFor={`${config.singular.toLowerCase()}-description`}>Description</Label>
+                <Label htmlFor={`${config.singular.toLowerCase()}-description`}>
+                  Description
+                </Label>
                 <textarea
                   id={`${config.singular.toLowerCase()}-description`}
                   rows={3}
@@ -190,7 +233,9 @@ export default function LocationDialog(props: TagDialogProps<Location>) {
           <form.Field name="color">
             {(field: any) => (
               <div className="space-y-2 px-px">
-                <Label htmlFor={`${config.singular.toLowerCase()}-color`}>{config.singular} Color</Label>
+                <Label htmlFor={`${config.singular.toLowerCase()}-color`}>
+                  {config.singular} Color
+                </Label>
                 <ColorPicker
                   selectedColor={field.state.value}
                   onColorChange={(color) => field.handleChange(color)}
@@ -203,5 +248,5 @@ export default function LocationDialog(props: TagDialogProps<Location>) {
         </>
       )}
     </BaseTagDialog>
-  );
+  )
 }

@@ -1,41 +1,45 @@
-import type { Note } from "convex/notes/types";
-import { useFileSidebar } from "~/contexts/FileSidebarContext";
-import { useCurrentNote } from "~/hooks/useCurrentNote";
-import { NoteContextMenu } from "./note-context-menu";
-import { useRef } from "react";
-import type { MouseEvent } from "react";
-import type { ContextMenuRef } from "~/components/context-menu/context-menu";
-import { NoteButtonBase } from "./note-button-base";
-import { DraggableNote } from "./draggable-note";
+import type { Note } from 'convex/notes/types'
+import { UNTITLED_NOTE_TITLE } from 'convex/notes/types'
+import { useFileSidebar } from '~/contexts/FileSidebarContext'
+import { useCurrentNote } from '~/hooks/useCurrentNote'
+import { useNoteActions } from '~/hooks/useNoteActions'
+import { NoteContextMenu } from './note-context-menu'
+import { DraggableNote } from './draggable-note'
+import { SidebarItemButtonBase } from '../sidebar-item/sidebar-item-button-base'
+import { FileText } from '~/lib/icons'
+import { useContextMenu } from '~/hooks/useContextMenu'
 
 interface NoteButtonProps {
-  note: Note;
+  note: Note
 }
 
-export function NoteButton({
-  note
-}: NoteButtonProps) {
-  const { renamingId } = useFileSidebar();
-  const { note: currentNote, selectNote } = useCurrentNote();
-  const isSelected = currentNote?.data?._id === note._id;
-  const contextMenuRef = useRef<ContextMenuRef>(null);
+export function NoteButton({ note }: NoteButtonProps) {
+  const { renamingId, setRenamingId } = useFileSidebar()
+  const { note: currentNote, selectNote } = useCurrentNote()
+  const { updateNote } = useNoteActions()
+  const { contextMenuRef, handleMoreOptions } = useContextMenu()
+  const isSelected = currentNote?.data?._id === note._id
 
-  const handleMoreOptions = (e: MouseEvent) => {
-    e.stopPropagation();
-    contextMenuRef.current?.open({ x: e.clientX + 4, y: e.clientY + 4 });
-  };
+  const handleFinishRename = async (name: string) => {
+    await updateNote.mutateAsync({ noteId: note._id, name })
+    setRenamingId(null)
+  }
 
   return (
     <DraggableNote note={note}>
       <NoteContextMenu ref={contextMenuRef} note={note}>
-        <NoteButtonBase
-          note={note}
-          handleSelect={() => selectNote(note._id)}
-          handleMoreOptions={handleMoreOptions}
+        <SidebarItemButtonBase
+          icon={FileText}
+          name={note.name || ''}
+          defaultName={UNTITLED_NOTE_TITLE}
           isSelected={isSelected}
           isRenaming={renamingId === note._id}
+          showChevron={false}
+          onSelect={() => selectNote(note._id)}
+          onMoreOptions={handleMoreOptions}
+          onFinishRename={handleFinishRename}
         />
       </NoteContextMenu>
     </DraggableNote>
-  );
+  )
 }

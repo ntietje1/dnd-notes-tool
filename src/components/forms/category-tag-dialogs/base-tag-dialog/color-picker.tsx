@@ -1,23 +1,23 @@
-import { Check } from "~/lib/icons";
+import { Check } from '~/lib/icons'
 
 const DEFAULT_COLORS = [
-  "#ef4444", // red
-  "#f97316", // orange
-  "#eab308", // yellow
-  "#22c55e", // green
-  "#06b6d4", // cyan
-  "#3b82f6", // blue
-  "#8b5cf6", // violet
-  "#ec4899", // pink
-  "#64748b", // slate
-  "#78716c", // stone
-];
+  '#ef4444', // red
+  '#f97316', // orange
+  '#eab308', // yellow
+  '#22c55e', // green
+  '#06b6d4', // cyan
+  '#3b82f6', // blue
+  '#8b5cf6', // violet
+  '#ec4899', // pink
+  '#64748b', // slate
+  '#78716c', // stone
+]
 
 interface ColorPickerProps {
-  selectedColor: string;
-  onColorChange: (color: string) => void;
-  colors?: string[];
-  disabled?: boolean;
+  selectedColor: string
+  onColorChange: (color: string) => void
+  colors?: string[]
+  disabled?: boolean
 }
 
 export function ColorPicker({
@@ -56,7 +56,7 @@ export function ColorPicker({
         </div>
       </div>
     </div>
-  );
+  )
 }
 
-export { DEFAULT_COLORS }; 
+export { DEFAULT_COLORS }

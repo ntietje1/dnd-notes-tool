@@ -1,57 +1,73 @@
-import { CategoryContextMenu, type CategoryContextMenuProps } from "../generic-category-folder/category-context-menu";
-import { Plus, MapPin } from "~/lib/icons";
-import { useCampaign } from "~/contexts/CampaignContext";
-import { useRouter } from "@tanstack/react-router";
-import LocationDialog from "~/components/forms/category-tag-dialogs/location-tag-dialog/location-dialog";
-import { forwardRef, useState } from "react";
-import type { ContextMenuItem, ContextMenuRef } from "~/components/context-menu/context-menu";
-import { useFolderState } from "~/hooks/useFolderState";
+import LocationDialog from '~/components/forms/category-tag-dialogs/location-tag-dialog/location-dialog'
+import {
+  CategoryContextMenu,
+  type CategoryContextMenuProps,
+} from '../generic-category-folder/category-context-menu'
+import { MapPin } from '~/lib/icons'
+import { useCampaign } from '~/contexts/CampaignContext'
+import { useRouter } from '@tanstack/react-router'
+import { forwardRef, useState } from 'react'
+import type {
+  ContextMenuItem,
+  ContextMenuRef,
+} from '~/components/context-menu/context-menu'
+import { useFolderState } from '~/hooks/useFolderState'
 
-export const LocationCategoryFolderContextMenu = forwardRef<ContextMenuRef, CategoryContextMenuProps>(({
-  categoryConfig,
-  children,
-  ...props
-}, ref) => {
-  const router = useRouter();
-  const { dmUsername, campaignSlug } = useCampaign();
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const { openFolder } = useFolderState(categoryConfig.categoryName);
+export const LocationCategoryFolderContextMenu = forwardRef<
+  ContextMenuRef,
+  CategoryContextMenuProps
+>(({ categoryConfig, children, ...props }, ref) => {
+  const router = useRouter()
+  const { dmUsername, campaignSlug } = useCampaign()
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const { openFolder } = useFolderState(
+    props.folder?._id || categoryConfig.categoryName,
+  )
 
   const handleCreateItem = () => {
-    openFolder();
-    setIsCreateDialogOpen(true);
-  };
+    openFolder()
+    setIsCreateDialogOpen(true)
+  }
 
-  const menuItems: ContextMenuItem[] = [
-    {
-      type: "action",
-      icon: <Plus className="h-4 w-4" />,
-      label: `Create New ${categoryConfig.singular}`,
-      onClick: handleCreateItem,
-    },
-    {
-      type: "action",
-      icon: <MapPin className="h-4 w-4" />,
-      label: `Go to ${categoryConfig.plural}`,
-      onClick: () => {
-        router.navigate({
-          to: "/campaigns/$dmUsername/$campaignSlug/locations",
-          params: {
-            dmUsername,
-            campaignSlug,
-          },
-        });
-      },
+  const itemsTransformation = (baseItems: ContextMenuItem[]) => {
+    // Clone the base items
+    const items = [...baseItems]
+
+    // Override the first item (Create New Location) with custom handler
+    if (items[0] && items[0].type === 'action') {
+      items[0] = {
+        ...items[0],
+        onClick: handleCreateItem,
+      }
     }
-  ];
 
-  
+    // Add "Go to Locations" option after the first item if we're at the root category (not in a subfolder)
+    if (!props.folder) {
+      items.splice(1, 0, {
+        type: 'action' as const,
+        icon: <MapPin className="h-4 w-4" />,
+        label: `Go to ${categoryConfig.plural}`,
+        onClick: () => {
+          router.navigate({
+            to: '/campaigns/$dmUsername/$campaignSlug/locations',
+            params: {
+              dmUsername,
+              campaignSlug,
+            },
+          })
+        },
+      })
+    }
+
+    return items
+  }
+
   return (
     <>
       <CategoryContextMenu
         ref={ref}
         categoryConfig={categoryConfig}
-        itemsTransformation={() => menuItems}
+        itemsTransformation={itemsTransformation}
         {...props}
       >
         {children}
@@ -61,8 +77,9 @@ export const LocationCategoryFolderContextMenu = forwardRef<ContextMenuRef, Cate
         isOpen={isCreateDialogOpen}
         onClose={() => setIsCreateDialogOpen(false)}
         config={categoryConfig}
-        navigateToNote={true}
+        parentFolderId={props.folder?._id}
+        navigateToNote={false}
       />
     </>
-  );
-});
+  )
+})

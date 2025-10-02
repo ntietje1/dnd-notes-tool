@@ -1,27 +1,22 @@
-import { EditableName } from "../sidebar-item/editable-name";
-import { UNTITLED_FOLDER_NAME } from "convex/notes/types";
-import type { Folder } from "convex/notes/types";
-import { useFileSidebar } from "~/contexts/FileSidebarContext";
-import { useFolderActions } from "~/hooks/useFolderActions";
+import { UNTITLED_FOLDER_NAME } from 'convex/notes/types'
+import type { Folder } from 'convex/notes/types'
+import { useFolderActions } from '~/hooks/useFolderActions'
+import { EditableItemName } from '../sidebar-item/editable-item-name'
 
 interface FolderNameProps {
-  folder: Folder;
+  folder: Folder
 }
 
-export function FolderName({
-  folder,
-}: FolderNameProps) {
-  const { renamingId, setRenamingId } = useFileSidebar();
-  const { updateFolder } = useFolderActions();
+export function FolderName({ folder }: FolderNameProps) {
+  const { updateFolder } = useFolderActions()
+
   return (
-    <EditableName
-      initialName={folder.name || ""}
+    <EditableItemName
+      item={folder}
       defaultName={UNTITLED_FOLDER_NAME}
-      isRenaming={renamingId === folder._id}
-      onFinishRename={(name) => {
-        updateFolder.mutate({ folderId: folder._id, name: name });
-        setRenamingId(null);
-      }}
+      updateItem={(id, name) =>
+        updateFolder.mutateAsync({ folderId: id as any, name })
+      }
     />
-  );
+  )
 }

@@ -1,141 +1,84 @@
-import { query } from "../_generated/server";
-import { v } from "convex/values";
-import {
-  Note,
-  AnySidebarItem,
-  Block,
-  NoteWithContent,
-  SIDEBAR_ITEM_TYPES,
-  Folder,
-} from "./types";
-import { Id } from "../_generated/dataModel";
+import { query } from '../_generated/server'
+import { v } from 'convex/values'
+import { AnySidebarItem, Block, NoteWithContent, Folder } from './types'
+import { Id } from '../_generated/dataModel'
 import {
   findBlock,
   filterOutChildBlocks,
   extractTagIdsFromBlockContent,
   getBlockLevelTags,
   getNoteLevelTag,
-  getTagCategoryByName,
   doesBlockMatchRequiredTags,
-  getTagsByCategory,
-} from "../tags/tags";
-import { CAMPAIGN_MEMBER_ROLE } from "../campaigns/types";
-import { requireCampaignMembership } from "../campaigns/campaigns";
-import { TagWithNote } from "../tags/types";
-import { hasAccessToBlock } from "../tags/shared";
-import { getSidebarItems as getSidebarItemsFn, getFolder as getFolderFn } from "./notes";
+} from '../tags/tags'
+import { CAMPAIGN_MEMBER_ROLE } from '../campaigns/types'
+import { requireCampaignMembership } from '../campaigns/campaigns'
+import { hasAccessToBlock } from '../tags/shared'
+import {
+  getSidebarItems as getSidebarItemsFn,
+  getFolder as getFolderFn,
+  getNoteWithContent,
+} from './notes'
 
 export const getFolder = query({
   args: {
-    folderId: v.id("folders"),
+    folderId: v.id('folders'),
   },
   handler: async (ctx, args): Promise<Folder> => {
-    const folder = await getFolderFn(ctx, args.folderId);
+    const folder = await getFolderFn(ctx, args.folderId)
 
-    await requireCampaignMembership(ctx, { campaignId: folder.campaignId },
-      { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
-    );
+    await requireCampaignMembership(
+      ctx,
+      { campaignId: folder.campaignId },
+      { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] },
+    )
 
-    const children = await getSidebarItemsFn(ctx, folder.campaignId, folder.categoryId, args.folderId);
+    const children = await getSidebarItemsFn(
+      ctx,
+      folder.campaignId,
+      folder.categoryId,
+      args.folderId,
+    )
 
     return {
       ...folder,
       children,
-    };
+    }
   },
-});
+})
 
 export const getNote = query({
   args: {
-    noteId: v.id("notes"),
+    noteId: v.id('notes'),
   },
   handler: async (ctx, args): Promise<NoteWithContent> => {
-    const note = await ctx.db.get(args.noteId);
+    const note = await getNoteWithContent(ctx, args.noteId)
     if (!note) {
-      throw new Error("Note not found");
+      throw new Error('Note not found')
     }
-
-    await requireCampaignMembership(ctx, { campaignId: note.campaignId },
-      { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
-    );
-
-    const topLevelBlocks = await ctx.db
-      .query("blocks")
-      .withIndex("by_campaign_note_toplevel_pos", (q) =>
-        q
-          .eq("campaignId", note.campaignId)
-          .eq("noteId", note._id)
-          .eq("isTopLevel", true),
-      )
-      .collect();
-
-    const allBlocks = await ctx.db
-      .query("blocks")
-      .withIndex("by_campaign_note_toplevel_pos", (q) =>
-        q.eq("campaignId", note.campaignId).eq("noteId", note._id),
-      )
-      .collect();
-
-    const blocksMap = new Map(
-      allBlocks.map((block) => [block.blockId, block.content]),
-    );
-
-    function reconstructContent(content: any): any {
-      if (Array.isArray(content)) {
-        return content.map(reconstructContent);
-      } else if (content && typeof content === "object" && content.id) {
-        const dbBlock = blocksMap.get(content.id);
-        if (dbBlock) {
-          return {
-            ...dbBlock,
-            content: dbBlock.content
-              ? reconstructContent(dbBlock.content)
-              : dbBlock.content,
-          };
-        }
-        return {
-          ...content,
-          content: content.content
-            ? reconstructContent(content.content)
-            : content.content,
-        };
-      } else if (content && typeof content === "object") {
-        const reconstructed: any = {};
-        for (const [key, value] of Object.entries(content)) {
-          reconstructed[key] = reconstructContent(value);
-        }
-        return reconstructed;
-      }
-      return content;
-    }
-
-    const content = topLevelBlocks.map((block) =>
-      reconstructContent(block.content),
-    );
-
-    return {
-      ...note,
-      type: SIDEBAR_ITEM_TYPES.notes,
-      content,
-    };
+    return note
   },
-});
+})
 
 export const getSidebarItems = query({
   args: {
-    campaignId: v.id("campaigns"),
-    categoryId: v.optional(v.id("tagCategories")),
-    parentId: v.optional(v.id("folders"))
+    campaignId: v.id('campaigns'),
+    categoryId: v.optional(v.id('tagCategories')),
+    parentId: v.optional(v.id('folders')),
   },
   handler: async (ctx, args): Promise<AnySidebarItem[]> => {
     await requireCampaignMembership(
       ctx,
       { campaignId: args.campaignId },
-      { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
-    );
-    return getSidebarItemsFn(ctx, args.campaignId, args.categoryId, args.parentId);
+      { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] },
+    )
+    return getSidebarItemsFn(
+      ctx,
+      args.campaignId,
+      args.categoryId,
+      args.parentId,
+    )
   },
-});
+})
 
 // export const getSidebarData = query({
 //   args: {
@@ -220,111 +163,123 @@ export const getSidebarItems = query({
 
 export const getBlocksByTags = query({
   args: {
-    campaignId: v.id("campaigns"),
-    tagIds: v.array(v.id("tags")),
+    campaignId: v.id('campaigns'),
+    tagIds: v.array(v.id('tags')),
   },
   handler: async (ctx, args): Promise<Block[]> => {
-    const { campaignWithMembership } = await requireCampaignMembership(ctx, { campaignId: args.campaignId },
-      { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM, CAMPAIGN_MEMBER_ROLE.Player] }
-    );
+    const { campaignWithMembership } = await requireCampaignMembership(
+      ctx,
+      { campaignId: args.campaignId },
+      { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM, CAMPAIGN_MEMBER_ROLE.Player] },
+    )
 
     const allBlocks = await ctx.db
-      .query("blocks")
-      .withIndex("by_campaign_note_toplevel_pos", (q) =>
-        q.eq("campaignId", args.campaignId!),
+      .query('blocks')
+      .withIndex('by_campaign_note_toplevel_pos', (q) =>
+        q.eq('campaignId', args.campaignId!),
       )
-      .collect();
+      .collect()
 
     const checks = await Promise.all(
       allBlocks.map(async (block) => {
         try {
           const [hasSharedTag, matchesRequired] = await Promise.all([
-            hasAccessToBlock(ctx, args.campaignId!, campaignWithMembership.member._id, block._id),
+            hasAccessToBlock(
+              ctx,
+              args.campaignId!,
+              campaignWithMembership.member._id,
+              block._id,
+            ),
             doesBlockMatchRequiredTags(ctx, block._id, args.tagIds),
-          ]);
-          return hasSharedTag && matchesRequired ? block : null;
+          ])
+          return hasSharedTag && matchesRequired ? block : null
         } catch (error) {
-          console.warn(`Error checking block access/tags for block ${block._id}:`, error);
-          return null;
+          console.warn(
+            `Error checking block access/tags for block ${block._id}:`,
+            error,
+          )
+          return null
         }
-      })
-    );
-    const matchingBlocks: Block[] = checks.filter(Boolean) as Block[];
+      }),
+    )
+    const matchingBlocks: Block[] = checks.filter(Boolean) as Block[]
 
-    const noteGroups = new Map<Id<"notes">, Block[]>();
+    const noteGroups = new Map<Id<'notes'>, Block[]>()
     matchingBlocks.forEach((block) => {
       if (!noteGroups.has(block.noteId)) {
-        noteGroups.set(block.noteId, []);
+        noteGroups.set(block.noteId, [])
       }
-      noteGroups.get(block.noteId)!.push(block);
-    });
+      noteGroups.get(block.noteId)!.push(block)
+    })
 
-    const filteredResults: Block[] = [];
-    const matchedNoteIds = Array.from(noteGroups.keys());
-    const topByNote = new Map<Id<"notes">, Block[]>();
+    const filteredResults: Block[] = []
+    const matchedNoteIds = Array.from(noteGroups.keys())
+    const topByNote = new Map<Id<'notes'>, Block[]>()
     for (const b of allBlocks) {
       if (b.isTopLevel && matchedNoteIds.includes(b.noteId)) {
-        const arr = topByNote.get(b.noteId) ?? [];
-        arr.push(b);
-        topByNote.set(b.noteId, arr);
+        const arr = topByNote.get(b.noteId) ?? []
+        arr.push(b)
+        topByNote.set(b.noteId, arr)
       }
     }
     for (const [noteId, noteBlocks] of noteGroups) {
-      const topLevelBlocks = (topByNote.get(noteId) ?? [])
-        .sort((a, b) => (a.position || 0) - (b.position || 0));
+      const topLevelBlocks = (topByNote.get(noteId) ?? []).sort(
+        (a, b) => (a.position || 0) - (b.position || 0),
+      )
 
-      const topLevelContent = topLevelBlocks
-        .map((block) => block.content);
+      const topLevelContent = topLevelBlocks.map((block) => block.content)
 
-      const filtered = filterOutChildBlocks(noteBlocks, topLevelContent);
-      filteredResults.push(...filtered);
+      const filtered = filterOutChildBlocks(noteBlocks, topLevelContent)
+      filteredResults.push(...filtered)
     }
 
-    return filteredResults;
+    return filteredResults
   },
-});
+})
 
 export const getBlockTagState = query({
   args: {
-    noteId: v.id("notes"),
+    noteId: v.id('notes'),
     blockId: v.string(),
   },
   handler: async (
     ctx,
     args,
   ): Promise<{
-    allTagIds: Id<"tags">[];
-    inlineTagIds: Id<"tags">[];
-    blockTagIds: Id<"tags">[];
-    noteTagId: Id<"tags"> | null;
+    allTagIds: Id<'tags'>[]
+    inlineTagIds: Id<'tags'>[]
+    blockTagIds: Id<'tags'>[]
+    noteTagId: Id<'tags'> | null
   }> => {
-    const note = await ctx.db.get(args.noteId);
-    if (!note) throw new Error("Note not found");
-    
-    await requireCampaignMembership(ctx, { campaignId: note.campaignId },
-      { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM, CAMPAIGN_MEMBER_ROLE.Player] }
-    );
+    const note = await ctx.db.get(args.noteId)
+    if (!note) throw new Error('Note not found')
 
-    const block = await findBlock(ctx, args.noteId, args.blockId);
-    if (!block) throw new Error("Block not found");
-    
+    await requireCampaignMembership(
+      ctx,
+      { campaignId: note.campaignId },
+      { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM, CAMPAIGN_MEMBER_ROLE.Player] },
+    )
 
-    const blockTagIds = await getBlockLevelTags(ctx, block._id);
-    const inlineTagIds = extractTagIdsFromBlockContent(block.content);
-    const noteLevelTag = await getNoteLevelTag(ctx, note._id);
+    const block = await findBlock(ctx, args.noteId, args.blockId)
+    if (!block) throw new Error('Block not found')
 
+    const blockTagIds = await getBlockLevelTags(ctx, block._id)
+    const inlineTagIds = extractTagIdsFromBlockContent(block.content)
+    const noteLevelTag = await getNoteLevelTag(ctx, note._id)
 
-    const noteTagIdList = noteLevelTag ? [noteLevelTag._id] : [];
-    const allTagIds = [...new Set([...blockTagIds, ...inlineTagIds, ...noteTagIdList])];
+    const noteTagIdList = noteLevelTag ? [noteLevelTag._id] : []
+    const allTagIds = [
+      ...new Set([...blockTagIds, ...inlineTagIds, ...noteTagIdList]),
+    ]
 
     return {
       allTagIds,
       inlineTagIds,
       blockTagIds,
       noteTagId: noteLevelTag?._id || null,
-    };
+    }
   },
-});
+})
 
 // export const getTagNotePages = query({
 //   args: {

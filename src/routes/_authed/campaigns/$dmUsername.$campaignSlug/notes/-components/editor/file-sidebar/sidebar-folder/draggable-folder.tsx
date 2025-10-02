@@ -4,13 +4,21 @@ import type { Folder } from "convex/notes/types";
 
 interface DraggableFolderProps {
   folder: Folder;
+  ancestorIds?: string[];
   children: React.ReactNode;
 }
 
-export function DraggableFolder({ folder, children }: DraggableFolderProps) {
+export function DraggableFolder({ 
+  folder, 
+  ancestorIds = [],
+  children 
+}: DraggableFolderProps) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: folder._id,
-    data: folder,
+    data: {
+      ...folder,
+      ancestorIds,
+    },
   });
 
   return (

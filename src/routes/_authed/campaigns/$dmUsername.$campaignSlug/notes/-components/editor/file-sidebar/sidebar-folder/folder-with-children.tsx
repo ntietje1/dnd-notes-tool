@@ -8,19 +8,23 @@ import { useSidebarItems } from "~/hooks/useSidebarItems";
 
 interface FolderWithChildrenProps {
   folder: Folder;
+  ancestorIds?: string[];
 }
 
 export function FolderWithChildren({
   folder,
+  ancestorIds = [],
 }: FolderWithChildrenProps) {
   const { isExpanded, toggleExpanded } = useFolderState(folder._id)
   const children = useSidebarItems(folder.categoryId, folder._id);
   const hasChildren = (children.data && children.data.length > 0) || false;
 
+  const currentAncestors = [...ancestorIds, folder._id];
+
   return (
-    <DroppableFolder folder={folder}>
+    <DroppableFolder folder={folder} ancestorIds={ancestorIds}>
       <Collapsible open={isExpanded} onOpenChange={toggleExpanded}>
-        <FolderButton folder={folder}/>
+        <FolderButton folder={folder} ancestorIds={ancestorIds}/>
         <CollapsibleContent>
           <div className="relative pl-2">
             {/* Vertical line */}
@@ -31,6 +35,7 @@ export function FolderWithChildren({
               <SidebarItem
                 key={item._id}
                 item={item}
+                ancestorIds={currentAncestors}
               />
             ))}
           </div>
