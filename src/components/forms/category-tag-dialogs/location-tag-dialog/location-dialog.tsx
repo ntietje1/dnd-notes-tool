@@ -44,7 +44,7 @@ export default function LocationDialog(props: TagDialogProps<Location>) {
   const { campaignWithMembership, dmUsername, campaignSlug } = useCampaign()
   const campaign = campaignWithMembership?.data?.campaign
 
-  const getCategoryId = useQuery(
+  const getCategory = useQuery(
     convexQuery(
       api.tags.queries.getTagCategoryByName,
       campaign?._id
@@ -90,7 +90,7 @@ export default function LocationDialog(props: TagDialogProps<Location>) {
       return
     }
 
-    if (!getCategoryId.data) {
+    if (!getCategory.data) {
       toast.error(`Category "${config.categoryName}" not found`)
       return
     }
@@ -102,8 +102,8 @@ export default function LocationDialog(props: TagDialogProps<Location>) {
           description: values.description.trim() || undefined,
           color: values.color,
           campaignId: campaign._id,
-          categoryId: getCategoryId.data._id,
-          parentFolderId: parentFolderId as any,
+          categoryId: getCategory.data._id,
+          parentFolderId,
         })
 
         await createLocationMutation.mutateAsync({

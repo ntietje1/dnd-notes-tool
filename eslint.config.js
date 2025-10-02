@@ -8,9 +8,21 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 export default [
   js.configs.recommended,
   {
-    files: ['**/*.{js,jsx,ts,tsx}'],
+    files: ['**/*.{ts,tsx}'],
     languageOptions: {
       parser: typescriptParser,
+      parserOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+        ecmaFeatures: {
+          jsx: true,
+        },
+      },
+    },
+  },
+  {
+    files: ['**/*.{js,jsx}'],
+    languageOptions: {
       parserOptions: {
         ecmaVersion: 'latest',
         sourceType: 'module',

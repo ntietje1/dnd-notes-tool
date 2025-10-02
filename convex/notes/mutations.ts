@@ -15,6 +15,7 @@ import {
 import { CAMPAIGN_MEMBER_ROLE } from '../campaigns/types'
 import { requireCampaignMembership } from '../campaigns/campaigns'
 import { getFolder as getFolderFn } from './notes'
+import { blockNoteIdValidator } from './validators'
 
 export const updateNote = mutation({
   args: {
@@ -22,6 +23,7 @@ export const updateNote = mutation({
     content: v.optional(v.any()),
     name: v.optional(v.string()),
   },
+  returns: v.id('notes'),
   handler: async (ctx, args): Promise<Id<'notes'>> => {
     const note = await ctx.db.get(args.noteId)
     if (!note) {
@@ -43,11 +45,14 @@ export const updateNote = mutation({
       await saveTopLevelBlocks(ctx, args.noteId, note.campaignId, args.content)
     }
 
-    if (args.name !== undefined && note.tagId) {
+    if (args.name !== undefined) {
       updates.name = args.name
 
-      await updateTagAndContent(ctx, note.tagId, { displayName: args.name })
+      if (note.tagId) {
+        await updateTagAndContent(ctx, note.tagId, { displayName: args.name })
+      }
     }
+
 
     await ctx.db.patch(args.noteId, updates)
     return args.noteId
@@ -59,6 +64,7 @@ export const moveNote = mutation({
     noteId: v.id('notes'),
     parentFolderId: v.optional(v.id('folders')),
   },
+  returns: v.id('notes'),
   handler: async (ctx, args): Promise<Id<'notes'>> => {
     const note = await ctx.db.get(args.noteId)
     if (!note) {
@@ -81,6 +87,7 @@ export const moveFolder = mutation({
     folderId: v.id('folders'),
     parentId: v.optional(v.id('folders')),
   },
+  returns: v.id('folders'),
   handler: async (ctx, args): Promise<Id<'folders'>> => {
     const folder = await ctx.db.get(args.folderId)
     if (!folder) {
@@ -104,6 +111,7 @@ export const deleteNote = mutation({
   args: {
     noteId: v.id('notes'),
   },
+  returns: v.id('notes'),
   handler: async (ctx, args): Promise<Id<'notes'>> => {
     const note = await ctx.db.get(args.noteId)
     if (!note) {
@@ -147,6 +155,7 @@ export const deleteFolder = mutation({
   args: {
     folderId: v.id('folders'),
   },
+  returns: v.id('folders'),
   handler: async (ctx, args): Promise<Id<'folders'>> => {
     const folder = await ctx.db.get(args.folderId)
     if (!folder) {
@@ -223,6 +232,7 @@ export const updateFolder = mutation({
     folderId: v.id('folders'),
     name: v.optional(v.string()),
   },
+  returns: v.id('folders'),
   handler: async (ctx, args): Promise<Id<'folders'>> => {
     const folder = await ctx.db.get(args.folderId)
     if (!folder) {
@@ -246,6 +256,7 @@ export const createFolder = mutation({
     categoryId: v.optional(v.id('tagCategories')),
     parentFolderId: v.optional(v.id('folders')),
   },
+  returns: v.id('folders'),
   handler: async (ctx, args): Promise<Id<'folders'>> => {
     let campaignId: Id<'campaigns'>
     let parentFolderId: Id<'folders'> | undefined
@@ -291,6 +302,7 @@ export const createNote = mutation({
     parentFolderId: v.optional(v.id('folders')),
     campaignId: v.id('campaigns'),
   },
+  returns: v.id('notes'),
   handler: async (ctx, args): Promise<Id<'notes'>> => {
     const { identityWithProfile } = await requireCampaignMembership(
       ctx,
@@ -315,9 +327,10 @@ export const createNote = mutation({
 export const addTagToBlockMutation = mutation({
   args: {
     noteId: v.id('notes'),
-    blockId: v.string(), //TODO: change to Id<"blocks">
+    blockId: blockNoteIdValidator,
     tagId: v.id('tags'),
   },
+  returns: blockNoteIdValidator,
   handler: async (ctx, args): Promise<string> => {
     const note = await ctx.db.get(args.noteId)
     if (!note) {
@@ -397,9 +410,10 @@ export const addTagToBlockMutation = mutation({
 export const removeTagFromBlockMutation = mutation({
   args: {
     noteId: v.id('notes'),
-    blockId: v.string(), //TODO: change to Id<"blocks">
+    blockId: blockNoteIdValidator,
     tagId: v.id('tags'),
   },
+  returns: blockNoteIdValidator,
   handler: async (ctx, args): Promise<string> => {
     const note = await ctx.db.get(args.noteId)
     if (!note) {

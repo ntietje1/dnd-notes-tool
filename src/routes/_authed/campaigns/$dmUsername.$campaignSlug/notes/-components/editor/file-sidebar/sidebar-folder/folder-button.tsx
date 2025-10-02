@@ -9,10 +9,10 @@ import { FolderContextMenu } from './folder-context-menu'
 import { SidebarItemButtonBase } from '../sidebar-item/sidebar-item-button-base'
 import { Folder as FolderIcon } from '~/lib/icons'
 import { useContextMenu } from '~/hooks/useContextMenu'
-
+import type { Id } from 'convex/_generated/dataModel'
 interface FolderButtonProps {
   folder: Folder
-  ancestorIds?: string[]
+  ancestorIds?: Array<Id<'folders'>>
 }
 
 export function FolderButton({ folder, ancestorIds = [] }: FolderButtonProps) {
@@ -26,8 +26,11 @@ export function FolderButton({ folder, ancestorIds = [] }: FolderButtonProps) {
   }
 
   const handleFinishRename = async (name: string) => {
-    await updateFolder.mutateAsync({ folderId: folder._id, name })
-    setRenamingId(null)
+    try {
+      await updateFolder.mutateAsync({ folderId: folder._id, name })
+    } finally {
+      setRenamingId(null)
+    }
   }
 
   return (

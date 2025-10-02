@@ -466,6 +466,25 @@ export const deleteTagAndCleanupContent = async (
   ctx: MutationCtx,
   tagId: Id<'tags'>,
 ): Promise<Id<'tags'>> => {
+  const tag = await ctx.db.get(tagId)
+  if (!tag) {
+    throw new Error('Tag not found')
+  }
+
+  await requireCampaignMembership(
+    ctx,
+    { campaignId: tag.campaignId },
+    { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] },
+  )
+
+  const category = await ctx.db.get(tag.categoryId)
+  if (!category) {
+    throw new Error('Category not found')
+  }
+
+  if (category.kind === CATEGORY_KIND.SystemManaged) {
+    throw new Error('System-managed categories cannot be deleted')
+  }
   //TODO: modify all tags in content to just be text without being an actual tag inline content
   await ctx.db.delete(tagId)
   return tagId
@@ -717,11 +736,17 @@ export async function removeTagFromBlock(
   blockDbId: Id<'blocks'>,
   tagIdToRemove: Id<'tags'>,
   isTopLevel: boolean,
-) {
+): Promise<Id<'blocks'> | null> {
   const block = await ctx.db.get(blockDbId)
   if (!block) {
-    return []
+    return null
   }
+
+  await requireCampaignMembership(
+    ctx,
+    { campaignId: block.campaignId },
+    { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] },
+  )
 
   const blockTag = await ctx.db
     .query('blockTags')

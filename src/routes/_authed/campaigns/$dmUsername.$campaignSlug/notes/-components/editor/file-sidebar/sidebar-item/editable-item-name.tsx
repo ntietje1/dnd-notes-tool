@@ -1,11 +1,12 @@
 import { useFileSidebar } from '~/contexts/FileSidebarContext'
 import { EditableName } from './editable-name'
 import type { SidebarItemEntity } from './types'
+import { toast } from 'sonner'
 
 interface EditableItemNameProps<T extends SidebarItemEntity> {
   item: T
   defaultName: string
-  updateItem: (id: string, name: string) => Promise<any>
+  updateItem: (id: T['_id'], name: string) => Promise<T['_id']>
 }
 
 /**
@@ -21,8 +22,15 @@ export function EditableItemName<T extends SidebarItemEntity>({
   const isRenaming = renamingId === item._id
 
   const handleFinishRename = async (name: string) => {
-    await updateItem(item._id, name)
-    setRenamingId(null)
+    try {
+      console.log('handleFinishRename', item._id, name)
+      await updateItem(item._id, name)
+    } catch (error) {
+      console.error(error)
+      toast.error('Failed to update item')
+    } finally {
+      setRenamingId(null)
+    }
   }
 
   return (

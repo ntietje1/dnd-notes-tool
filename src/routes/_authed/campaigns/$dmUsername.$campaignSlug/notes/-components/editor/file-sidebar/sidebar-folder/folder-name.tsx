@@ -15,7 +15,7 @@ export function FolderName({ folder }: FolderNameProps) {
       item={folder}
       defaultName={UNTITLED_FOLDER_NAME}
       updateItem={(id, name) =>
-        updateFolder.mutateAsync({ folderId: id as any, name })
+        updateFolder.mutateAsync({ folderId: id, name })
       }
     />
   )

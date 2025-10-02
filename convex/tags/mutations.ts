@@ -20,11 +20,14 @@ export const createTag = mutation({
     campaignId: v.id('campaigns'),
     parentFolderId: v.optional(v.id('folders')),
   },
+  returns: v.object({
+    tagId: v.id('tags'),
+    noteId: v.id('notes'),
+  }),
   handler: async (
     ctx,
     args,
   ): Promise<{ tagId: Id<'tags'>; noteId: Id<'notes'> }> => {
-    console.log('createTag', args)
     return await insertTagAndNote(ctx, args, args.parentFolderId)
   },
 })
@@ -36,8 +39,8 @@ export const updateTag = mutation({
     color: v.optional(v.string()),
     description: v.optional(v.string()),
   },
+  returns: v.id('tags'),
   handler: async (ctx, args): Promise<Id<'tags'>> => {
-    console.log('updateTag', args)
 
     await updateTagAndContent(ctx, args.tagId, {
       displayName: args.displayName,
@@ -53,6 +56,7 @@ export const deleteTag = mutation({
   args: {
     tagId: v.id('tags'),
   },
+  returns: v.id('tags'),
   handler: async (ctx, args): Promise<Id<'tags'>> => {
     return await deleteTagFn(ctx, args.tagId)
   },
@@ -63,6 +67,7 @@ export const createTagCategory = mutation({
     campaignId: v.id('campaigns'),
     displayName: v.string(),
   },
+  returns: v.id('tagCategories'),
   handler: async (ctx, args): Promise<Id<'tagCategories'>> => {
     return await insertTagCategory(ctx, {
       campaignId: args.campaignId,
@@ -71,23 +76,23 @@ export const createTagCategory = mutation({
     })
   },
 })
-
 export const updateTagCategory = mutation({
   args: {
     categoryId: v.id('tagCategories'),
     displayName: v.string(),
   },
+  returns: v.id('tagCategories'),
   handler: async (ctx, args): Promise<Id<'tagCategories'>> => {
     return await updateTagCategoryFn(ctx, args.categoryId, {
       displayName: args.displayName,
     })
   },
 })
-
 export const deleteTagCategory = mutation({
   args: {
     categoryId: v.id('tagCategories'),
   },
+  returns: v.id('tagCategories'),
   handler: async (ctx, args): Promise<Id<'tagCategories'>> => {
     return await deleteTagCategoryFn(ctx, args.categoryId)
   },

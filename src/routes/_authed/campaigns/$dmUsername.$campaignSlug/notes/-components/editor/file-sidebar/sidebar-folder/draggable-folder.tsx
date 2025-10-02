@@ -1,10 +1,11 @@
 import { useDraggable } from "@dnd-kit/core";
 import { cn } from "~/lib/utils";
 import type { Folder } from "convex/notes/types";
+import type { Id } from "convex/_generated/dataModel";
 
 interface DraggableFolderProps {
   folder: Folder;
-  ancestorIds?: string[];
+  ancestorIds?: Array<Id<'folders'>>;
   children: React.ReactNode;
 }
 

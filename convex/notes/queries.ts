@@ -18,14 +18,16 @@ import {
   getFolder as getFolderFn,
   getNoteWithContent,
 } from './notes'
+import { blockValidator, folderWithChildrenValidator, noteValidator, noteWithContentValidator, sidebarItemValidator } from './validators'
 
 export const getFolder = query({
   args: {
     folderId: v.id('folders'),
   },
+  returns: folderWithChildrenValidator,
   handler: async (ctx, args): Promise<Folder> => {
     const folder = await getFolderFn(ctx, args.folderId)
-
+    
     await requireCampaignMembership(
       ctx,
       { campaignId: folder.campaignId },
@@ -50,6 +52,7 @@ export const getNote = query({
   args: {
     noteId: v.id('notes'),
   },
+  returns: noteWithContentValidator,
   handler: async (ctx, args): Promise<NoteWithContent> => {
     const note = await getNoteWithContent(ctx, args.noteId)
     if (!note) {
@@ -65,6 +68,7 @@ export const getSidebarItems = query({
     categoryId: v.optional(v.id('tagCategories')),
     parentId: v.optional(v.id('folders')),
   },
+  returns: v.array(sidebarItemValidator),
   handler: async (ctx, args): Promise<AnySidebarItem[]> => {
     await requireCampaignMembership(
       ctx,
@@ -80,92 +84,12 @@ export const getSidebarItems = query({
   },
 })
 
-// export const getSidebarData = query({
-//   args: {
-//     campaignId: v.id("campaigns"),
-//   },
-//   handler: async (ctx, args): Promise<AnySidebarItem[]> => {
-//     await requireCampaignMembership(ctx, { campaignId: args.campaignId },
-//       { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] }
-//     );
-
-//     const [folders, notes] = await Promise.all([
-//       ctx.db
-//         .query("folders")
-//         .withIndex("by_campaign_parent", (q) =>
-//           q.eq("campaignId", args.campaignId!),
-//         )
-//         .collect(),
-//       ctx.db
-//         .query("notes")
-//         .withIndex("by_campaign_parent", (q) =>
-//           q.eq("campaignId", args.campaignId!),
-//         )
-//         .collect(),
-//     ]);
-
-//     // Filter out notes that are associated with tags (they appear in system folders)
-//     const tagLinkedNoteIds = new Set(
-//       (
-//         await ctx.db
-//           .query("tags")
-//           .withIndex("by_campaign_categoryId", (q) => q.eq("campaignId", args.campaignId!))
-//           .collect()
-//       )
-//         .map((t) => t.noteId)
-//         .filter((nid): nid is Id<"notes"> => Boolean(nid)),
-//     );
-//     const regularNotes = notes.filter((note) => !tagLinkedNoteIds.has(note._id));
-
-//     const folderMap = new Map<Id<"folders">, FolderNode>();
-
-//     folders.forEach((folder) => {
-//       folderMap.set(folder._id, {
-//         ...folder,
-//         type: SIDEBAR_ITEM_TYPES.folders,
-//         children: [],
-//       });
-//     });
-
-//     folders.forEach((folder) => {
-//       if (folder.parentFolderId) {
-//         const parentNode = folderMap.get(folder.parentFolderId);
-//         const node = folderMap.get(folder._id);
-//         if (parentNode && node) {
-//           parentNode.children.push(node);
-//         }
-//       }
-//     });
-
-//     const typedNotes = regularNotes.map((note) => ({
-//       ...note,
-//       type: SIDEBAR_ITEM_TYPES.notes,
-//     })) as Note[];
-
-//     typedNotes.forEach((note) => {
-//       if (note.parentFolderId) {
-//         const parentNode = folderMap.get(note.parentFolderId);
-//         if (parentNode) {
-//           parentNode.children.push(note);
-//         }
-//       }
-//     });
-
-//     const rootFolders = Array.from(folderMap.values()).filter(
-//       (folder) => !folder.parentFolderId,
-//     );
-
-//     const rootNotes = typedNotes.filter((note) => !note.parentFolderId);
-
-//     return [...rootFolders, ...rootNotes] as AnySidebarItem[];
-//   },
-// });
-
 export const getBlocksByTags = query({
   args: {
     campaignId: v.id('campaigns'),
     tagIds: v.array(v.id('tags')),
   },
+  returns: v.array(blockValidator),
   handler: async (ctx, args): Promise<Block[]> => {
     const { campaignWithMembership } = await requireCampaignMembership(
       ctx,
@@ -242,6 +166,12 @@ export const getBlockTagState = query({
     noteId: v.id('notes'),
     blockId: v.string(),
   },
+  returns: v.object({
+    allTagIds: v.array(v.id('tags')),
+    inlineTagIds: v.array(v.id('tags')),
+    blockTagIds: v.array(v.id('tags')),
+    noteTagId: v.optional(v.id('tags')),
+  }),
   handler: async (
     ctx,
     args,
@@ -249,7 +179,7 @@ export const getBlockTagState = query({
     allTagIds: Id<'tags'>[]
     inlineTagIds: Id<'tags'>[]
     blockTagIds: Id<'tags'>[]
-    noteTagId: Id<'tags'> | null
+    noteTagId: Id<'tags'> | undefined
   }> => {
     const note = await ctx.db.get(args.noteId)
     if (!note) throw new Error('Note not found')
@@ -276,44 +206,7 @@ export const getBlockTagState = query({
       allTagIds,
       inlineTagIds,
       blockTagIds,
-      noteTagId: noteLevelTag?._id || null,
+      noteTagId: noteLevelTag?._id,
     }
   },
 })
-
-// export const getTagNotePages = query({
-//   args: {
-//     campaignId: v.id("campaigns"),
-//     tagCategory: v.string(),
-//   },
-//   handler: async (ctx, args): Promise<TagWithNote[]> => {
-//     await requireCampaignMembership(ctx, { campaignId: args.campaignId },
-//       { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM, CAMPAIGN_MEMBER_ROLE.Player] }
-//     );
-
-//     const category = await getTagCategoryByName(ctx, args.campaignId, args.tagCategory);
-
-//     if (!category) {
-//       throw new Error(`Tag category "${args.tagCategory}" not found`);
-//     }
-
-//     const tags = await getTagsByCategory(ctx, category._id);
-
-//     const tagNotePages = [];
-//     for (const tag of tags) {
-//       const note = tag.noteId ? await ctx.db.get(tag.noteId) : null;
-
-//       if (note) {
-//         tagNotePages.push({
-//           ...tag,
-//           note: {
-//             ...note,
-//             type: SIDEBAR_ITEM_TYPES.notes,
-//           },
-//         });
-//       }
-//     }
-
-//     return tagNotePages;
-//   },
-// });

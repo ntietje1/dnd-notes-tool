@@ -46,7 +46,7 @@ export const CategoryFolderButton = ({
 }: CategoryFolderButtonProps & { ancestorIds?: string[] }) => {
   const { campaignWithMembership } = useCampaign()
   const campaign = campaignWithMembership?.data?.campaign
-  const category = useQuery(
+  const getCategory = useQuery(
     convexQuery(
       api.tags.queries.getTagCategoryByName,
       campaign?._id
@@ -63,7 +63,7 @@ export const CategoryFolderButton = ({
   const categoryContextMenuRef = useRef<ContextMenuRef>(null)
 
   const children = useSidebarItems(
-    folder?.categoryId || category?.data?._id,
+    folder?.categoryId || getCategory?.data?._id,
     folder?._id,
   )
 
@@ -77,7 +77,7 @@ export const CategoryFolderButton = ({
   return (
     <DroppableCategoryFolder
       folder={folder}
-      categoryId={category?.data?._id}
+      categoryId={getCategory?.data?._id}
       ancestorIds={ancestorIds}
     >
       <Collapsible open={isExpanded} onOpenChange={toggleExpanded}>

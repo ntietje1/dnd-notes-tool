@@ -51,7 +51,7 @@ export const CategoryContextMenu = forwardRef<
     const { setRenamingId } = useFileSidebar()
 
     // Get the category ID for this folder
-    const category = useQuery(
+    const getCategory = useQuery(
       convexQuery(
         api.tags.queries.getTagCategoryByName,
         campaign?._id
@@ -69,7 +69,7 @@ export const CategoryContextMenu = forwardRef<
     }
 
     const handleNewFolder = async () => {
-      if (!campaign || !category.data) {
+      if (!campaign || !getCategory.data) {
         toast.error('Campaign or category not found')
         return
       }
@@ -78,7 +78,7 @@ export const CategoryContextMenu = forwardRef<
         .mutateAsync({
           parentFolderId: folder?._id,
           campaignId: campaign._id,
-          categoryId: category.data._id,
+          categoryId: getCategory.data._id,
         })
         .then((folderId: Id<'folders'>) => {
           openFolder()

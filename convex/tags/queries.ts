@@ -1,14 +1,19 @@
 import { v } from "convex/values";
-import { Tag } from "./types";
+import { Tag, TagCategory } from "./types";
 import { query } from "../_generated/server";
 import { Id } from "../_generated/dataModel";
 import { getPlayerSharedTags, getSharedAllTag } from "./shared";
 import { getTag as getTagFn, getTagsByCategory as getTagsByCategoryFn, getTagsByCampaign as getTagsByCampaignFn } from "./tags";
+import { tagCategoryValidator, tagValidator } from "./validators";
 
 export const getSharedTags = query({
   args: {
     campaignId: v.id("campaigns"),
   },
+  returns: v.object({
+    sharedAllTag: tagValidator,
+    playerSharedTags: v.array(tagValidator),
+  }),
   handler: async (ctx, args): Promise<{
     sharedAllTag: Tag;
     playerSharedTags: Tag[];
@@ -27,6 +32,7 @@ export const getTag = query({
     campaignId: v.id("campaigns"),
     tagId: v.id("tags"),
   },
+  returns: tagValidator,
   handler: async (ctx, args): Promise<Tag> => {
     return await getTagFn(ctx, args.tagId);
   },
@@ -36,6 +42,7 @@ export const getTagsByCampaign = query({
   args: {
     campaignId: v.id("campaigns"),
   },
+  returns: v.array(tagValidator),
   handler: async (ctx, args): Promise<Tag[]> => {
     return await getTagsByCampaignFn(ctx, args.campaignId);
   },
@@ -46,6 +53,7 @@ export const getTagsByCategoryName = query({
     campaignId: v.id("campaigns"),
     categoryName: v.string(),
   },
+  returns: v.array(tagValidator),
   handler: async (ctx, args): Promise<Tag[]> => {
     const category = await ctx.db
       .query("tagCategories")
@@ -68,6 +76,7 @@ export const getTagsByCategory = query({
     campaignId: v.id("campaigns"),
     categoryId: v.id("tagCategories"),
   },
+  returns: v.array(tagValidator),
   handler: async (ctx, args): Promise<Tag[]> => {
     return await getTagsByCategoryFn(ctx, args.categoryId);
   },
@@ -79,6 +88,7 @@ export const checkTagNameExists = query({
     tagName: v.string(),
     excludeTagId: v.optional(v.id("tags")),
   },
+  returns: v.boolean(),
   handler: async (ctx, args): Promise<boolean> => {
     const existing = await ctx.db
       .query("tags")
@@ -98,7 +108,8 @@ export const getTagCategoryByName = query({
     campaignId: v.id("campaigns"),
     categoryName: v.string(),
   },
-  handler: async (ctx, args): Promise<{ _id: Id<"tagCategories"> }> => {
+  returns: tagCategoryValidator,
+  handler: async (ctx, args): Promise<TagCategory> => {
     const category = await ctx.db
       .query("tagCategories")
       .withIndex("by_campaign_name", (q) => q.eq("campaignId", args.campaignId).eq("name", args.categoryName.toLowerCase()))
@@ -108,7 +119,7 @@ export const getTagCategoryByName = query({
       throw new Error(`Category not found: ${args.categoryName}`);
     }
 
-    return { _id: category._id };
+    return category;
   },
 });
 
@@ -116,16 +127,13 @@ export const getTagCategoriesByCampaign = query({
   args: {
     campaignId: v.id("campaigns"),
   },
-  handler: async (ctx, args): Promise<{ name: string; displayName: string; _id: Id<"tagCategories"> }[]> => {
+  returns: v.array(tagCategoryValidator),
+  handler: async (ctx, args): Promise<TagCategory[]> => {
     const categories = await ctx.db
       .query("tagCategories")
       .withIndex("by_campaign_name", (q) => q.eq("campaignId", args.campaignId))
       .collect();
 
-    return categories.map(c => ({
-      _id: c._id,
-      name: c.name,
-      displayName: c.displayName
-    }));
+    return categories
   },
 });

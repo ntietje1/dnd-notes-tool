@@ -1,3 +1,4 @@
+import type { Id } from 'convex/_generated/dataModel'
 import type { Tag } from 'convex/tags/types'
 import type { LucideIcon } from '~/lib/icons'
 
@@ -31,7 +32,7 @@ export type TagDialogProps<T extends Tag = Tag> =
       config: TagCategoryConfig
       tag?: never
       navigateToNote?: boolean
-      parentFolderId?: string
+      parentFolderId?: Id<'folders'>
     }
   | {
       mode: 'edit'

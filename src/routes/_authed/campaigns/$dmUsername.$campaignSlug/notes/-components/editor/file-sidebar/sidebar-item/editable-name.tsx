@@ -22,7 +22,7 @@ export function EditableName({
       inputRef.current.focus();
       inputRef.current.select();
     }
-  }, [isRenaming]);
+  }, [isRenaming, initialName]);
 
   if (isRenaming) {
     return (

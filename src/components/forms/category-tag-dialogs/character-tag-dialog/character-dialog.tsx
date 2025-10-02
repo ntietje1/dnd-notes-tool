@@ -56,7 +56,7 @@ export default function CharacterDialog(props: TagDialogProps<Character>) {
     ),
   )
 
-  const getCategoryId = useQuery(
+  const getCategory = useQuery(
     convexQuery(
       api.tags.queries.getTagCategoryByName,
       campaign?._id
@@ -103,7 +103,7 @@ export default function CharacterDialog(props: TagDialogProps<Character>) {
       return
     }
 
-    if (!getCategoryId.data) {
+    if (!getCategory.data) {
       toast.error(`Category "${config.categoryName}" not found`)
       return
     }
@@ -115,8 +115,8 @@ export default function CharacterDialog(props: TagDialogProps<Character>) {
           description: values.description.trim() || undefined,
           color: values.color,
           campaignId: campaign._id,
-          categoryId: getCategoryId.data._id,
-          parentFolderId: parentFolderId as any,
+          categoryId: getCategory.data._id,
+          parentFolderId,
         })
 
         await createCharacterMutation.mutateAsync({
@@ -274,7 +274,7 @@ export default function CharacterDialog(props: TagDialogProps<Character>) {
                   id={`character-player`}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   value={String(field.state.value ?? '')}
-                  onChange={(e) => field.handleChange(e.target.value as any)}
+                  onChange={(e) => field.handleChange(e.target.value)}
                   onBlur={field.handleBlur}
                   disabled={form.state.isSubmitting}
                 >

@@ -94,7 +94,7 @@ export default function GenericTagDialog(props: TagDialogProps) {
           color: value.color,
           campaignId: campaign._id,
           categoryId: getCategory.data._id,
-          parentFolderId: parentFolderId as any,
+          parentFolderId,
         })
 
         toast.success(`${config.singular} created successfully`)
