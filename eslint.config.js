@@ -35,9 +35,7 @@ export default [
       '@typescript-eslint/no-var-requires': 'error',
 
       // React rules
-      'react/react-in-jsx-scope': 'off', // Not needed with React 17+
-      'react/prop-types': 'off', // Using TypeScript for prop validation
-      'react/jsx-uses-react': 'off', // Not needed with React 17+
+      'react/prop-types': 'off',
       'react/jsx-uses-vars': 'error',
       'react/jsx-key': 'error',
       'react/jsx-no-duplicate-props': 'error',
