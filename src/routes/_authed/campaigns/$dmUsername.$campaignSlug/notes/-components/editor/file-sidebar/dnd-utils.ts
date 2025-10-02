@@ -62,23 +62,8 @@ export function canDropFolder(
   const draggedItem = active.data.current as DragData
   const targetData = over.data.current as DropData
 
-  console.log('draggedItem', draggedItem)
-  console.log('targetData', targetData)
-
   // Only allow folder drops
-  if (
-    draggedItem.type !== SIDEBAR_ITEM_TYPES.folders &&
-    targetData.type !== SIDEBAR_ROOT_TYPE
-  )
-    return false
-
-  // Prevent dropping a folder into itself
-  if (over.id === draggedItem._id) return false
-
-  // Check category matching
-  if (!categoriesMatch(draggedItem.categoryId, targetData?.categoryId)) {
-    return false
-  }
+  if (draggedItem.type !== SIDEBAR_ITEM_TYPES.folders) return false
 
   // Prevent dropping a folder into its own descendants
   const targetAncestorIds = targetData?.ancestorIds || []
@@ -94,15 +79,9 @@ export function canDropNote(active: Active | null, over: Over | null): boolean {
   if (!active || !over) return false
 
   const draggedItem = active.data.current as DragData
-  const targetData = over.data.current as DropData
 
   // Only allow note drops
   if (draggedItem.type !== SIDEBAR_ITEM_TYPES.notes) return false
-
-  // Check category matching
-  if (!categoriesMatch(draggedItem.categoryId, targetData?.categoryId)) {
-    return false
-  }
 
   return true
 }
@@ -114,6 +93,20 @@ export function canDropItem(active: Active | null, over: Over | null): boolean {
   if (!active || !over) return false
 
   const draggedItem = active.data.current as DragData
+  const targetData = over.data.current as DropData
+
+  // Prevent dragging onto the direct parent
+  if ((targetData.type === SIDEBAR_ROOT_TYPE && !draggedItem.parentFolderId) || (targetData.type === SIDEBAR_ITEM_TYPES.folders && draggedItem.parentFolderId === over.id)) {
+    return false
+  }
+
+  // Prevent dropping onto itself
+  if (over.id === draggedItem._id) return false
+
+  // Check category matching
+  if (!categoriesMatch(draggedItem.categoryId, targetData?.categoryId)) {
+    return false
+  }
 
   if (draggedItem.type === SIDEBAR_ITEM_TYPES.folders) {
     return canDropFolder(active, over)

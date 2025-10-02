@@ -1,7 +1,6 @@
-import { SIDEBAR_ITEM_TYPES, type AnySidebarItem } from 'convex/notes/types'
+import { SIDEBAR_ITEM_TYPES, type AnySidebarItem, UNTITLED_FOLDER_NAME, UNTITLED_NOTE_TITLE } from 'convex/notes/types'
 import { SidebarItemButtonBase } from './sidebar-item-button-base'
 import { Folder as FolderIcon, FileText } from '~/lib/icons'
-import { UNTITLED_FOLDER_NAME, UNTITLED_NOTE_TITLE } from 'convex/notes/types'
 
 /**
  * Renders a drag overlay for any sidebar item type
@@ -13,7 +12,7 @@ export function DragOverlayItem({ item }: { item: AnySidebarItem }) {
   const defaultName = isFolder ? UNTITLED_FOLDER_NAME : UNTITLED_NOTE_TITLE
 
   return (
-    <div className="border border-primary shadow-lg rounded-sm">
+    <div className="bg-muted/50 shadow-lg rounded-sm scale-95">
       <SidebarItemButtonBase
         icon={icon}
         name={item.name || ''}

@@ -165,6 +165,12 @@ export function FileSidebarProvider({
   return (
     <FileSidebarContext.Provider value={value}>
       <DndContext
+        autoScroll={{
+          threshold: {
+            x: 0,
+            y: 0.25,
+          },
+        }}
         sensors={sensors}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
