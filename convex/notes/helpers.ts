@@ -1,6 +1,8 @@
 import { MutationCtx, QueryCtx } from '../_generated/server'
 import { Id } from '../_generated/dataModel'
 import { Block } from './types'
+import { CAMPAIGN_MEMBER_ROLE } from '../campaigns/types'
+import { requireCampaignMembership } from '../campaigns/campaigns'
 
 export async function getBlocksByNote(
   ctx: QueryCtx | MutationCtx,
@@ -73,4 +75,25 @@ export async function deleteNoteBlocks(
   for (const block of blocks) {
     await deleteBlockTags(ctx, block._id, campaignId)
   }
+}
+
+export async function deleteNote(
+  ctx: MutationCtx,
+  noteId: Id<'notes'>,
+): Promise<Id<'notes'>> {
+  const note = await ctx.db.get(noteId)
+  if (!note) {
+    throw new Error('Note not found')
+  }
+
+  await requireCampaignMembership(
+    ctx,
+    { campaignId: note.campaignId },
+    { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] },
+  )
+
+  await deleteNoteBlocks(ctx, noteId, note.campaignId)
+  await ctx.db.delete(noteId)
+
+  return noteId
 }

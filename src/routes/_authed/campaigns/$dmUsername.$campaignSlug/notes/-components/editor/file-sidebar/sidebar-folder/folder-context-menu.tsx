@@ -13,6 +13,7 @@ import { useFileSidebar } from '~/contexts/FileSidebarContext'
 import { useFolderActions } from '~/hooks/useFolderActions'
 import { useFolderState } from '~/hooks/useFolderState'
 import { useNoteActions } from '~/hooks/useNoteActions'
+import { useSidebarItems } from '~/hooks/useSidebarItems'
 import { FilePlus, FolderPlus, FolderEdit, Trash2 } from '~/lib/icons'
 
 interface FolderContextMenuProps {
@@ -31,6 +32,10 @@ export const FolderContextMenu = forwardRef<
   const { createNote } = useNoteActions()
   const { campaignWithMembership } = useCampaign()
   const campaignId = campaignWithMembership.data?.campaign._id
+
+  const hasDirectChildren =
+    folder &&
+    (useSidebarItems(folder.categoryId, folder._id).data?.length || 0) > 0
 
   if (!campaignId) return children
 
@@ -121,7 +126,19 @@ export const FolderContextMenu = forwardRef<
         onClose={() => setConfirmDeleteDialogOpen(false)}
         onConfirm={confirmDeleteFolder}
         title="Delete Folder"
-        description="Are you sure you want to delete this folder and all its contents?"
+        description={
+          hasDirectChildren ? (
+            <p>
+              <strong>This folder isn't empty!</strong>
+              <br />
+              <span>
+                Are you sure you want to delete it and all its contents?
+              </span>
+            </p>
+          ) : (
+            <p>Are you sure you want to delete this folder?</p>
+          )
+        }
         confirmLabel="Delete Folder"
         confirmVariant="destructive"
         icon={Trash2}

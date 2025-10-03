@@ -18,6 +18,7 @@ import { useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from 'convex/_generated/api'
 import { ConfirmationDialog } from '~/components/dialogs/confirmation-dialog'
+import { useSidebarItems } from '~/hooks/useSidebarItems'
 
 export interface CategoryContextMenuProps {
   children: React.ReactNode
@@ -49,6 +50,10 @@ export const CategoryContextMenu = forwardRef<
     const campaign = campaignWithMembership?.data?.campaign
     const { createFolder, deleteFolder } = useFolderActions()
     const { setRenamingId } = useFileSidebar()
+
+    const hasDirectChildren =
+      folder &&
+      (useSidebarItems(folder.categoryId, folder._id).data?.length || 0) > 0
 
     // Get the category ID for this folder
     const getCategory = useQuery(
@@ -175,7 +180,19 @@ export const CategoryContextMenu = forwardRef<
             onClose={() => setConfirmDeleteDialogOpen(false)}
             onConfirm={confirmDeleteFolderFn}
             title={`Delete ${folder.name || 'Folder'}`}
-            description={`Are you sure you want to delete this folder and all its contents?`}
+            description={
+              hasDirectChildren ? (
+                <p>
+                  <strong>This folder isn't empty!</strong>
+                  <br />
+                  <span>
+                    Are you sure you want to delete it and all its contents?
+                  </span>
+                </p>
+              ) : (
+                <p>Are you sure you want to delete this folder?</p>
+              )
+            }
             confirmLabel="Delete Folder"
             confirmVariant="destructive"
             icon={Trash2}

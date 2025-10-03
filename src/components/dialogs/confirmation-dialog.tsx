@@ -14,7 +14,7 @@ interface ConfirmationDialogProps {
   onClose: () => void
   onConfirm: () => void
   title: string
-  description: string
+  description: ReactNode
   confirmLabel?: string
   confirmVariant?: 'default' | 'destructive'
   icon?: LucideIcon

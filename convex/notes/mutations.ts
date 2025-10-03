@@ -15,7 +15,11 @@ import { CAMPAIGN_MEMBER_ROLE } from '../campaigns/types'
 import { requireCampaignMembership } from '../campaigns/campaigns'
 import { getFolder as getFolderFn } from './notes'
 import { blockNoteIdValidator, customBlockValidator } from './schema'
-import { deleteNoteBlocks, getTopLevelBlocksByNote } from './helpers'
+import {
+  deleteNoteBlocks,
+  getTopLevelBlocksByNote,
+  deleteNote as deleteNoteFn,
+} from './helpers'
 
 export const updateNote = mutation({
   args: {
@@ -112,21 +116,7 @@ export const deleteNote = mutation({
   },
   returns: v.id('notes'),
   handler: async (ctx, args): Promise<Id<'notes'>> => {
-    const note = await ctx.db.get(args.noteId)
-    if (!note) {
-      throw new Error('Note not found')
-    }
-
-    await requireCampaignMembership(
-      ctx,
-      { campaignId: note.campaignId },
-      { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] },
-    )
-
-    await deleteNoteBlocks(ctx, args.noteId, note.campaignId)
-    await ctx.db.delete(args.noteId)
-
-    return args.noteId
+    return await deleteNoteFn(ctx, args.noteId)
   },
 })
 

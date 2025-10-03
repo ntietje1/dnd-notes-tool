@@ -11,6 +11,7 @@ import { Block } from '../notes/types'
 import { CAMPAIGN_MEMBER_ROLE } from '../campaigns/types'
 import { requireCampaignMembership } from '../campaigns/campaigns'
 import { Ctx } from '../common/types'
+import { deleteNote } from '../notes/helpers'
 
 export const getTag = async (ctx: Ctx, tagId: Id<'tags'>): Promise<Tag> => {
   const tag = await ctx.db.get(tagId)
@@ -507,6 +508,20 @@ export const deleteTagAndCleanupContent = async (
 
   if (category.kind === CATEGORY_KIND.SystemManaged) {
     throw new Error('System-managed categories cannot be deleted')
+  }
+
+  const note = await ctx.db
+    .query('notes')
+    .withIndex('by_campaign_category_tag', (q) =>
+      q
+        .eq('campaignId', tag.campaignId)
+        .eq('categoryId', tag.categoryId)
+        .eq('tagId', tagId),
+    )
+    .unique()
+
+  if (note) {
+    await deleteNote(ctx, note._id)
   }
   //TODO: modify all tags in content to just be text without being an actual tag inline content
   await ctx.db.delete(tagId)
