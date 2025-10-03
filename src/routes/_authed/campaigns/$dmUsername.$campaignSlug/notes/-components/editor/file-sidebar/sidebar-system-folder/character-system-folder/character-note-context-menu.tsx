@@ -8,12 +8,12 @@ import type { ContextMenuRef } from '~/components/context-menu/context-menu'
 export const CharacterNoteContextMenu = forwardRef<
   ContextMenuRef,
   TagNoteContextMenuProps
->(({ children, tagWithNote, categoryConfig, ...props }, ref) => {
+>(({ children, noteWithTag, categoryConfig, ...props }, ref) => {
   // const character = useQuery(convexQuery(api.characters.queries.getCharacterByTagId, { tagId: tag._id }));
   return (
     <TagNoteContextMenu
       ref={ref}
-      tagWithNote={tagWithNote}
+      noteWithTag={noteWithTag}
       categoryConfig={categoryConfig}
       {...props}
     >
