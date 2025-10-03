@@ -3,6 +3,7 @@ import { query } from '../_generated/server'
 import {
   Campaign,
   CAMPAIGN_MEMBER_ROLE,
+  CAMPAIGN_MEMBER_STATUS,
   CampaignMember,
   CampaignMemberRole,
   CampaignMemberStatus,
@@ -21,6 +22,11 @@ export const getUserCampaigns = query({
       .query('campaignMembers')
       .withIndex('by_user', (q) => q.eq('userId', profile.userId))
       .collect()
+      .then((memberships) =>
+        memberships.filter(
+          (membership) => membership.status === CAMPAIGN_MEMBER_STATUS.Accepted,
+        ),
+      )
 
     const campaigns = await Promise.all(
       campaignMemberships.map((membership) =>

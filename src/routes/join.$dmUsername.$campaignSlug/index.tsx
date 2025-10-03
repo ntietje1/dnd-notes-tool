@@ -17,6 +17,7 @@ import {
   CAMPAIGN_MEMBER_STATUS,
 } from 'convex/campaigns/types'
 import { useState } from 'react'
+import { Header } from '~/components/Header'
 
 export const Route = createFileRoute('/join/$dmUsername/$campaignSlug/')({
   component: RouteComponent,
@@ -467,23 +468,26 @@ function RouteComponent() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-lg shadow-2xl border-0 bg-white/95 backdrop-blur-sm">
-        <CardHeader className="text-center pb-6 pt-8">
-          <StatusIcon variant={cardContent.statusVariant} />
-          <CardTitle
-            className={`text-2xl font-bold ${cardContent.titleColor} mb-3 tracking-tight`}
-          >
-            {cardContent.title}
-          </CardTitle>
-          <CardDescription className="text-slate-600 text-base leading-relaxed px-2">
-            {cardContent.description}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="text-center pb-8 px-8 min-h-[120px] flex flex-col justify-center">
-          {cardContent.children}
-        </CardContent>
-      </Card>
+    <div className="min-h-screen bg-slate-50 flex flex-col">
+      {user && <Header />}
+      <div className="flex-1 flex items-center justify-center p-4">
+        <Card className="w-full max-w-lg shadow-2xl border-0 bg-white/95 backdrop-blur-sm">
+          <CardHeader className="text-center pb-6 pt-8">
+            <StatusIcon variant={cardContent.statusVariant} />
+            <CardTitle
+              className={`text-2xl font-bold ${cardContent.titleColor} mb-3 tracking-tight`}
+            >
+              {cardContent.title}
+            </CardTitle>
+            <CardDescription className="text-slate-600 text-base leading-relaxed px-2">
+              {cardContent.description}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center pb-8 px-8 min-h-[120px] flex flex-col justify-center">
+            {cardContent.children}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

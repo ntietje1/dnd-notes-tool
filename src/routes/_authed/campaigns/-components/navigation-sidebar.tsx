@@ -40,8 +40,17 @@ const navigationItems = [
 export const NavigationSidebar = () => {
   const { dmUsername, campaignSlug } = useCampaign()
   const { pathname } = useLocation()
+
   const isActive = (item: (typeof navigationItems)[number]) => {
-    return pathname === item.to
+    const resolvedPath = item.to
+      .replace('$dmUsername', dmUsername)
+      .replace('$campaignSlug', campaignSlug)
+
+    if (item.exact) {
+      return pathname === resolvedPath || pathname === resolvedPath + '/'
+    } else {
+      return pathname.startsWith(resolvedPath)
+    }
   }
 
   return (

@@ -114,7 +114,7 @@ export const joinCampaign = mutation({
       updatedAt: now,
     })
 
-    await ensurePlayerSharedTag(ctx, campaign._id, memberId)
+    await ensurePlayerSharedTag(ctx, campaign._id, memberId).catch((_) => {})
 
     return CAMPAIGN_MEMBER_STATUS.Pending
   },
