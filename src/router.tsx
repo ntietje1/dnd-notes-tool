@@ -23,7 +23,7 @@ export function createRouter() {
       queries: {
         queryKeyHashFn: convexQueryClient.hashFn(),
         queryFn: convexQueryClient.queryFn(),
-        gcTime: 5000
+        gcTime: 5000,
       },
     },
   })
@@ -40,7 +40,10 @@ export function createRouter() {
       context: { queryClient, convexClient: convex, convexQueryClient },
       Wrap: ({ children }) => (
         <>
-          <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
+          <ReactQueryDevtools
+            initialIsOpen={false}
+            buttonPosition="bottom-left"
+          />
           {children}
         </>
       ),

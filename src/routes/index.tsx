@@ -1,6 +1,6 @@
 import { SignedIn, SignedOut } from '@clerk/tanstack-react-start'
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Button } from '~/components/shadcn/ui/button';
+import { Button } from '~/components/shadcn/ui/button'
 
 export const Route = createFileRoute('/')({
   component: Home,
@@ -18,25 +18,19 @@ function Home() {
         </p>
         <SignedOut>
           <Link to="/sign-in">
-            <Button
-              size="lg"
-              className="text-lg px-8 min-w-32"
-            >
-            Get Started
-          </Button>
+            <Button size="lg" className="text-lg px-8 min-w-32">
+              Get Started
+            </Button>
           </Link>
         </SignedOut>
         <SignedIn>
           <Link to="/campaigns">
-            <Button
-              size="lg"
-              className="text-lg px-8 min-w-32"
-            >
-            Continue
-          </Button>
+            <Button size="lg" className="text-lg px-8 min-w-32">
+              Continue
+            </Button>
           </Link>
         </SignedIn>
       </div>
     </div>
-  );
+  )
 }

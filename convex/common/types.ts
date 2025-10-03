@@ -1,4 +1,3 @@
-import { MutationCtx, QueryCtx } from "../_generated/server";
+import { MutationCtx, QueryCtx } from '../_generated/server'
 
-
-export type Ctx = MutationCtx | QueryCtx; // ActionCtx doesn't have db access
+export type Ctx = MutationCtx | QueryCtx // ActionCtx doesn't have db access

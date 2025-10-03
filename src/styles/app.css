@@ -1,5 +1,5 @@
 @import 'tailwindcss';
-@import "tw-animate-css";
+@import 'tw-animate-css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -135,11 +135,11 @@
   .fade-in-delayed {
     animation: fadeInDelayed 0.3s ease-in-out 0.25s both;
   }
-  
+
   .fade-in-delayed-slow {
     animation: fadeInDelayed 0.4s ease-in-out 0.35s both;
   }
-  
+
   .fade-in-delayed-fast {
     animation: fadeInDelayed 0.2s ease-in-out 0.15s both;
   }
@@ -151,5 +151,5 @@
     to {
       opacity: 1;
     }
-  }  
+  }
 }

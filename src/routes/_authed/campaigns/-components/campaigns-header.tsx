@@ -1,6 +1,6 @@
-import { Sword, Shield } from "~/lib/icons";
+import { Sword, Shield } from '~/lib/icons'
 
-export function CampaignsHeader() { 
+export function CampaignsHeader() {
   return (
     <div className="text-center mb-12">
       <div className="flex items-center justify-center gap-3 mb-4">
@@ -17,5 +17,5 @@ export function CampaignsHeader() {
         adventures or continue existing ones.
       </p>
     </div>
-  );
+  )
 }

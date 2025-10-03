@@ -96,7 +96,11 @@ export function canDropItem(active: Active | null, over: Over | null): boolean {
   const targetData = over.data.current as DropData
 
   // Prevent dragging onto the direct parent
-  if ((targetData.type === SIDEBAR_ROOT_TYPE && !draggedItem.parentFolderId) || (targetData.type === SIDEBAR_ITEM_TYPES.folders && draggedItem.parentFolderId === over.id)) {
+  if (
+    (targetData.type === SIDEBAR_ROOT_TYPE && !draggedItem.parentFolderId) ||
+    (targetData.type === SIDEBAR_ITEM_TYPES.folders &&
+      draggedItem.parentFolderId === over.id)
+  ) {
     return false
   }
 

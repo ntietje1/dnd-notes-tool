@@ -1,20 +1,26 @@
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "~/components/shadcn/ui/dialog";
-import { Button } from "~/components/shadcn/ui/button";
-import { AlertTriangle, Loader2, type LucideIcon } from "~/lib/icons";
-import { type ReactNode } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '~/components/shadcn/ui/dialog'
+import { Button } from '~/components/shadcn/ui/button'
+import { AlertTriangle, Loader2, type LucideIcon } from '~/lib/icons'
+import { type ReactNode } from 'react'
 
 interface ConfirmationDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
-  title: string;
-  description: string;
-  confirmLabel?: string;
-  confirmVariant?: "default" | "destructive";
-  icon?: LucideIcon;
-  children?: ReactNode;
-  isLoading?: boolean;
-  disabled?: boolean;
+  isOpen: boolean
+  onClose: () => void
+  onConfirm: () => void
+  title: string
+  description: string
+  confirmLabel?: string
+  confirmVariant?: 'default' | 'destructive'
+  icon?: LucideIcon
+  children?: ReactNode
+  isLoading?: boolean
+  disabled?: boolean
 }
 
 export function ConfirmationDialog({
@@ -23,8 +29,8 @@ export function ConfirmationDialog({
   onConfirm,
   title,
   description,
-  confirmLabel = "Confirm",
-  confirmVariant = "destructive",
+  confirmLabel = 'Confirm',
+  confirmVariant = 'destructive',
   icon: Icon = AlertTriangle,
   children,
   isLoading = false,
@@ -32,23 +38,27 @@ export function ConfirmationDialog({
 }: ConfirmationDialogProps) {
   const handleConfirm = () => {
     if (!disabled && !isLoading) {
-      onConfirm();
+      onConfirm()
     }
-  };
+  }
 
   const handleClose = () => {
     if (!isLoading) {
-      onClose();
+      onClose()
     }
-  };
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <div className="flex items-center gap-3 mb-2">
-            <div className={`p-2 rounded-full ${confirmVariant === "destructive" ? "bg-red-100" : "bg-amber-100"}`}>
-              <Icon className={`w-5 h-5 ${confirmVariant === "destructive" ? "text-red-600" : "text-amber-600"}`} />
+            <div
+              className={`p-2 rounded-full ${confirmVariant === 'destructive' ? 'bg-red-100' : 'bg-amber-100'}`}
+            >
+              <Icon
+                className={`w-5 h-5 ${confirmVariant === 'destructive' ? 'text-red-600' : 'text-amber-600'}`}
+              />
             </div>
             <DialogTitle className="text-lg font-semibold text-slate-800">
               {title}
@@ -88,5 +98,5 @@ export function ConfirmationDialog({
         </div>
       </DialogContent>
     </Dialog>
-  );
-} 
+  )
+}

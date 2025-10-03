@@ -1,6 +1,11 @@
-import { Link } from "@tanstack/react-router";
-import type { ReactNode } from "react";
-import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/tanstack-react-start";
+import { Link } from '@tanstack/react-router'
+import type { ReactNode } from 'react'
+import {
+  SignedIn,
+  SignedOut,
+  SignInButton,
+  UserButton,
+} from '@clerk/tanstack-react-start'
 
 type HeaderProps = {
   children?: ReactNode
@@ -20,7 +25,7 @@ export function Header({ children }: HeaderProps) {
         </header>
         <div className="ml-auto">
           <SignedIn>
-            <UserButton/>
+            <UserButton />
           </SignedIn>
           <SignedOut>
             <SignInButton mode="modal" />
@@ -28,5 +33,5 @@ export function Header({ children }: HeaderProps) {
         </div>
       </div>
     </div>
-  );
+  )
 }

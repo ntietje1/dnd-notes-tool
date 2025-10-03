@@ -2,9 +2,9 @@ import { createFileRoute } from '@tanstack/react-router'
 import CharactersContent from './-components/characters-content'
 import CharactersHeader from './-components/characters-header'
 
-
-
-export const Route = createFileRoute('/_authed/campaigns/$dmUsername/$campaignSlug/characters/')({
+export const Route = createFileRoute(
+  '/_authed/campaigns/$dmUsername/$campaignSlug/characters/',
+)({
   component: CharactersIndexPage,
 })
 

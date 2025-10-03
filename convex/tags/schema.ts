@@ -1,6 +1,6 @@
-import { defineTable } from "convex/server";
-import { v } from "convex/values";
-import { CATEGORY_KIND } from "./types";
+import { defineTable } from 'convex/server'
+import { v } from 'convex/values'
+import { CATEGORY_KIND } from './types'
 
 export const tagTables = {
   tagCategories: defineTable({
@@ -11,21 +11,21 @@ export const tagTables = {
       v.literal(CATEGORY_KIND.SystemManaged),
       v.literal(CATEGORY_KIND.User),
     ),
-    campaignId: v.id("campaigns"),
+    campaignId: v.id('campaigns'),
     updatedAt: v.number(),
-  }).index("by_campaign_name", ["campaignId", "name"]),
+  }).index('by_campaign_name', ['campaignId', 'name']),
 
   tags: defineTable({
     displayName: v.string(),
     name: v.string(),
     color: v.string(),
     description: v.optional(v.string()),
-    campaignId: v.id("campaigns"),
-    categoryId: v.id("tagCategories"),
-    memberId: v.optional(v.id("campaignMembers")),
+    campaignId: v.id('campaigns'),
+    categoryId: v.id('tagCategories'),
+    memberId: v.optional(v.id('campaignMembers')),
     createdBy: v.string(),
     updatedAt: v.number(),
   })
-    .index("by_campaign_categoryId", ["campaignId", "categoryId"])
-    .index("by_campaign_name", ["campaignId", "name"]),
-};
+    .index('by_campaign_categoryId', ['campaignId', 'categoryId'])
+    .index('by_campaign_name', ['campaignId', 'name']),
+}

@@ -18,7 +18,13 @@ import {
   getFolder as getFolderFn,
   getNoteWithContent,
 } from './notes'
-import { blockValidator, folderWithChildrenValidator, noteValidator, noteWithContentValidator, sidebarItemValidator } from './validators'
+import {
+  blockValidator,
+  folderWithChildrenValidator,
+  noteValidator,
+  noteWithContentValidator,
+  sidebarItemValidator,
+} from './validators'
 
 export const getFolder = query({
   args: {
@@ -27,7 +33,7 @@ export const getFolder = query({
   returns: folderWithChildrenValidator,
   handler: async (ctx, args): Promise<Folder> => {
     const folder = await getFolderFn(ctx, args.folderId)
-    
+
     await requireCampaignMembership(
       ctx,
       { campaignId: folder.campaignId },

@@ -1,34 +1,34 @@
-import { Id } from "../_generated/dataModel";
+import { Id } from '../_generated/dataModel'
 
 export const SORT_ORDERS = {
-  Alphabetical: "Alphabetical",
-  DateCreated: "DateCreated",
-  DateModified: "DateModified",
-} as const;
+  Alphabetical: 'Alphabetical',
+  DateCreated: 'DateCreated',
+  DateModified: 'DateModified',
+} as const
 
-export type SortOrder = (typeof SORT_ORDERS)[keyof typeof SORT_ORDERS];
+export type SortOrder = (typeof SORT_ORDERS)[keyof typeof SORT_ORDERS]
 
 export const SORT_DIRECTIONS = {
-  Ascending: "Ascending",
-  Descending: "Descending",
-} as const;
+  Ascending: 'Ascending',
+  Descending: 'Descending',
+} as const
 
 export type SortDirection =
-  (typeof SORT_DIRECTIONS)[keyof typeof SORT_DIRECTIONS];
+  (typeof SORT_DIRECTIONS)[keyof typeof SORT_DIRECTIONS]
 
 export interface SortOptions {
-  order: SortOrder;
-  direction: SortDirection;
-  foldersAlwaysOnTop: boolean;
+  order: SortOrder
+  direction: SortDirection
+  foldersAlwaysOnTop: boolean
 }
 
 export type Editor = {
-  _id: Id<"editor">;
-  _creationTime: number;
+  _id: Id<'editor'>
+  _creationTime: number
 
-  campaignId: Id<"campaigns">;
-  userId: string;
-  sortOrder: SortOrder;
-  sortDirection: SortDirection;
-  foldersAlwaysOnTop: boolean;
-};
+  campaignId: Id<'campaigns'>
+  userId: string
+  sortOrder: SortOrder
+  sortDirection: SortDirection
+  foldersAlwaysOnTop: boolean
+}

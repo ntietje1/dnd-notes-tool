@@ -1,4 +1,9 @@
-import { SIDEBAR_ITEM_TYPES, type AnySidebarItem, UNTITLED_FOLDER_NAME, UNTITLED_NOTE_TITLE } from 'convex/notes/types'
+import {
+  SIDEBAR_ITEM_TYPES,
+  type AnySidebarItem,
+  UNTITLED_FOLDER_NAME,
+  UNTITLED_NOTE_TITLE,
+} from 'convex/notes/types'
 import { SidebarItemButtonBase } from './sidebar-item-button-base'
 import { Folder as FolderIcon, FileText } from '~/lib/icons'
 

@@ -4,28 +4,30 @@ import { convexQuery } from '@convex-dev/react-query'
 import { api } from 'convex/_generated/api'
 import type { Id } from 'convex/_generated/dataModel'
 
-export const Route = createFileRoute('/_authed/campaigns/$dmUsername/$campaignSlug/locations/$locationId')({
+export const Route = createFileRoute(
+  '/_authed/campaigns/$dmUsername/$campaignSlug/locations/$locationId',
+)({
   component: LocationDetailPage,
 })
 
 function LocationDetailPage() {
-  const locationId = useParams({ 
-    from: '/_authed/campaigns/$dmUsername/$campaignSlug/locations/$locationId'
-  })?.locationId;
-  
-  const location = useQuery(convexQuery(api.locations.queries.getLocationById, { locationId: locationId as Id<"locations"> }))
+  const locationId = useParams({
+    from: '/_authed/campaigns/$dmUsername/$campaignSlug/locations/$locationId',
+  })?.locationId
 
-  if (location.status === "error") {
-    return (
-      <div>Error</div>
-    )
+  const location = useQuery(
+    convexQuery(api.locations.queries.getLocationById, {
+      locationId: locationId as Id<'locations'>,
+    }),
+  )
+
+  if (location.status === 'error') {
+    return <div>Error</div>
   }
 
-  if (location.status === "pending") {
+  if (location.status === 'pending') {
     return <div>Loading...</div>
   }
 
-  return (
-    <div>{location.data?.name}</div>
-  )
+  return <div>{location.data?.name}</div>
 }

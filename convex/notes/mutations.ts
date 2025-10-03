@@ -53,7 +53,6 @@ export const updateNote = mutation({
       }
     }
 
-
     await ctx.db.patch(args.noteId, updates)
     return args.noteId
   },

@@ -86,6 +86,8 @@ export default [
       'no-var': 'error',
       'object-shorthand': 'error',
       'prefer-template': 'error',
+      'no-unused-vars': 'off', // Use TypeScript version instead
+      'no-case-declarations': 'error',
     },
     settings: {
       react: {
@@ -116,7 +118,27 @@ export default [
         console: 'readonly',
         process: 'readonly',
         Buffer: 'readonly',
+        // Browser globals
+        window: 'readonly',
+        document: 'readonly',
+        navigator: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
+        ResizeObserver: 'readonly',
+        StorageEvent: 'readonly',
+        // React globals
+        React: 'readonly',
+        // HTML Element types
+        HTMLDivElement: 'readonly',
+        HTMLInputElement: 'readonly',
+        HTMLElement: 'readonly',
       },
+    },
+    rules: {
+      'no-unused-vars': 'off', // Use TypeScript version instead
+      'no-case-declarations': 'error',
     },
   },
   {

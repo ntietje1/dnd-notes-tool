@@ -1,71 +1,80 @@
-import { api } from "convex/_generated/api";
-import { ContentGrid } from "~/components/content-grid-page/content-grid";
-import { ContentCard } from "~/components/content-grid-page/content-card";
-import { CreateActionCard } from "~/components/content-grid-page/create-action-card";
-import { EmptyState } from "~/components/content-grid-page/empty-state";
-import { ConfirmationDialog } from "~/components/dialogs/confirmation-dialog";
-import { MapPin, Plus, Edit, Trash2 } from "~/lib/icons";
-import { useState } from "react";
-import type { Location } from "convex/locations/types";
-import LocationDialog from "../../../../../../components/forms/category-tag-dialogs/location-tag-dialog/location-dialog";
-import { toast } from "sonner";
-import { CardGridSkeleton } from "~/components/content-grid-page/card-grid-skeleton";
-import { useCampaign } from "~/contexts/CampaignContext";
-import { useRouter } from "@tanstack/react-router";
-import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { LOCATION_CONFIG } from "~/components/forms/category-tag-dialogs/location-tag-dialog/types";
+import { api } from 'convex/_generated/api'
+import { ContentGrid } from '~/components/content-grid-page/content-grid'
+import { ContentCard } from '~/components/content-grid-page/content-card'
+import { CreateActionCard } from '~/components/content-grid-page/create-action-card'
+import { EmptyState } from '~/components/content-grid-page/empty-state'
+import { ConfirmationDialog } from '~/components/dialogs/confirmation-dialog'
+import { MapPin, Plus, Edit, Trash2 } from '~/lib/icons'
+import { useState } from 'react'
+import type { Location } from 'convex/locations/types'
+import LocationDialog from '../../../../../../components/forms/category-tag-dialogs/location-tag-dialog/location-dialog'
+import { toast } from 'sonner'
+import { CardGridSkeleton } from '~/components/content-grid-page/card-grid-skeleton'
+import { useCampaign } from '~/contexts/CampaignContext'
+import { useRouter } from '@tanstack/react-router'
+import { convexQuery, useConvexMutation } from '@convex-dev/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { LOCATION_CONFIG } from '~/components/forms/category-tag-dialogs/location-tag-dialog/types'
 
 export default function LocationsContent() {
-  const { dmUsername, campaignSlug, campaignWithMembership } = useCampaign();
-  const campaign = campaignWithMembership?.data?.campaign;
+  const { dmUsername, campaignSlug, campaignWithMembership } = useCampaign()
+  const campaign = campaignWithMembership?.data?.campaign
 
-  const locations = useQuery(convexQuery(api.locations.queries.getLocationsByCampaign,
-    campaign?._id ? { campaignId: campaign?._id } : "skip"
-  ))
-  const router = useRouter();
+  const locations = useQuery(
+    convexQuery(
+      api.locations.queries.getLocationsByCampaign,
+      campaign?._id ? { campaignId: campaign?._id } : 'skip',
+    ),
+  )
+  const router = useRouter()
 
-  const [creatingLocation, setCreatingLocation] = useState(false);
-  const [editingLocation, setEditingLocation] =
-    useState<Location | null>(null);
-  const [deletingLocation, setDeletingLocation] =
-    useState<Location | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [creatingLocation, setCreatingLocation] = useState(false)
+  const [editingLocation, setEditingLocation] = useState<Location | null>(null)
+  const [deletingLocation, setDeletingLocation] = useState<Location | null>(
+    null,
+  )
+  const [isDeleting, setIsDeleting] = useState(false)
 
-  const deleteLocation = useMutation({ mutationFn: useConvexMutation(api.locations.mutations.deleteLocation) });
+  const deleteLocation = useMutation({
+    mutationFn: useConvexMutation(api.locations.mutations.deleteLocation),
+  })
 
   const handleViewLocationNotes = (location: Location) => {
     router.navigate({
-      to: "/campaigns/$dmUsername/$campaignSlug/locations/$locationId",
+      to: '/campaigns/$dmUsername/$campaignSlug/locations/$locationId',
       params: {
         dmUsername,
         campaignSlug,
         locationId: location.locationId,
       },
-    });
-  };
+    })
+  }
 
   const handleDeleteLocation = async () => {
-    if (!deletingLocation) return;
+    if (!deletingLocation) return
 
-    setIsDeleting(true);
+    setIsDeleting(true)
 
     try {
       await deleteLocation.mutateAsync({
         locationId: deletingLocation.locationId,
-      });
+      })
 
-      toast.success("Location deleted successfully");
-      setDeletingLocation(null);
+      toast.success('Location deleted successfully')
+      setDeletingLocation(null)
     } catch (_) {
-      toast.error("Failed to delete location");
+      toast.error('Failed to delete location')
     } finally {
-      setIsDeleting(false);
+      setIsDeleting(false)
     }
-  };
+  }
 
-  if (campaignWithMembership.status === "pending" || locations.status === "pending" || !locations.data) {
-    return <LocationsContentLoading />;
+  if (
+    campaignWithMembership.status === 'pending' ||
+    locations.status === 'pending' ||
+    !locations.data
+  ) {
+    return <LocationsContentLoading />
   }
 
   return (
@@ -88,9 +97,9 @@ export default function LocationsContent() {
             color={location.color}
             badges={[
               {
-                text: "Location",
+                text: 'Location',
                 icon: <MapPin className="w-3 h-3" />,
-                variant: "secondary",
+                variant: 'secondary',
               },
             ]}
             onClick={() => handleViewLocationNotes(location)}
@@ -98,19 +107,19 @@ export default function LocationsContent() {
               {
                 icon: <Edit className="w-4 h-4" />,
                 onClick: (e) => {
-                  e.stopPropagation();
-                  setEditingLocation(location);
+                  e.stopPropagation()
+                  setEditingLocation(location)
                 },
-                "aria-label": "Edit location",
+                'aria-label': 'Edit location',
               },
               {
                 icon: <Trash2 className="w-4 h-4" />,
                 onClick: (e) => {
-                  e.stopPropagation();
-                  setDeletingLocation(location);
+                  e.stopPropagation()
+                  setDeletingLocation(location)
                 },
-                "aria-label": "Delete location",
-                variant: "destructive-subtle",
+                'aria-label': 'Delete location',
+                variant: 'destructive-subtle',
               },
             ]}
           />
@@ -122,7 +131,7 @@ export default function LocationsContent() {
             title="No locations yet"
             description="Create your first location to start organizing places in your campaign. Each location will automatically create a tag you can use in your notes."
             action={{
-              label: "Create First Location",
+              label: 'Create First Location',
               onClick: () => setCreatingLocation(true),
               icon: Plus,
             }}
@@ -160,11 +169,11 @@ export default function LocationsContent() {
         icon={MapPin}
       />
     </>
-  );
+  )
 }
 
 function LocationsContentLoading() {
   return (
     <CardGridSkeleton count={6} showCreateCard={true} cardHeight="h-[180px]" />
-  );
+  )
 }

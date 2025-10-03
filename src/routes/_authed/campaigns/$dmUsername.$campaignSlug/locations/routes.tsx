@@ -1,6 +1,8 @@
 import { createFileRoute, Outlet } from '@tanstack/react-router'
 
-export const Route = createFileRoute('/_authed/campaigns/$dmUsername/$campaignSlug/locations/routes')({
+export const Route = createFileRoute(
+  '/_authed/campaigns/$dmUsername/$campaignSlug/locations/routes',
+)({
   component: LocationsLayout,
 })
 

@@ -3,10 +3,19 @@ import { useQuery, useMutation } from '@tanstack/react-query'
 import { convexQuery, useConvexMutation } from '@convex-dev/react-query'
 import { api } from 'convex/_generated/api'
 import { useUser, SignIn } from '@clerk/tanstack-react-start'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/shadcn/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '~/components/shadcn/ui/card'
 import { Button } from '~/components/shadcn/ui/button'
 import { Shield, Users, Loader2 } from '~/lib/icons'
-import { CAMPAIGN_MEMBER_ROLE, CAMPAIGN_MEMBER_STATUS } from 'convex/campaigns/types'
+import {
+  CAMPAIGN_MEMBER_ROLE,
+  CAMPAIGN_MEMBER_STATUS,
+} from 'convex/campaigns/types'
 import { useState } from 'react'
 
 export const Route = createFileRoute('/join/$dmUsername/$campaignSlug/')({
@@ -21,39 +30,39 @@ interface StatusIconProps {
 
 function StatusIcon({ variant }: StatusIconProps) {
   const configs = {
-    loading: { 
-      bg: 'bg-blue-100', 
+    loading: {
+      bg: 'bg-blue-100',
       icon: 'text-blue-600',
-      ring: 'ring-blue-200/50'
+      ring: 'ring-blue-200/50',
     },
-    success: { 
-      bg: 'bg-emerald-100', 
+    success: {
+      bg: 'bg-emerald-100',
       icon: 'text-emerald-600',
-      ring: 'ring-emerald-200/50'
+      ring: 'ring-emerald-200/50',
     },
-    error: { 
-      bg: 'bg-red-100', 
+    error: {
+      bg: 'bg-red-100',
       icon: 'text-red-600',
-      ring: 'ring-red-200/50'
+      ring: 'ring-red-200/50',
     },
-    warning: { 
-      bg: 'bg-amber-100', 
+    warning: {
+      bg: 'bg-amber-100',
       icon: 'text-amber-600',
-      ring: 'ring-amber-200/50'
-    }
+      ring: 'ring-amber-200/50',
+    },
   }
-  
+
   const config = configs[variant]
-  
+
   return (
-    <div className={`relative p-4 ${config.bg} ${config.ring} ring-2 rounded-2xl w-20 h-20 mx-auto mb-6 flex items-center justify-center shadow-lg hover:scale-102`}>
+    <div
+      className={`relative p-4 ${config.bg} ${config.ring} ring-2 rounded-2xl w-20 h-20 mx-auto mb-6 flex items-center justify-center shadow-lg hover:scale-102`}
+    >
       <Shield className={`h-10 w-10 ${config.icon} drop-shadow-sm`} />
       <div className="absolute inset-0 bg-white/20 rounded-2xl" />
     </div>
   )
 }
-
-
 
 function RouteComponent() {
   const navigate = useNavigate()
@@ -65,7 +74,7 @@ function RouteComponent() {
     convexQuery(api.campaigns.queries.getPublicCampaignBySlug, {
       dmUsername,
       slug: campaignSlug,
-    })
+    }),
   )
 
   const { campaign, campaignMember } = campaignQuery.data ?? {}
@@ -76,10 +85,10 @@ function RouteComponent() {
 
   const handleJoinCampaign = async () => {
     if (!campaign) return
-    
-    await joinCampaign.mutateAsync({ 
-      slug: campaignSlug, 
-      dmUsername: dmUsername 
+
+    await joinCampaign.mutateAsync({
+      slug: campaignSlug,
+      dmUsername: dmUsername,
     })
   }
 
@@ -88,32 +97,32 @@ function RouteComponent() {
   }
 
   const goToCampaignHome = () => {
-    navigate({ 
+    navigate({
       to: '/campaigns/$dmUsername/$campaignSlug',
-      params: { dmUsername, campaignSlug }
+      params: { dmUsername, campaignSlug },
     })
   }
 
   const goToPlayers = () => {
-    navigate({ 
+    navigate({
       to: '/campaigns/$dmUsername/$campaignSlug/players',
-      params: { dmUsername, campaignSlug }
+      params: { dmUsername, campaignSlug },
     })
   }
 
   const getCardContent = () => {
     if (!isUserLoaded) {
       return {
-        title: "Loading User...",
-        description: "Please wait a moment.",
-        statusVariant: "loading" as const,
-        titleColor: "text-slate-900",
+        title: 'Loading User...',
+        description: 'Please wait a moment.',
+        statusVariant: 'loading' as const,
+        titleColor: 'text-slate-900',
         children: (
           <div className="flex flex-col items-center justify-center space-y-3">
             <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
             <p className="text-sm text-slate-500 animate-pulse">Loading...</p>
           </div>
-        )
+        ),
       }
     }
 
@@ -121,16 +130,19 @@ function RouteComponent() {
       if (showSignIn) {
         return null // don't show anything if we're showing sign-in
       }
-      
+
       return {
         title: "You've Been Invited!",
         description: campaign ? (
           <>
-            {campaign.dmUserProfile.name} has invited you to join <strong>{campaign.name}</strong>
+            {campaign.dmUserProfile.name} has invited you to join{' '}
+            <strong>{campaign.name}</strong>
           </>
-        ) : "You've been invited to join a campaign.",
-        statusVariant: "warning" as const,
-        titleColor: "text-slate-900",
+        ) : (
+          "You've been invited to join a campaign."
+        ),
+        statusVariant: 'warning' as const,
+        titleColor: 'text-slate-900',
         children: campaign ? (
           <div className="space-y-6">
             <div className="relative p-6 bg-slate-50 rounded-2xl border border-slate-200/50 shadow-sm">
@@ -145,7 +157,12 @@ function RouteComponent() {
                 <div className="p-1.5 bg-slate-200 rounded-full">
                   <Users className="h-3.5 w-3.5" />
                 </div>
-                <span>Campaign by <span className="font-medium text-slate-700">@{campaign.dmUserProfile.username}</span></span>
+                <span>
+                  Campaign by{' '}
+                  <span className="font-medium text-slate-700">
+                    @{campaign.dmUserProfile.username}
+                  </span>
+                </span>
               </div>
             </div>
             <Button
@@ -162,39 +179,40 @@ function RouteComponent() {
           >
             Sign In to Join
           </Button>
-        )
+        ),
       }
     }
 
     if (campaignQuery.isLoading) {
       return {
-        title: "Loading Campaign...",
-        description: "Please wait a moment.",
-        statusVariant: "loading" as const,
-        titleColor: "text-slate-900",
+        title: 'Loading Campaign...',
+        description: 'Please wait a moment.',
+        statusVariant: 'loading' as const,
+        titleColor: 'text-slate-900',
         children: (
           <div className="flex flex-col items-center justify-center space-y-3">
             <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
             <p className="text-sm text-slate-500 animate-pulse">Loading...</p>
           </div>
-        )
+        ),
       }
     }
 
     if (campaignQuery.isError || !campaignQuery.data || !campaign) {
       return {
-        title: "Campaign Not Found",
-        description: "The campaign link you're trying to access doesn't exist or has been removed.",
-        statusVariant: "error" as const,
-        titleColor: "text-red-800",
+        title: 'Campaign Not Found',
+        description:
+          "The campaign link you're trying to access doesn't exist or has been removed.",
+        statusVariant: 'error' as const,
+        titleColor: 'text-red-800',
         children: (
-          <Button 
-            onClick={goToHome} 
+          <Button
+            onClick={goToHome}
             className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-lg"
           >
             Browse Campaigns
           </Button>
-        )
+        ),
       }
     }
 
@@ -204,28 +222,29 @@ function RouteComponent() {
         title: "You're the DM",
         description: (
           <>
-            This is your campaign, <strong>{campaign.name}</strong>. Share the link with your players so they can join.
+            This is your campaign, <strong>{campaign.name}</strong>. Share the
+            link with your players so they can join.
           </>
         ),
-        statusVariant: "warning" as const,
-        titleColor: "text-slate-900",
+        statusVariant: 'warning' as const,
+        titleColor: 'text-slate-900',
         children: (
           <div className="flex flex-col gap-3">
-            <Button 
-              onClick={goToCampaignHome} 
+            <Button
+              onClick={goToCampaignHome}
               className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-lg"
             >
               Go to Campaign
             </Button>
-            <Button 
-              onClick={goToPlayers} 
+            <Button
+              onClick={goToPlayers}
               variant="outline"
               className="w-full h-12 border-2 border-slate-300 hover:border-slate-400 bg-white hover:bg-slate-50 text-slate-700 font-semibold rounded-xl shadow-sm"
             >
               Manage Players
             </Button>
           </div>
-        )
+        ),
       }
     }
 
@@ -234,14 +253,15 @@ function RouteComponent() {
       switch (campaignMember?.status) {
         case CAMPAIGN_MEMBER_STATUS.Pending:
           return {
-            title: "Request Sent",
+            title: 'Request Sent',
             description: (
               <>
-                Your request to join <strong>{campaign.name}</strong> has been sent. You'll gain access once the DM confirms your request.
+                Your request to join <strong>{campaign.name}</strong> has been
+                sent. You'll gain access once the DM confirms your request.
               </>
             ),
-            statusVariant: "warning" as const,
-            titleColor: "text-slate-900",
+            statusVariant: 'warning' as const,
+            titleColor: 'text-slate-900',
             children: (
               <div className="flex flex-col items-center space-y-4">
                 <div className="p-4 bg-amber-50 rounded-xl border border-amber-200">
@@ -254,7 +274,7 @@ function RouteComponent() {
                   <span>Waiting for DM approval</span>
                 </div>
               </div>
-            )
+            ),
           }
 
         case CAMPAIGN_MEMBER_STATUS.Accepted:
@@ -265,36 +285,37 @@ function RouteComponent() {
                 You now have access to <strong>{campaign.name}</strong>.
               </>
             ),
-            statusVariant: "success" as const,
-            titleColor: "text-slate-900",
+            statusVariant: 'success' as const,
+            titleColor: 'text-slate-900',
             children: (
-              <Button 
-                onClick={goToCampaignHome} 
+              <Button
+                onClick={goToCampaignHome}
                 className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl shadow-lg"
               >
                 Go to Campaign
               </Button>
-            )
+            ),
           }
 
         case CAMPAIGN_MEMBER_STATUS.Rejected:
           return {
-            title: "Request Rejected",
+            title: 'Request Rejected',
             description: (
               <>
-                Your request to join <strong>{campaign.name}</strong> has been rejected.
+                Your request to join <strong>{campaign.name}</strong> has been
+                rejected.
               </>
             ),
-            statusVariant: "error" as const,
-            titleColor: "text-red-800",
+            statusVariant: 'error' as const,
+            titleColor: 'text-red-800',
             children: (
-              <Button 
-                onClick={goToHome} 
+              <Button
+                onClick={goToHome}
                 className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl shadow-lg"
               >
                 Exit
               </Button>
-            )
+            ),
           }
 
         case CAMPAIGN_MEMBER_STATUS.Removed:
@@ -305,16 +326,16 @@ function RouteComponent() {
                 You've been removed from <strong>{campaign.name}</strong>.
               </>
             ),
-            statusVariant: "error" as const,
-            titleColor: "text-red-800",
+            statusVariant: 'error' as const,
+            titleColor: 'text-red-800',
             children: (
-              <Button 
-                onClick={goToHome} 
+              <Button
+                onClick={goToHome}
                 className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl shadow-lg"
               >
                 Exit
               </Button>
-            )
+            ),
           }
       }
     }
@@ -323,47 +344,49 @@ function RouteComponent() {
     switch (joinCampaign.status) {
       case 'error':
         return {
-          title: "Failed to Join",
-          description: "Something went wrong while trying to join. Please try again.",
-          statusVariant: "error" as const,
-          titleColor: "text-red-800",
+          title: 'Failed to Join',
+          description:
+            'Something went wrong while trying to join. Please try again.',
+          statusVariant: 'error' as const,
+          titleColor: 'text-red-800',
           children: (
-            <Button 
-              onClick={handleJoinCampaign} 
+            <Button
+              onClick={handleJoinCampaign}
               className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl shadow-lg"
             >
               Try Again
             </Button>
-          )
+          ),
         }
 
       case 'success':
         return {
-          title: "Joining Campaign...",
+          title: 'Joining Campaign...',
           description: "You're being added to the campaign...",
-          statusVariant: "loading" as const,
-          titleColor: "text-slate-900",
+          statusVariant: 'loading' as const,
+          titleColor: 'text-slate-900',
           children: (
             <div className="flex flex-col items-center justify-center space-y-3">
               <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
               <p className="text-sm text-slate-500 animate-pulse">Loading...</p>
             </div>
-          )
+          ),
         }
 
       case 'pending':
       case 'idle':
-      default:
+      default: {
         const isLoading = joinCampaign.status === 'pending'
         return {
           title: "You've Been Invited!",
           description: (
             <>
-              {campaign.dmUserProfile.name} has invited you to join <strong>{campaign.name}</strong>
+              {campaign.dmUserProfile.name} has invited you to join{' '}
+              <strong>{campaign.name}</strong>
             </>
           ),
-          statusVariant: "warning" as const,
-          titleColor: "text-slate-900",
+          statusVariant: 'warning' as const,
+          titleColor: 'text-slate-900',
           children: (
             <div className="space-y-6">
               <div className="relative p-6 bg-slate-50 rounded-2xl border border-slate-200/50 shadow-sm">
@@ -378,7 +401,12 @@ function RouteComponent() {
                   <div className="p-1.5 bg-slate-200 rounded-full">
                     <Users className="h-3.5 w-3.5" />
                   </div>
-                  <span>Campaign by <span className="font-medium text-slate-700">@{campaign.dmUserProfile.username}</span></span>
+                  <span>
+                    Campaign by{' '}
+                    <span className="font-medium text-slate-700">
+                      @{campaign.dmUserProfile.username}
+                    </span>
+                  </span>
                 </div>
               </div>
               <Button
@@ -396,8 +424,9 @@ function RouteComponent() {
                 )}
               </Button>
             </div>
-          )
+          ),
         }
+      }
     }
   }
 
@@ -409,7 +438,10 @@ function RouteComponent() {
         <div className="w-full max-w-md mx-auto">
           <div className="text-center mb-6">
             <h1 className="text-2xl font-bold text-slate-900 mb-3 tracking-tight">
-              Sign in to join <span className="text-purple-600">{campaign?.name || 'this campaign'}</span>
+              Sign in to join{' '}
+              <span className="text-purple-600">
+                {campaign?.name || 'this campaign'}
+              </span>
             </h1>
           </div>
           <div className="flex justify-center">
@@ -418,7 +450,7 @@ function RouteComponent() {
           <div className="text-center mt-4">
             <Button
               onClick={() => setShowSignIn(false)}
-              variant="ghost" 
+              variant="ghost"
               className="text-slate-600 hover:text-slate-800"
             >
               ← Back to invitation
@@ -439,7 +471,9 @@ function RouteComponent() {
       <Card className="w-full max-w-lg shadow-2xl border-0 bg-white/95 backdrop-blur-sm">
         <CardHeader className="text-center pb-6 pt-8">
           <StatusIcon variant={cardContent.statusVariant} />
-          <CardTitle className={`text-2xl font-bold ${cardContent.titleColor} mb-3 tracking-tight`}>
+          <CardTitle
+            className={`text-2xl font-bold ${cardContent.titleColor} mb-3 tracking-tight`}
+          >
             {cardContent.title}
           </CardTitle>
           <CardDescription className="text-slate-600 text-base leading-relaxed px-2">

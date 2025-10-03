@@ -5,10 +5,7 @@ import {
   createRootRouteWithContext,
   useRouteContext,
 } from '@tanstack/react-router'
-import {
-  ClerkProvider,
-  useAuth,
-} from '@clerk/tanstack-react-start'
+import { ClerkProvider, useAuth } from '@clerk/tanstack-react-start'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import { createServerFn } from '@tanstack/react-start'
 import { QueryClient } from '@tanstack/react-query'

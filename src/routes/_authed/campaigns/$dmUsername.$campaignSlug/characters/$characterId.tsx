@@ -4,28 +4,30 @@ import { createFileRoute, useParams } from '@tanstack/react-router'
 import { api } from 'convex/_generated/api'
 import type { Id } from 'convex/_generated/dataModel'
 
-export const Route = createFileRoute('/_authed/campaigns/$dmUsername/$campaignSlug/characters/$characterId')({
+export const Route = createFileRoute(
+  '/_authed/campaigns/$dmUsername/$campaignSlug/characters/$characterId',
+)({
   component: CharacterDetailPage,
 })
 
 function CharacterDetailPage() {
-  const characterId = useParams({ 
-    from: '/_authed/campaigns/$dmUsername/$campaignSlug/characters/$characterId'
-  })?.characterId;
-  
-  const character = useQuery(convexQuery(api.characters.queries.getCharacterById, { characterId: characterId as Id<"characters"> }))
+  const characterId = useParams({
+    from: '/_authed/campaigns/$dmUsername/$campaignSlug/characters/$characterId',
+  })?.characterId
 
-  if (character.status === "error") {
-    return (
-      <div>Error</div>
-    )
+  const character = useQuery(
+    convexQuery(api.characters.queries.getCharacterById, {
+      characterId: characterId as Id<'characters'>,
+    }),
+  )
+
+  if (character.status === 'error') {
+    return <div>Error</div>
   }
 
-  if (character.status === "pending") {
+  if (character.status === 'pending') {
     return <div>Loading...</div>
   }
 
-  return (
-    <div>{character.data?.name}</div>
-  )
+  return <div>{character.data?.name}</div>
 }

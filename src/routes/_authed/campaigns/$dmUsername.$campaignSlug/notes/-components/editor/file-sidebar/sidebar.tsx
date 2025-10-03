@@ -18,26 +18,21 @@ function FileSidebarContent() {
   }
 
   return (
+    <DroppableRoot className="flex-1 flex min-h-0">
+      <ScrollArea type="always" className="flex-1 min-h-0 overflow-y-auto p-1">
+        <SystemFolders />
 
-      <DroppableRoot className="flex-1 flex min-h-0">
-        <ScrollArea
-          type="always"
-          className="flex-1 min-h-0 overflow-y-auto p-1"
-        >
-          <SystemFolders />
+        <div className="border-t border-muted-foreground/20 my-1" />
 
-          <div className="border-t border-muted-foreground/20 my-1" />
+        {sidebarItems.data?.map((item) => (
+          <SidebarItem key={item._id} item={item} />
+        ))}
 
-          {sidebarItems.data?.map((item) => (
-            <SidebarItem key={item._id} item={item} />
-          ))}
-
-          <DragOverlay dropAnimation={null}>
-            {activeDragItem && <DragOverlayItem item={activeDragItem} />}
-          </DragOverlay>
-        </ScrollArea>
-      </DroppableRoot>
-
+        <DragOverlay dropAnimation={null}>
+          {activeDragItem && <DragOverlayItem item={activeDragItem} />}
+        </DragOverlay>
+      </ScrollArea>
+    </DroppableRoot>
   )
 }
 

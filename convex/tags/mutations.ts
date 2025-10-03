@@ -41,7 +41,6 @@ export const updateTag = mutation({
   },
   returns: v.id('tags'),
   handler: async (ctx, args): Promise<Id<'tags'>> => {
-
     await updateTagAndContent(ctx, args.tagId, {
       displayName: args.displayName,
       color: args.color,

@@ -1,13 +1,13 @@
-import { Card, CardContent } from "~/components/shadcn/ui/card";
-import { Plus, type LucideIcon } from "~/lib/icons";
+import { Card, CardContent } from '~/components/shadcn/ui/card'
+import { Plus, type LucideIcon } from '~/lib/icons'
 
 interface CreateActionCardProps {
-  onClick: () => void;
-  title: string;
-  description: string;
-  icon?: LucideIcon;
-  className?: string;
-  minHeight?: string;
+  onClick: () => void
+  title: string
+  description: string
+  icon?: LucideIcon
+  className?: string
+  minHeight?: string
 }
 
 export function CreateActionCard({
@@ -15,8 +15,8 @@ export function CreateActionCard({
   title,
   description,
   icon: Icon = Plus,
-  className = "",
-  minHeight = "h-full min-h-[180px]",
+  className = '',
+  minHeight = 'h-full min-h-[180px]',
 }: CreateActionCardProps) {
   return (
     <Card
@@ -27,11 +27,9 @@ export function CreateActionCard({
         <div className="p-4 bg-amber-100 rounded-full mb-4 group-hover:bg-amber-200 transition-colors">
           <Icon className="h-8 w-8 text-amber-600" />
         </div>
-        <h3 className="text-lg font-semibold text-slate-800 mb-2">
-          {title}
-        </h3>
+        <h3 className="text-lg font-semibold text-slate-800 mb-2">{title}</h3>
         <p className="text-slate-600 text-sm">{description}</p>
       </CardContent>
     </Card>
-  );
-} 
+  )
+}

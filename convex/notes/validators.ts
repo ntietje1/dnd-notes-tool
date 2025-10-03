@@ -12,18 +12,18 @@ export const customBlockValidator = v.object({
 })
 
 export const noteBaseFields = {
-    _id: v.id('notes'),
-    _creationTime: v.number(),
-    userId: v.string(),
-    campaignId: v.id('campaigns'),
-    name: v.optional(v.string()),
-    updatedAt: v.number(),
-    categoryId: v.optional(v.id('tagCategories')),
-    category: v.optional(tagCategoryValidator),
-    parentFolderId: v.optional(v.id('folders')),
-    type: v.literal('notes'),
-    tagId: v.optional(v.id('tags')),
-    tag: v.optional(tagValidator),
+  _id: v.id('notes'),
+  _creationTime: v.number(),
+  userId: v.string(),
+  campaignId: v.id('campaigns'),
+  name: v.optional(v.string()),
+  updatedAt: v.number(),
+  categoryId: v.optional(v.id('tagCategories')),
+  category: v.optional(tagCategoryValidator),
+  parentFolderId: v.optional(v.id('folders')),
+  type: v.literal('notes'),
+  tagId: v.optional(v.id('tags')),
+  tag: v.optional(tagValidator),
 } as const
 
 export const noteValidator = v.object({

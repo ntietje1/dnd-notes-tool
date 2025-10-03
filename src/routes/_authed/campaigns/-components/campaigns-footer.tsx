@@ -6,5 +6,5 @@ export function CampaignsFooter() {
         new one to get started.
       </p>
     </div>
-  );
+  )
 }

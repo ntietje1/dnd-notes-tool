@@ -5,7 +5,5 @@ export const Route = createFileRoute('/_authed/campaigns')({
 })
 
 function CampaignsLayout() {
-  return (
-    <Outlet />
-  )
+  return <Outlet />
 }
