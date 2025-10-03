@@ -6,7 +6,7 @@ import { useNoteActions } from '~/hooks/useNoteActions'
 import { NoteContextMenu } from './note-context-menu'
 import { DraggableNote } from './draggable-note'
 import { SidebarItemButtonBase } from '../sidebar-item/sidebar-item-button-base'
-import { FileText } from '~/lib/icons'
+import { FileEdit, FileText } from '~/lib/icons'
 import { useContextMenu } from '~/hooks/useContextMenu'
 
 interface NoteButtonProps {
@@ -30,6 +30,7 @@ export function NoteButton({ note }: NoteButtonProps) {
       <NoteContextMenu ref={contextMenuRef} note={note}>
         <SidebarItemButtonBase
           icon={FileText}
+          editIcon={FileEdit}
           name={note.name || ''}
           defaultName={UNTITLED_NOTE_TITLE}
           isSelected={isSelected}

@@ -93,7 +93,7 @@ export function NotesEditorEmptyContent() {
     <div className="h-full flex flex-col items-center justify-center text-muted-foreground gap-4">
       <p>Select a note or create a new one to get started</p>
       <Button variant="outline" onClick={handleCreateNote}>
-        Create new note
+        New note
       </Button>
     </div>
   )

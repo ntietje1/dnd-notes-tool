@@ -2,10 +2,6 @@ import { useRef, useCallback } from 'react'
 import type { MouseEvent } from 'react'
 import type { ContextMenuRef } from '~/components/context-menu/context-menu'
 
-/**
- * Hook to manage context menu interactions
- * Provides a ref and handler for opening context menus
- */
 export function useContextMenu() {
   const contextMenuRef = useRef<ContextMenuRef>(null)
 

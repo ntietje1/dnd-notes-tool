@@ -1,19 +1,15 @@
 import { useFileSidebar } from '~/contexts/FileSidebarContext'
-import { EditableName } from './editable-name'
-import type { SidebarItemEntity } from './types'
 import { toast } from 'sonner'
+import type { AnySidebarItem } from 'convex/notes/types'
+import { useEffect, useRef, useState } from 'react'
 
-interface EditableItemNameProps<T extends SidebarItemEntity> {
+interface EditableItemNameProps<T extends AnySidebarItem> {
   item: T
   defaultName: string
   updateItem: (id: T['_id'], name: string) => Promise<T['_id']>
 }
 
-/**
- * Generic editable name component that works with any sidebar entity
- * Handles renaming state and updates automatically
- */
-export function EditableItemName<T extends SidebarItemEntity>({
+export function EditableItemName<T extends AnySidebarItem>({
   item,
   defaultName,
   updateItem,
@@ -41,4 +37,60 @@ export function EditableItemName<T extends SidebarItemEntity>({
       onFinishRename={handleFinishRename}
     />
   )
+}
+
+interface EditableNameProps {
+  initialName: string
+  defaultName: string
+  isRenaming: boolean
+  onFinishRename: (name: string) => void
+}
+
+export function EditableName({
+  initialName,
+  defaultName,
+  isRenaming,
+  onFinishRename,
+}: EditableNameProps) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [name, setName] = useState(initialName)
+
+  useEffect(() => {
+    if (isRenaming && inputRef.current) {
+      setName(initialName)
+      inputRef.current.focus()
+      inputRef.current.select()
+    }
+  }, [isRenaming, initialName])
+
+  if (isRenaming) {
+    return (
+      <input
+        ref={inputRef}
+        type="text"
+        value={name}
+        onChange={(e) => {
+          setName(e.target.value)
+        }}
+        onBlur={() => onFinishRename(name)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            onFinishRename(name)
+          } else if (e.key === 'Escape') {
+            setName(initialName)
+            onFinishRename(initialName)
+          }
+          // Prevent space from triggering button click
+          if (e.key === ' ') {
+            e.stopPropagation()
+          }
+        }}
+        onClick={(e) => e.stopPropagation()}
+        placeholder={defaultName}
+        className="bg-transparent border-none w-full px-1 focus:outline-none focus:ring-1"
+      />
+    )
+  }
+
+  return <span className="truncate ml-1">{initialName || defaultName}</span>
 }

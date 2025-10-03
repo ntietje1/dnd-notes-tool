@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from 'convex/_generated/api'
-import { CATEGORY_KIND, type TagWithCategory } from 'convex/tags/types'
+import { CATEGORY_KIND, type Tag } from 'convex/tags/types'
 import { convexQuery } from '@convex-dev/react-query'
 import { useCampaign } from '~/contexts/CampaignContext'
 
@@ -17,8 +17,7 @@ export function useTags() {
   return {
     nonSystemManagedTags:
       tags.data?.filter(
-        (tag: TagWithCategory) =>
-          tag.category.kind !== CATEGORY_KIND.SystemManaged,
+        (tag: Tag) => tag.category?.kind !== CATEGORY_KIND.SystemManaged,
       ) || [],
     tags: tags.data || [],
   }

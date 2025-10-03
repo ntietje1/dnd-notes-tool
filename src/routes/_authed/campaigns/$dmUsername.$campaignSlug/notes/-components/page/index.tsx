@@ -9,7 +9,11 @@ import { ClientOnly } from '@tanstack/react-router'
 
 export function NotesPageLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ResizablePanelGroup direction="horizontal" className="flex-1 min-h-0">
+    <ResizablePanelGroup
+      direction="horizontal"
+      className="flex-1 min-h-0"
+      autoSaveId="notes-page-layout"
+    >
       <ResizablePanel
         defaultSize={50}
         minSize={25}

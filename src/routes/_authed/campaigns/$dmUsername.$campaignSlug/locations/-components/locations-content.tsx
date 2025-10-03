@@ -83,7 +83,7 @@ export default function LocationsContent() {
         {locations.data.length > 0 && (
           <CreateActionCard
             onClick={() => setCreatingLocation(true)}
-            title="Create New Location"
+            title="New Location"
             description="Add a new location to your campaign"
             icon={MapPin}
           />

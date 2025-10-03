@@ -101,7 +101,7 @@ export function CampaignsContent() {
               setCreatingCampaign(true)
               console.log('creating campaign')
             }}
-            title="Create New Campaign"
+            title="New Campaign"
             description="Start a new adventure with your party"
             icon={Sword}
             minHeight="h-64"

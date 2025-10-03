@@ -121,13 +121,13 @@ export const CategoryContextMenu = forwardRef<
       {
         type: 'action' as const,
         icon: <Plus className="h-4 w-4" />,
-        label: `Create New ${categoryConfig.singular}`,
+        label: `New ${categoryConfig.singular}`,
         onClick: handleCreateItem,
       },
       {
         type: 'action' as const,
         icon: <FolderPlus className="h-4 w-4" />,
-        label: 'Create New Folder',
+        label: `New ${categoryConfig.singular} Folder`,
         onClick: handleNewFolder,
       },
       // Only show rename and delete for sub category folders (not root category)

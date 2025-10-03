@@ -17,7 +17,7 @@ import {
 import { CategoryFolderButton } from './category-folder-button'
 import type { CategoryContextMenuProps } from './category-context-menu'
 import { DraggableNote } from '../../sidebar-note/draggable-note'
-import { FileText } from '~/lib/icons'
+import { FileEdit, FileText } from '~/lib/icons'
 import { useContextMenu } from '~/hooks/useContextMenu'
 
 interface CategorySidebarItemProps {
@@ -93,6 +93,7 @@ export function TagNoteButton({
       <DraggableNote note={noteWithTag}>
         <SidebarItemButtonBase
           icon={FileText}
+          editIcon={FileEdit}
           name={noteWithTag.name || ''}
           defaultName={UNTITLED_NOTE_TITLE}
           isSelected={isSelected}

@@ -7,7 +7,7 @@ import { useFolderActions } from '~/hooks/useFolderActions'
 import { toast } from 'sonner'
 import { FolderContextMenu } from './folder-context-menu'
 import { SidebarItemButtonBase } from '../sidebar-item/sidebar-item-button-base'
-import { Folder as FolderIcon } from '~/lib/icons'
+import { FolderEdit, Folder as FolderIcon } from '~/lib/icons'
 import { useContextMenu } from '~/hooks/useContextMenu'
 import type { Id } from 'convex/_generated/dataModel'
 interface FolderButtonProps {
@@ -38,6 +38,7 @@ export function FolderButton({ folder, ancestorIds = [] }: FolderButtonProps) {
       <DraggableFolder folder={folder} ancestorIds={ancestorIds}>
         <SidebarItemButtonBase
           icon={FolderIcon}
+          editIcon={FolderEdit}
           name={folder.name || ''}
           defaultName={UNTITLED_FOLDER_NAME}
           isExpanded={isExpanded}

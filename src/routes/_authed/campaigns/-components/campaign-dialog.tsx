@@ -128,7 +128,7 @@ export function CampaignDialog({
     <FormDialog
       isOpen={isOpen}
       onClose={handleClose}
-      title={mode === 'create' ? 'Create New Campaign' : 'Edit Campaign'}
+      title={mode === 'create' ? 'New Campaign' : 'Edit Campaign'}
       description={
         mode === 'create'
           ? 'Start a new TTRPG adventure and invite your party to join.'

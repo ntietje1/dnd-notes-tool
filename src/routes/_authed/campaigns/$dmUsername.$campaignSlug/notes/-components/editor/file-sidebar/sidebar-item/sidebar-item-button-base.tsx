@@ -1,21 +1,13 @@
-import {
-  ChevronDown,
-  ChevronRight,
-  FolderEdit as EditIcon,
-  MoreHorizontal,
-} from '~/lib/icons'
+import { ChevronDown, ChevronRight, MoreHorizontal } from '~/lib/icons'
 import { Button } from '~/components/shadcn/ui/button'
-import { EditableName } from './editable-name'
+import { EditableName } from './editable-item-name'
 import type { SidebarItemButtonProps } from './types'
 import { HoverToggleButton } from '~/components/hover-toggle-button'
 import { cn } from '~/lib/utils'
 
-/**
- * Unified base component for rendering any sidebar item button
- * Works with folders, notes, and any future entity types
- */
 export function SidebarItemButtonBase({
   icon: Icon,
+  editIcon: EditIcon,
   name,
   defaultName,
   isExpanded = false,
@@ -70,7 +62,7 @@ export function SidebarItemButtonBase({
       {/* Item Name */}
       <button
         type="button"
-        className="flex items-center min-w-0 flex-1 pl-1 rounded-sm"
+        className="flex items-center min-w-0 flex-1 rounded-sm"
         onClick={onSelect}
       >
         {onFinishRename ? (
@@ -81,24 +73,26 @@ export function SidebarItemButtonBase({
             onFinishRename={onFinishRename}
           />
         ) : (
-          <span className="truncate">{name || defaultName}</span>
+          <span className="truncate ml-1">{name || defaultName}</span>
         )}
       </button>
 
       {/* More Options Button */}
-      <HoverToggleButton
-        className="relative h-6 w-6 shrink-0 flex items-center justify-center"
-        hoverComponent={
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-muted-foreground/10 rounded-sm"
-            onClick={onMoreOptions}
-          >
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
-        }
-      />
+      {!isRenaming && (
+        <HoverToggleButton
+          className="relative h-6 w-6 shrink-0 flex items-center justify-center"
+          hoverComponent={
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-muted-foreground/10 rounded-sm"
+              onClick={onMoreOptions}
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          }
+        />
+      )}
     </div>
   )
 }

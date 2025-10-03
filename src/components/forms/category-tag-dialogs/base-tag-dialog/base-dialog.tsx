@@ -84,9 +84,7 @@ export default function BaseTagDialog<
       isOpen={isOpen}
       onClose={handleClose}
       title={
-        mode === 'create'
-          ? `Create New ${config.singular}`
-          : `Edit ${config.singular}`
+        mode === 'create' ? `New ${config.singular}` : `Edit ${config.singular}`
       }
       description={
         mode === 'create'

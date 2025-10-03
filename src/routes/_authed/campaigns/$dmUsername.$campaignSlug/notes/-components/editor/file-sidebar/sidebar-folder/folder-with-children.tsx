@@ -8,6 +8,7 @@ import type { Folder } from 'convex/notes/types'
 import { SidebarItem } from '../sidebar-item/sidebar-item'
 import { useFolderState } from '~/hooks/useFolderState'
 import { useSidebarItems } from '~/hooks/useSidebarItems'
+import type { Id } from 'convex/_generated/dataModel'
 
 interface FolderWithChildrenProps {
   folder: Folder
@@ -27,7 +28,10 @@ export function FolderWithChildren({
   return (
     <DroppableFolder folder={folder} ancestorIds={ancestorIds}>
       <Collapsible open={isExpanded} onOpenChange={toggleExpanded}>
-        <FolderButton folder={folder} ancestorIds={ancestorIds} />
+        <FolderButton
+          folder={folder}
+          ancestorIds={ancestorIds as Id<'folders'>[]}
+        />
         <CollapsibleContent>
           <div className="relative pl-2">
             {/* Vertical line */}

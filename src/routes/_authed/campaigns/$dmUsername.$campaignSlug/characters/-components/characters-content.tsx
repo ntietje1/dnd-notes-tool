@@ -74,7 +74,7 @@ export default function CharactersContent() {
         {characters.data?.length > 0 && (
           <CreateActionCard
             onClick={() => setCreatingCharacter(true)}
-            title="Create New Character"
+            title="New Character"
             description="Add a new character to your campaign"
             icon={Users}
           />
