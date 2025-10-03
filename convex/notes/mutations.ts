@@ -15,7 +15,7 @@ import {
 import { CAMPAIGN_MEMBER_ROLE } from '../campaigns/types'
 import { requireCampaignMembership } from '../campaigns/campaigns'
 import { getFolder as getFolderFn } from './notes'
-import { blockNoteIdValidator } from './validators'
+import { blockNoteIdValidator } from './schema'
 
 export const updateNote = mutation({
   args: {
@@ -395,7 +395,6 @@ export const addTagToBlockMutation = mutation({
           campaignId: note.campaignId,
           blockId: newBlockDbId,
           tagId: args.tagId,
-          createdAt: Date.now(),
         })
       } else {
         console.log(`Block ${args.blockId} not found in note content`)

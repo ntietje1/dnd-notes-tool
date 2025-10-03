@@ -6,11 +6,13 @@ import { SYSTEM_TAG_CATEGORY_NAMES } from '../tags/types'
 import { getTag, getTagCategoryByName, getTagsByCategory } from '../tags/tags'
 import { Character } from './types'
 import { combineCharacterAndTag } from './characters'
+import { characterValidator } from './schema'
 
 export const getCharactersByCampaign = query({
   args: {
     campaignId: v.id('campaigns'),
   },
+  returns: v.array(characterValidator),
   handler: async (ctx, args): Promise<Character[]> => {
     await requireCampaignMembership(
       ctx,
@@ -49,6 +51,7 @@ export const getCharacterById = query({
   args: {
     characterId: v.id('characters'),
   },
+  returns: characterValidator,
   handler: async (ctx, args): Promise<Character> => {
     const character = await ctx.db.get(args.characterId)
     if (!character) {
@@ -71,6 +74,7 @@ export const getCharacterByTagId = query({
   args: {
     tagId: v.id('tags'),
   },
+  returns: characterValidator,
   handler: async (ctx, args): Promise<Character> => {
     const tag = await getTag(ctx, args.tagId)
 

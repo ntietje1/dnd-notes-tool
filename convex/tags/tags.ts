@@ -561,7 +561,7 @@ export async function findBlock(
     return null
   }
 
-  return await ctx.db
+  return (await ctx.db
     .query('blocks')
     .withIndex('by_campaign_note_block', (q) =>
       q
@@ -569,7 +569,7 @@ export async function findBlock(
         .eq('noteId', noteId)
         .eq('blockId', blockId),
     )
-    .unique()
+    .unique()) as Block | null
 }
 
 export async function getNoteLevelTag(
@@ -721,7 +721,6 @@ export async function addTagToBlock(
       campaignId: block.campaignId,
       blockId: blockDbId,
       tagId: tagId,
-      createdAt: Date.now(),
     })
 
     await ctx.db.patch(blockDbId, {
@@ -957,7 +956,6 @@ export async function saveTopLevelBlocks(
           campaignId: campaignId,
           blockId: finalBlockDbId,
           tagId: tagId,
-          createdAt: now,
         })
       }
     } else {
@@ -968,7 +966,6 @@ export async function saveTopLevelBlocks(
           campaignId: campaignId,
           blockId: finalBlockDbId,
           tagId: tagId,
-          createdAt: now,
         })
       }
     }

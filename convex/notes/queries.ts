@@ -21,10 +21,9 @@ import {
 import {
   blockValidator,
   folderWithChildrenValidator,
-  noteValidator,
   noteWithContentValidator,
   sidebarItemValidator,
-} from './validators'
+} from './schema'
 
 export const getFolder = query({
   args: {
@@ -148,7 +147,7 @@ export const getBlocksByTags = query({
     for (const b of allBlocks) {
       if (b.isTopLevel && matchedNoteIds.includes(b.noteId)) {
         const arr = topByNote.get(b.noteId) ?? []
-        arr.push(b)
+        arr.push(b as Block)
         topByNote.set(b.noteId, arr)
       }
     }

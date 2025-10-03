@@ -22,6 +22,7 @@ export const setCurrentEditor = mutation({
     ),
     foldersAlwaysOnTop: v.optional(v.boolean()),
   },
+  returns: v.id('editor'),
   handler: async (ctx, args): Promise<Id<'editor'>> => {
     const { profile } = await requireUserIdentity(ctx)
 

@@ -6,6 +6,7 @@ export type UserProfile = {
 
   userId: string
   username: string
+  email?: string
   name?: string
   firstName?: string
   lastName?: string

@@ -6,11 +6,13 @@ import { SYSTEM_TAG_CATEGORY_NAMES } from '../tags/types'
 import { getTag, getTagCategoryByName, getTagsByCategory } from '../tags/tags'
 import { Location } from './types'
 import { combineLocationAndTag } from './locations'
+import { locationValidator } from './schema'
 
 export const getLocationsByCampaign = query({
   args: {
     campaignId: v.id('campaigns'),
   },
+  returns: v.array(locationValidator),
   handler: async (ctx, args): Promise<Location[]> => {
     await requireCampaignMembership(
       ctx,
@@ -49,6 +51,7 @@ export const getLocationById = query({
   args: {
     locationId: v.id('locations'),
   },
+  returns: locationValidator,
   handler: async (ctx, args): Promise<Location> => {
     const location = await ctx.db.get(args.locationId)
     if (!location) {
@@ -71,6 +74,7 @@ export const getLocationByTagId = query({
   args: {
     tagId: v.id('tags'),
   },
+  returns: locationValidator,
   handler: async (ctx, args): Promise<Location> => {
     const tag = await getTag(ctx, args.tagId)
 

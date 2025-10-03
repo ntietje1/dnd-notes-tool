@@ -58,7 +58,6 @@ export type BlockTag = {
   campaignId: Id<'campaigns'>
   blockId: Id<'blocks'>
   tagId: Id<'tags'>
-  createdAt: number
 }
 
 //TODO: remove this and move content to regular note type

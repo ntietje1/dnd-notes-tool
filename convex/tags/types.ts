@@ -38,8 +38,6 @@ export type Tag = {
   color: string
   description?: string
   campaignId: Id<'campaigns'>
-  // noteId?: Id<"notes">;
-  // note?: Note;
   categoryId: Id<'tagCategories'>
   category?: TagCategory
   memberId?: Id<'campaignMembers'>

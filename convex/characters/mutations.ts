@@ -10,6 +10,7 @@ export const createCharacter = mutation({
     tagId: v.id('tags'),
     playerId: v.optional(v.id('campaignMembers')),
   },
+  returns: v.id('characters'),
   handler: async (ctx, args): Promise<Id<'characters'>> => {
     console.log('createCharacter.playerId', args.playerId)
     const tag = await getTag(ctx, args.tagId)
@@ -44,6 +45,7 @@ export const updateCharacter = mutation({
     characterId: v.id('characters'),
     playerId: v.optional(v.id('campaignMembers')),
   },
+  returns: v.id('characters'),
   handler: async (ctx, args): Promise<Id<'characters'>> => {
     console.log('updateCharacter.playerId', args.playerId)
     const character = await ctx.db.get(args.characterId)
@@ -78,6 +80,7 @@ export const deleteCharacter = mutation({
   args: {
     characterId: v.id('characters'),
   },
+  returns: v.id('characters'),
   handler: async (ctx, args): Promise<Id<'characters'>> => {
     const character = await ctx.db.get(args.characterId)
     if (!character) {

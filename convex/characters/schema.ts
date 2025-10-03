@@ -1,10 +1,21 @@
 import { defineTable } from 'convex/server'
 import { v } from 'convex/values'
+import { tagValidatorFields } from '../tags/schema'
+
+const characterTableFields = {
+  campaignId: v.id('campaigns'),
+  tagId: v.id('tags'),
+  playerId: v.optional(v.id('campaignMembers')),
+}
 
 export const characterTables = {
   characters: defineTable({
-    campaignId: v.id('campaigns'),
-    tagId: v.id('tags'),
-    playerId: v.optional(v.id('campaignMembers')),
+    ...characterTableFields,
   }).index('by_campaign_tag', ['campaignId', 'tagId']),
 }
+
+export const characterValidator = v.object({
+  ...tagValidatorFields,
+  ...characterTableFields,
+  characterId: v.id('characters'), // additional field to be explicit about which field is the id
+})

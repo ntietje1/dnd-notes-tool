@@ -16,6 +16,7 @@ import {
 import { requireCampaignMembership } from './campaigns'
 import { Id } from '../_generated/dataModel'
 import { getUserProfileByUsernameHandler } from '../users/users'
+import { campaignMemberStatusValidator } from './schema'
 
 export const createCampaign = mutation({
   args: {
@@ -23,6 +24,7 @@ export const createCampaign = mutation({
     description: v.optional(v.string()),
     slug: v.string(),
   },
+  returns: v.id('campaigns'),
   handler: async (ctx, args): Promise<Id<'campaigns'>> => {
     const { profile } = await requireUserIdentity(ctx)
 
@@ -69,6 +71,7 @@ export const joinCampaign = mutation({
     dmUsername: v.string(),
     slug: v.string(),
   },
+  returns: campaignMemberStatusValidator,
   handler: async (ctx, args): Promise<CampaignMemberStatus> => {
     const { profile } = await requireUserIdentity(ctx)
 
@@ -124,6 +127,7 @@ export const updateCampaign = mutation({
     description: v.optional(v.string()),
     slug: v.optional(v.string()),
   },
+  returns: v.id('campaigns'),
   handler: async (ctx, args): Promise<Id<'campaigns'>> => {
     const { identityWithProfile, campaignWithMembership } =
       await requireCampaignMembership(
@@ -175,6 +179,7 @@ export const deleteCampaign = mutation({
   args: {
     campaignId: v.id('campaigns'),
   },
+  returns: v.id('campaigns'),
   handler: async (ctx, args): Promise<Id<'campaigns'>> => {
     await requireCampaignMembership(
       ctx,
@@ -278,6 +283,7 @@ export const updateCampaignMemberStatus = mutation({
       v.literal('Removed'),
     ),
   },
+  returns: v.id('campaignMembers'),
   handler: async (ctx, args): Promise<Id<'campaignMembers'>> => {
     const { profile } = await requireUserIdentity(ctx)
 

@@ -9,6 +9,7 @@ export const createLocation = mutation({
   args: {
     tagId: v.id('tags'),
   },
+  returns: v.id('locations'),
   handler: async (ctx, args): Promise<Id<'locations'>> => {
     const tag = await getTag(ctx, args.tagId)
     await requireCampaignMembership(
@@ -30,6 +31,7 @@ export const updateLocation = mutation({
   args: {
     locationId: v.id('locations'),
   },
+  returns: v.id('locations'),
   handler: async (ctx, args): Promise<Id<'locations'>> => {
     const location = await ctx.db.get(args.locationId)
     if (!location) {
@@ -54,6 +56,7 @@ export const deleteLocation = mutation({
   args: {
     locationId: v.id('locations'),
   },
+  returns: v.id('locations'),
   handler: async (ctx, args): Promise<Id<'locations'>> => {
     const location = await ctx.db.get(args.locationId)
     if (!location) {

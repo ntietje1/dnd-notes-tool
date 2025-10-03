@@ -30,7 +30,6 @@ import type * as notes_mutations from "../notes/mutations.js";
 import type * as notes_notes from "../notes/notes.js";
 import type * as notes_queries from "../notes/queries.js";
 import type * as notes_types from "../notes/types.js";
-import type * as notes_validators from "../notes/validators.js";
 import type * as tags_editorSpecs from "../tags/editorSpecs.js";
 import type * as tags_mutations from "../tags/mutations.js";
 import type * as tags_queries from "../tags/queries.js";
@@ -42,6 +41,7 @@ import type * as users_mutations from "../users/mutations.js";
 import type * as users_queries from "../users/queries.js";
 import type * as users_types from "../users/types.js";
 import type * as users_users from "../users/users.js";
+import type * as users_validators from "../users/validators.js";
 
 import type {
   ApiFromModules,
@@ -80,7 +80,6 @@ declare const fullApi: ApiFromModules<{
   "notes/notes": typeof notes_notes;
   "notes/queries": typeof notes_queries;
   "notes/types": typeof notes_types;
-  "notes/validators": typeof notes_validators;
   "tags/editorSpecs": typeof tags_editorSpecs;
   "tags/mutations": typeof tags_mutations;
   "tags/queries": typeof tags_queries;
@@ -92,6 +91,7 @@ declare const fullApi: ApiFromModules<{
   "users/queries": typeof users_queries;
   "users/types": typeof users_types;
   "users/users": typeof users_users;
+  "users/validators": typeof users_validators;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
 
