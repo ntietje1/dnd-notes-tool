@@ -3,24 +3,24 @@ import { v } from 'convex/values'
 import { Doc } from '../_generated/dataModel'
 import { Id } from '../_generated/dataModel'
 import {
-  validateTagBelongsToCampaign,
-  findBlock,
   addTagToBlock,
   removeTagFromBlock,
   saveTopLevelBlocks,
   findBlockById,
   extractTagIdsFromBlockContent,
   updateTagAndContent,
+  findBlock,
 } from '../tags/tags'
 import { CAMPAIGN_MEMBER_ROLE } from '../campaigns/types'
 import { requireCampaignMembership } from '../campaigns/campaigns'
 import { getFolder as getFolderFn } from './notes'
-import { blockNoteIdValidator } from './schema'
+import { blockNoteIdValidator, customBlockValidator } from './schema'
+import { deleteNoteBlocks, getTopLevelBlocksByNote } from './helpers'
 
 export const updateNote = mutation({
   args: {
     noteId: v.id('notes'),
-    content: v.optional(v.any()),
+    content: v.optional(v.array(customBlockValidator)),
     name: v.optional(v.string()),
   },
   returns: v.id('notes'),
@@ -42,7 +42,7 @@ export const updateNote = mutation({
     }
 
     if (args.content !== undefined) {
-      await saveTopLevelBlocks(ctx, args.noteId, note.campaignId, args.content)
+      await saveTopLevelBlocks(ctx, args.noteId, args.content)
     }
 
     if (args.name !== undefined) {
@@ -123,29 +123,9 @@ export const deleteNote = mutation({
       { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] },
     )
 
-    const blocks = await ctx.db
-      .query('blocks')
-      .withIndex('by_campaign_note_toplevel_pos', (q) =>
-        q.eq('campaignId', note.campaignId).eq('noteId', args.noteId),
-      )
-      .collect()
-
-    for (const block of blocks) {
-      const blockTags = await ctx.db
-        .query('blockTags')
-        .withIndex('by_campaign_block_tag', (q) =>
-          q.eq('campaignId', note.campaignId).eq('blockId', block._id),
-        )
-        .collect()
-
-      for (const blockTag of blockTags) {
-        await ctx.db.delete(blockTag._id)
-      }
-
-      await ctx.db.delete(block._id)
-    }
-
+    await deleteNoteBlocks(ctx, args.noteId, note.campaignId)
     await ctx.db.delete(args.noteId)
+
     return args.noteId
   },
 })
@@ -193,28 +173,7 @@ export const deleteFolder = mutation({
       }
 
       for (const note of notesInFolder) {
-        const blocks = await ctx.db
-          .query('blocks')
-          .withIndex('by_campaign_note_toplevel_pos', (q) =>
-            q.eq('campaignId', note.campaignId).eq('noteId', note._id),
-          )
-          .collect()
-
-        for (const block of blocks) {
-          const blockTags = await ctx.db
-            .query('blockTags')
-            .withIndex('by_campaign_block_tag', (q) =>
-              q.eq('campaignId', note.campaignId).eq('blockId', block._id),
-            )
-            .collect()
-
-          for (const blockTag of blockTags) {
-            await ctx.db.delete(blockTag._id)
-          }
-
-          await ctx.db.delete(block._id)
-        }
-
+        await deleteNoteBlocks(ctx, note._id, note.campaignId)
         await ctx.db.delete(note._id)
       }
 
@@ -342,8 +301,6 @@ export const addTagToBlockMutation = mutation({
       { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] },
     )
 
-    await validateTagBelongsToCampaign(ctx, args.tagId, note.campaignId)
-
     const existingBlock = await findBlock(ctx, args.noteId, args.blockId)
 
     if (existingBlock) {
@@ -356,18 +313,11 @@ export const addTagToBlockMutation = mutation({
 
       await addTagToBlock(ctx, existingBlock._id, args.tagId)
     } else {
-      const topLevelBlocks = await ctx.db
-        .query('blocks')
-        .withIndex('by_campaign_note_toplevel_pos', (q) =>
-          q
-            .eq('campaignId', note.campaignId)
-            .eq('noteId', args.noteId)
-            .eq('isTopLevel', true),
-        )
-        .collect()
-        .then((blocks) =>
-          blocks.sort((a, b) => (a.position || 0) - (b.position || 0)),
-        )
+      const topLevelBlocks = await getTopLevelBlocksByNote(
+        ctx,
+        args.noteId,
+        note.campaignId,
+      )
 
       const currentContent = topLevelBlocks.map((block) => block.content)
 
@@ -396,8 +346,6 @@ export const addTagToBlockMutation = mutation({
           blockId: newBlockDbId,
           tagId: args.tagId,
         })
-      } else {
-        console.log(`Block ${args.blockId} not found in note content`)
       }
     }
 

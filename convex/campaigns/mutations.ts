@@ -276,12 +276,7 @@ export const deleteCampaign = mutation({
 export const updateCampaignMemberStatus = mutation({
   args: {
     memberId: v.id('campaignMembers'),
-    status: v.union(
-      v.literal('Accepted'),
-      v.literal('Pending'),
-      v.literal('Rejected'),
-      v.literal('Removed'),
-    ),
+    status: campaignMemberStatusValidator,
   },
   returns: v.id('campaignMembers'),
   handler: async (ctx, args): Promise<Id<'campaignMembers'>> => {

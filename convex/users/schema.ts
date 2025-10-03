@@ -1,7 +1,7 @@
 import { defineTable } from 'convex/server'
 import { v } from 'convex/values'
 
-export const userProfileTableFields = {
+const userProfileTableFields = {
   userId: v.string(),
   username: v.string(),
   email: v.optional(v.string()),
@@ -19,8 +19,10 @@ export const userTables = {
     .index('by_username', ['username']),
 }
 
-export const userProfileValidator = v.object({
+const userProfileValidatorFields = {
   _id: v.id('userProfiles'),
   _creationTime: v.number(),
   ...userProfileTableFields,
-})
+} as const
+
+export const userProfileValidator = v.object(userProfileValidatorFields)

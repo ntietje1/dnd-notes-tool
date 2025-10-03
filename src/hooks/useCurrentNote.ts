@@ -50,7 +50,7 @@ export const useCurrentNote = () => {
       debounce((newContent: CustomBlock[]) => {
         if (!note.data?._id) return
         updateNoteContent(note.data._id, newContent)
-      }, 2000),
+      }, 800),
     [updateNoteContent, note.data?._id],
   )
 

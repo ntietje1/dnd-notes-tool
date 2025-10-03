@@ -2,19 +2,21 @@ import { defineTable } from 'convex/server'
 import { v } from 'convex/values'
 import { CATEGORY_KIND } from './types'
 
-export const tagCategoryTableFields = {
+export const categoryKindValidator = v.union(
+  v.literal(CATEGORY_KIND.SystemCore),
+  v.literal(CATEGORY_KIND.SystemManaged),
+  v.literal(CATEGORY_KIND.User),
+)
+
+const tagCategoryTableFields = {
   displayName: v.string(),
   name: v.string(),
-  kind: v.union(
-    v.literal(CATEGORY_KIND.SystemCore),
-    v.literal(CATEGORY_KIND.SystemManaged),
-    v.literal(CATEGORY_KIND.User),
-  ),
+  kind: categoryKindValidator,
   campaignId: v.id('campaigns'),
   updatedAt: v.number(),
 }
 
-export const tagTableFields = {
+const tagTableFields = {
   displayName: v.string(),
   name: v.string(),
   color: v.string(),
@@ -38,21 +40,19 @@ export const tagTables = {
     .index('by_campaign_name', ['campaignId', 'name']),
 }
 
-export const tagCategoryValidatorFields = {
+const tagCategoryValidatorFields = {
   _id: v.id('tagCategories'),
   _creationTime: v.number(),
   ...tagCategoryTableFields,
-}
-
-export const tagCategoryValidator = v.object(tagCategoryValidatorFields)
+} as const
 
 export const tagValidatorFields = {
   _id: v.id('tags'),
   _creationTime: v.number(),
   ...tagTableFields,
-  category: v.optional(tagCategoryValidator),
-}
+  category: v.optional(v.object(tagCategoryValidatorFields)),
+} as const
 
-export const tagValidator = v.object({
-  ...tagValidatorFields,
-})
+export const tagCategoryValidator = v.object(tagCategoryValidatorFields)
+
+export const tagValidator = v.object(tagValidatorFields)

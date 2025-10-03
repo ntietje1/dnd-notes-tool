@@ -24,6 +24,7 @@ import {
   noteWithContentValidator,
   sidebarItemValidator,
 } from './schema'
+import { getBlocksByCampaign } from './helpers'
 
 export const getFolder = query({
   args: {
@@ -89,6 +90,7 @@ export const getSidebarItems = query({
   },
 })
 
+//TODO: add to the index to allow for more efficient query here
 export const getBlocksByTags = query({
   args: {
     campaignId: v.id('campaigns'),
@@ -102,12 +104,7 @@ export const getBlocksByTags = query({
       { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM, CAMPAIGN_MEMBER_ROLE.Player] },
     )
 
-    const allBlocks = await ctx.db
-      .query('blocks')
-      .withIndex('by_campaign_note_toplevel_pos', (q) =>
-        q.eq('campaignId', args.campaignId!),
-      )
-      .collect()
+    const allBlocks = await getBlocksByCampaign(ctx, args.campaignId)
 
     const checks = await Promise.all(
       allBlocks.map(async (block) => {
@@ -196,7 +193,15 @@ export const getBlockTagState = query({
     )
 
     const block = await findBlock(ctx, args.noteId, args.blockId)
-    if (!block) throw new Error('Block not found')
+    if (!block) {
+      const noteLevelTag = await getNoteLevelTag(ctx, note._id)
+      return {
+        allTagIds: noteLevelTag ? [noteLevelTag._id] : [],
+        inlineTagIds: [],
+        blockTagIds: [],
+        noteTagId: noteLevelTag?._id,
+      }
+    }
 
     const blockTagIds = await getBlockLevelTags(ctx, block._id)
     const inlineTagIds = extractTagIdsFromBlockContent(block.content)

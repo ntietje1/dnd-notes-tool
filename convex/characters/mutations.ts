@@ -12,7 +12,6 @@ export const createCharacter = mutation({
   },
   returns: v.id('characters'),
   handler: async (ctx, args): Promise<Id<'characters'>> => {
-    console.log('createCharacter.playerId', args.playerId)
     const tag = await getTag(ctx, args.tagId)
     await requireCampaignMembership(
       ctx,
@@ -47,7 +46,6 @@ export const updateCharacter = mutation({
   },
   returns: v.id('characters'),
   handler: async (ctx, args): Promise<Id<'characters'>> => {
-    console.log('updateCharacter.playerId', args.playerId)
     const character = await ctx.db.get(args.characterId)
     if (!character) {
       throw new Error('Character not found')

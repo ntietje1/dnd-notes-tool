@@ -28,12 +28,54 @@ export const getTag = async (ctx: Ctx, tagId: Id<'tags'>): Promise<Tag> => {
     throw new Error('Tag not found')
   }
 
-  const category = await ctx.db.get(tag.categoryId)
-  if (!category) {
+  const category = await getTagCategory(ctx, tag.campaignId, tag.categoryId)
+
+  return { ...tag, category }
+}
+
+export async function getTagCategory(
+  ctx: Ctx,
+  campaignId: Id<'campaigns'>,
+  categoryId: Id<'tagCategories'>,
+): Promise<TagCategory> {
+  await requireCampaignMembership(
+    ctx,
+    { campaignId },
+    { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM, CAMPAIGN_MEMBER_ROLE.Player] },
+  )
+
+  const category = await ctx.db.get(categoryId)
+
+  if (!category || category.campaignId !== campaignId) {
     throw new Error('Category not found')
   }
 
-  return { ...tag, category }
+  return category
+}
+
+export async function getTagCategoryByName(
+  ctx: Ctx,
+  campaignId: Id<'campaigns'>,
+  name: string,
+): Promise<TagCategory> {
+  await requireCampaignMembership(
+    ctx,
+    { campaignId },
+    { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM, CAMPAIGN_MEMBER_ROLE.Player] },
+  )
+
+  const existing = await ctx.db
+    .query('tagCategories')
+    .withIndex('by_campaign_name', (q) =>
+      q.eq('campaignId', campaignId).eq('name', name.toLowerCase()),
+    )
+    .unique()
+
+  if (!existing) {
+    throw new Error('Category not found')
+  }
+
+  return existing
 }
 
 export const insertTagAndNote = async (
@@ -165,25 +207,6 @@ export async function ensureDefaultTagCategories(
     }
   }
   return ids
-}
-
-export async function getTagCategoryByName(
-  ctx: Ctx,
-  campaignId: Id<'campaigns'>,
-  name: string,
-): Promise<TagCategory> {
-  const existing = await ctx.db
-    .query('tagCategories')
-    .withIndex('by_campaign_name', (q) =>
-      q.eq('campaignId', campaignId).eq('name', name.toLowerCase()),
-    )
-    .unique()
-
-  if (!existing) {
-    throw new Error('Category not found')
-  }
-
-  return existing
 }
 
 export async function getTagsByCampaign(
@@ -523,55 +546,6 @@ export const deleteTagCategory = async (
   return categoryId
 }
 
-export async function validateTagBelongsToCampaign( //TODO: remove this
-  ctx: Ctx,
-  tagId: Id<'tags'>,
-  campaignId: Id<'campaigns'>,
-): Promise<Tag> {
-  await requireCampaignMembership(
-    ctx,
-    { campaignId: campaignId },
-    { allowedRoles: [CAMPAIGN_MEMBER_ROLE.DM] },
-  )
-
-  const tag = await ctx.db.get(tagId)
-  if (!tag) {
-    throw new Error('Tag not found')
-  }
-
-  if (tag.campaignId !== campaignId) {
-    throw new Error('Tag does not belong to the specified campaign')
-  }
-
-  const category = await ctx.db.get(tag.categoryId)
-  if (!category) {
-    throw new Error('Category not found')
-  }
-
-  return { ...tag, category }
-}
-
-export async function findBlock(
-  ctx: Ctx,
-  noteId: Id<'notes'>,
-  blockId: string,
-): Promise<Block | null> {
-  const note = await ctx.db.get(noteId)
-  if (!note) {
-    return null
-  }
-
-  return (await ctx.db
-    .query('blocks')
-    .withIndex('by_campaign_note_block', (q) =>
-      q
-        .eq('campaignId', note.campaignId)
-        .eq('noteId', noteId)
-        .eq('blockId', blockId),
-    )
-    .unique()) as Block | null
-}
-
 export async function getNoteLevelTag(
   ctx: Ctx,
   noteId: Id<'notes'>,
@@ -628,6 +602,29 @@ export async function getBlockLevelTag(
   }
 
   return { ...tag, category }
+}
+
+export async function findBlock(
+  ctx: Ctx,
+  noteId: Id<'notes'>,
+  blockId: string,
+): Promise<Block | null> {
+  const note = await ctx.db.get(noteId)
+  if (!note) {
+    return null
+  }
+
+  const block = (await ctx.db
+    .query('blocks')
+    .withIndex('by_campaign_note_block', (q) =>
+      q
+        .eq('campaignId', note.campaignId)
+        .eq('noteId', noteId)
+        .eq('blockId', blockId),
+    )
+    .unique()) as Block | null
+
+  return block
 }
 
 export async function getBlockLevelTags(
@@ -761,9 +758,7 @@ export async function removeTagFromBlock(
     await ctx.db.delete(blockTag._id)
   }
 
-  // remove from the database if there are no remaining tags and the block is not a top level block
   const remainingTags = await getBlockLevelTags(ctx, blockDbId)
-
   if (remainingTags.length === 0 && !isTopLevel) {
     await ctx.db.delete(blockDbId)
     return null
@@ -771,8 +766,9 @@ export async function removeTagFromBlock(
     await ctx.db.patch(blockDbId, {
       updatedAt: Date.now(),
     })
-    return blockDbId
   }
+
+  return blockDbId
 }
 
 export function extractAllBlocksWithTags(
@@ -848,10 +844,175 @@ export function extractTagIdsFromBlockContent(block: any): Id<'tags'>[] {
   return tagIds
 }
 
+function computeTopLevelPositions(
+  allBlocksWithTags: Map<
+    string,
+    { block: CustomBlock; tagIds: Id<'tags'>[]; isTopLevel: boolean }
+  >,
+): Map<string, number> {
+  const order = Array.from(allBlocksWithTags.entries())
+    .filter(([_, data]) => data.isTopLevel)
+    .map(([id]) => id)
+  const positions = new Map<string, number>()
+  order.forEach((id, index) => positions.set(id, index))
+  return positions
+}
+
+async function upsertBlock(
+  ctx: MutationCtx,
+  existingBlock: Block | undefined,
+  params: {
+    noteId: Id<'notes'>
+    campaignId: Id<'campaigns'>
+    blockId: string
+    isTopLevel: boolean
+    position?: number
+    content: CustomBlock
+    now: number
+  },
+): Promise<Id<'blocks'>> {
+  if (existingBlock) {
+    await ctx.db.patch(existingBlock._id, {
+      position: params.position,
+      content: params.content,
+      isTopLevel: params.isTopLevel,
+      updatedAt: params.now,
+    })
+    return existingBlock._id
+  }
+
+  return await ctx.db.insert('blocks', {
+    noteId: params.noteId,
+    blockId: params.blockId,
+    position: params.position,
+    content: params.content,
+    isTopLevel: params.isTopLevel,
+    campaignId: params.campaignId,
+    updatedAt: params.now,
+  })
+}
+
+async function updateBlockTags(
+  ctx: MutationCtx,
+  campaignId: Id<'campaigns'>,
+  finalBlockDbId: Id<'blocks'>,
+  existingBlockContent: CustomBlock | undefined,
+  inlineTagIds: Id<'tags'>[],
+): Promise<void> {
+  const currentTagIds = await getBlockLevelTags(ctx, finalBlockDbId)
+
+  const oldInlineTagIds = existingBlockContent
+    ? extractTagIdsFromBlockContent(existingBlockContent)
+    : []
+
+  const manualTags = currentTagIds.filter(
+    (tagId) => !oldInlineTagIds.includes(tagId),
+  )
+
+  const finalTagIds = [...new Set([...inlineTagIds, ...manualTags])]
+
+  const tagsToRemove = currentTagIds.filter(
+    (tagId) => !finalTagIds.includes(tagId),
+  )
+  const tagsToAdd = finalTagIds.filter(
+    (tagId) => !currentTagIds.includes(tagId),
+  )
+
+  for (const tagId of tagsToRemove) {
+    const blockTag = await ctx.db
+      .query('blockTags')
+      .withIndex('by_campaign_block_tag', (q) =>
+        q
+          .eq('campaignId', campaignId)
+          .eq('blockId', finalBlockDbId)
+          .eq('tagId', tagId),
+      )
+      .unique()
+    if (blockTag) {
+      await ctx.db.delete(blockTag._id)
+    }
+  }
+
+  for (const tagId of tagsToAdd) {
+    await ctx.db.insert('blockTags', {
+      campaignId: campaignId,
+      blockId: finalBlockDbId,
+      tagId: tagId,
+    })
+  }
+}
+
+async function insertInlineBlockTags(
+  ctx: MutationCtx,
+  campaignId: Id<'campaigns'>,
+  finalBlockDbId: Id<'blocks'>,
+  inlineTagIds: Id<'tags'>[],
+): Promise<void> {
+  const finalTagIds = [...new Set([...inlineTagIds])]
+  for (const tagId of finalTagIds) {
+    await ctx.db.insert('blockTags', {
+      campaignId: campaignId,
+      blockId: finalBlockDbId,
+      tagId: tagId,
+    })
+  }
+}
+
+async function removeBlockAndTags(
+  ctx: MutationCtx,
+  block: Block,
+): Promise<void> {
+  const blockTags = await ctx.db
+    .query('blockTags')
+    .withIndex('by_campaign_block_tag', (q) =>
+      q.eq('campaignId', block.campaignId).eq('blockId', block._id),
+    )
+    .collect()
+
+  for (const bt of blockTags) {
+    await ctx.db.delete(bt._id)
+  }
+  await ctx.db.delete(block._id)
+}
+
+async function cleanupUnprocessedBlocks(
+  ctx: MutationCtx,
+  existingBlocks: Block[],
+  processedBlockIds: Set<string>,
+  content: CustomBlock[],
+  now: number,
+): Promise<void> {
+  for (const existingBlock of existingBlocks) {
+    if (!processedBlockIds.has(existingBlock.blockId)) {
+      const currentTagIds = await getBlockLevelTags(ctx, existingBlock._id)
+      const blockInNewContent = findBlockById(content, existingBlock.blockId)
+      const inlineTagIdsNew = blockInNewContent
+        ? extractTagIdsFromBlockContent(blockInNewContent)
+        : []
+
+      const hasAnyTags =
+        (currentTagIds && currentTagIds.length > 0) ||
+        (inlineTagIdsNew && inlineTagIdsNew.length > 0)
+
+      if (!hasAnyTags) {
+        await removeBlockAndTags(ctx, existingBlock)
+      } else {
+        await ctx.db.patch(existingBlock._id, {
+          isTopLevel: false,
+          position: undefined,
+          content: blockInNewContent
+            ? blockInNewContent
+            : existingBlock.content,
+          updatedAt: now,
+        })
+      }
+    }
+  }
+}
+
 export async function saveTopLevelBlocks(
   ctx: MutationCtx,
   noteId: Id<'notes'>,
-  campaignId: Id<'campaigns'>,
   content: CustomBlock[],
 ) {
   const now = Date.now()
@@ -878,6 +1039,7 @@ export async function saveTopLevelBlocks(
   )
 
   const processedBlockIds = new Set<string>()
+  const positions = computeTopLevelPositions(allBlocksWithTags)
 
   for (const [
     blockId,
@@ -886,106 +1048,41 @@ export async function saveTopLevelBlocks(
     processedBlockIds.add(blockId)
     const existingBlock = existingBlocksMap.get(blockId)
 
-    let finalBlockDbId: Id<'blocks'>
+    const finalBlockDbId = await upsertBlock(ctx, existingBlock, {
+      noteId,
+      campaignId: note.campaignId,
+      blockId,
+      isTopLevel,
+      position: isTopLevel ? positions.get(blockId) : undefined,
+      content: block,
+      now,
+    })
 
     if (existingBlock) {
-      await ctx.db.patch(existingBlock._id, {
-        position: isTopLevel
-          ? Array.from(allBlocksWithTags.entries())
-              .filter(([_, data]) => data.isTopLevel)
-              .findIndex(([id]) => id === blockId)
-          : undefined,
-        content: block,
-        isTopLevel: isTopLevel,
-        updatedAt: now,
-      })
-      finalBlockDbId = existingBlock._id
+      await updateBlockTags(
+        ctx,
+        note.campaignId,
+        finalBlockDbId,
+        existingBlock.content,
+        inlineTagIds,
+      )
     } else {
-      finalBlockDbId = await ctx.db.insert('blocks', {
-        noteId,
-        blockId: blockId,
-        position: isTopLevel
-          ? Array.from(allBlocksWithTags.entries())
-              .filter(([_, data]) => data.isTopLevel)
-              .findIndex(([id]) => id === blockId)
-          : undefined,
-        content: block,
-        isTopLevel: isTopLevel,
-        campaignId,
-        updatedAt: now,
-      })
-    }
-
-    if (existingBlock) {
-      const currentTagIds = await getBlockLevelTags(ctx, finalBlockDbId)
-
-      const oldInlineTagIds = existingBlock.content
-        ? extractTagIdsFromBlockContent(existingBlock.content)
-        : []
-
-      const manualTags = currentTagIds.filter(
-        (tagId) => !oldInlineTagIds.includes(tagId),
+      await insertInlineBlockTags(
+        ctx,
+        note.campaignId,
+        finalBlockDbId,
+        inlineTagIds,
       )
-
-      const finalTagIds = [...new Set([...inlineTagIds, ...manualTags])]
-
-      const tagsToRemove = currentTagIds.filter(
-        (tagId) => !finalTagIds.includes(tagId),
-      )
-      const tagsToAdd = finalTagIds.filter(
-        (tagId) => !currentTagIds.includes(tagId),
-      )
-
-      for (const tagId of tagsToRemove) {
-        const blockTag = await ctx.db
-          .query('blockTags')
-          .withIndex('by_campaign_block_tag', (q) =>
-            q
-              .eq('campaignId', campaignId)
-              .eq('blockId', finalBlockDbId)
-              .eq('tagId', tagId),
-          )
-          .unique()
-        if (blockTag) {
-          await ctx.db.delete(blockTag._id)
-        }
-      }
-
-      for (const tagId of tagsToAdd) {
-        await ctx.db.insert('blockTags', {
-          campaignId: campaignId,
-          blockId: finalBlockDbId,
-          tagId: tagId,
-        })
-      }
-    } else {
-      const finalTagIds = [...new Set([...inlineTagIds])]
-
-      for (const tagId of finalTagIds) {
-        await ctx.db.insert('blockTags', {
-          campaignId: campaignId,
-          blockId: finalBlockDbId,
-          tagId: tagId,
-        })
-      }
     }
   }
 
-  for (const existingBlock of existingBlocks) {
-    if (!processedBlockIds.has(existingBlock.blockId)) {
-      const currentTagIds = await getBlockLevelTags(ctx, existingBlock._id)
-
-      if (currentTagIds.length === 0) {
-        await ctx.db.delete(existingBlock._id)
-      } else {
-        await ctx.db.patch(existingBlock._id, {
-          isTopLevel: false,
-          position: undefined,
-          updatedAt: now,
-        })
-      }
-    }
-  }
+  await cleanupUnprocessedBlocks(
+    ctx,
+    existingBlocks,
+    processedBlockIds,
+    content,
+    now,
+  )
 }
 
 export function findBlockById(content: any, blockId: string): any | null {

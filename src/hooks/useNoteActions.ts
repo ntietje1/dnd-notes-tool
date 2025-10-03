@@ -20,11 +20,11 @@ export const useNoteActions = () => {
   })
 
   const updateNoteContent = useCallback(
-    async (noteId: Id<'notes'>, newContent: CustomBlock[]) => {
-      const sanitizedContent = sanitizeNoteContent(newContent)
+    async (noteId: Id<'notes'>, payload: CustomBlock[]) => {
+      const sanitized = sanitizeNoteContent(payload)
       await updateNote.mutateAsync({
         noteId,
-        content: sanitizedContent,
+        content: sanitized,
       })
     },
     [updateNote],

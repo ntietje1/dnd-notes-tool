@@ -16,38 +16,11 @@ const blockTableFields = {
   updatedAt: v.number(),
 }
 
-const blockTable = defineTable({
-  noteId: v.id('notes'),
-  blockId: v.string(),
-  position: v.optional(v.number()),
-  content: customBlockValidator,
-  isTopLevel: v.boolean(),
-  campaignId: v.id('campaigns'),
-  updatedAt: v.number(),
-})
-  .index('by_campaign_note_toplevel_pos', [
-    'campaignId',
-    'noteId',
-    'isTopLevel',
-    'position',
-  ])
-  .index('by_campaign_note_block', ['campaignId', 'noteId', 'blockId'])
-
-export const blockValidator = v.object({
-  _id: v.id('blocks'),
-  _creationTime: v.number(),
-  ...blockTableFields,
-})
-
 const blockTagTableFields = {
   campaignId: v.id('campaigns'),
   blockId: v.id('blocks'),
   tagId: v.id('tags'),
 }
-
-const blockTagTable = defineTable({
-  ...blockTagTableFields,
-}).index('by_campaign_block_tag', ['campaignId', 'blockId', 'tagId'])
 
 const noteTableFields = {
   userId: v.string(),
@@ -59,15 +32,61 @@ const noteTableFields = {
   parentFolderId: v.optional(v.id('folders')),
 }
 
-const noteTable = defineTable({
-  ...noteTableFields,
-})
-  .index('by_campaign_category_parent', [
+const folderTableFields = {
+  userId: v.string(),
+  campaignId: v.id('campaigns'),
+  name: v.optional(v.string()),
+  updatedAt: v.number(),
+  categoryId: v.optional(v.id('tagCategories')),
+  parentFolderId: v.optional(v.id('folders')),
+}
+
+export const notesTables = {
+  notes: defineTable({
+    ...noteTableFields,
+  })
+    .index('by_campaign_category_parent', [
+      'campaignId',
+      'categoryId',
+      'parentFolderId',
+    ])
+    .index('by_campaign_category_tag', ['campaignId', 'categoryId', 'tagId']),
+
+  folders: defineTable({
+    ...folderTableFields,
+  }).index('by_campaign_category_parent', [
     'campaignId',
     'categoryId',
     'parentFolderId',
-  ])
-  .index('by_campaign_category_tag', ['campaignId', 'categoryId', 'tagId'])
+  ]),
+
+  blocks: defineTable({
+    ...blockTableFields,
+  })
+    .index('by_campaign_note_toplevel_pos', [
+      'campaignId',
+      'noteId',
+      'isTopLevel',
+      'position',
+    ])
+    .index('by_campaign_note_block', ['campaignId', 'noteId', 'blockId']),
+
+  blockTags: defineTable({
+    ...blockTagTableFields,
+  }).index('by_campaign_block_tag', ['campaignId', 'blockId', 'tagId']),
+}
+
+const blockValidatorFields = {
+  _id: v.id('blocks'),
+  _creationTime: v.number(),
+  ...blockTableFields,
+} as const
+
+const blockTagValidatorFields = {
+  _id: v.id('blockTags'),
+  _creationTime: v.number(),
+  ...blockTagTableFields,
+} as const
 
 const noteValidatorFields = {
   _id: v.id('notes'),
@@ -78,32 +97,6 @@ const noteValidatorFields = {
   tag: v.optional(tagValidator),
 } as const
 
-export const noteValidator = v.object({
-  ...noteValidatorFields,
-})
-
-export const noteWithContentValidator = v.object({
-  ...noteValidatorFields,
-  content: v.array(customBlockValidator),
-})
-
-const folderTableFields = {
-  userId: v.string(),
-  campaignId: v.id('campaigns'),
-  name: v.optional(v.string()),
-  updatedAt: v.number(),
-  categoryId: v.optional(v.id('tagCategories')),
-  parentFolderId: v.optional(v.id('folders')),
-}
-
-const folderTable = defineTable({
-  ...folderTableFields,
-}).index('by_campaign_category_parent', [
-  'campaignId',
-  'categoryId',
-  'parentFolderId',
-])
-
 const folderValidatorFields = {
   _id: v.id('folders'),
   _creationTime: v.number(),
@@ -111,6 +104,17 @@ const folderValidatorFields = {
   category: v.optional(tagCategoryValidator),
   type: v.literal('folders'),
 } as const
+
+export const blockValidator = v.object(blockValidatorFields)
+
+export const blockTagValidator = v.object(blockTagValidatorFields)
+
+export const noteValidator = v.object(noteValidatorFields)
+
+export const noteWithContentValidator = v.object({
+  ...noteValidatorFields,
+  content: v.array(customBlockValidator),
+})
 
 export const folderValidator = v.object(folderValidatorFields)
 
@@ -120,11 +124,3 @@ export const folderWithChildrenValidator = v.object({
   ...folderValidatorFields,
   children: v.optional(v.array(sidebarItemValidator)),
 })
-
-export const notesTables = {
-  notes: noteTable,
-  folders: folderTable,
-
-  blocks: blockTable,
-  blockTags: blockTagTable,
-}

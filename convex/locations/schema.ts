@@ -13,8 +13,12 @@ export const locationTables = {
   }).index('by_campaign_tag', ['campaignId', 'tagId']),
 }
 
-export const locationValidator = v.object({
+const locationValidatorFields = {
   ...tagValidatorFields,
   ...locationTableFields,
+} as const
+
+export const locationValidator = v.object({
+  ...locationValidatorFields,
   locationId: v.id('locations'), // additional field to be explicit about which field is the id
 })

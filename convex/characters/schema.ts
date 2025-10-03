@@ -14,8 +14,12 @@ export const characterTables = {
   }).index('by_campaign_tag', ['campaignId', 'tagId']),
 }
 
-export const characterValidator = v.object({
+const characterValidatorFields = {
   ...tagValidatorFields,
   ...characterTableFields,
+} as const
+
+export const characterValidator = v.object({
+  ...characterValidatorFields,
   characterId: v.id('characters'), // additional field to be explicit about which field is the id
 })

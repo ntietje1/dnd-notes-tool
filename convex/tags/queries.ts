@@ -8,7 +8,7 @@ import {
   getTagsByCategory as getTagsByCategoryFn,
   getTagsByCampaign as getTagsByCampaignFn,
 } from './tags'
-import { tagCategoryValidator, tagValidator } from './validators'
+import { tagCategoryValidator, tagValidator } from './schema'
 
 export const getSharedTags = query({
   args: {
