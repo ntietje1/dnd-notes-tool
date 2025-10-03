@@ -3,7 +3,7 @@ import {
   CategoryContextMenu,
   type CategoryContextMenuProps,
 } from '../generic-category-folder/category-context-menu'
-import { MapPin } from '~/lib/icons'
+import { MapPin, MapPinPlus } from '~/lib/icons'
 import { useCampaign } from '~/contexts/CampaignContext'
 import { useRouter } from '@tanstack/react-router'
 import { forwardRef, useState } from 'react'
@@ -30,20 +30,18 @@ export const LocationCategoryFolderContextMenu = forwardRef<
   }
 
   const itemsTransformation = (baseItems: ContextMenuItem[]) => {
-    // Clone the base items
     const items = [...baseItems]
 
-    // Override the first item (Create New Location) with custom handler
     if (items[0] && items[0].type === 'action') {
       items[0] = {
         ...items[0],
+        icon: <MapPinPlus className="h-4 w-4" />,
         onClick: handleCreateItem,
       }
     }
 
-    // Add "Go to Locations" option after the first item if we're at the root category (not in a subfolder)
     if (!props.folder) {
-      items.splice(1, 0, {
+      items.push({
         type: 'action' as const,
         icon: <MapPin className="h-4 w-4" />,
         label: `Go to ${categoryConfig.plural}`,
